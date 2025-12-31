@@ -1,0 +1,1 @@
+sudo docker run --rm -it -v  /usr/bin/time:/usr/bin/time -v /home/ubuntu/judge/test:/home/test sandbox_go

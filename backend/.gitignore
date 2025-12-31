@@ -1,0 +1,16 @@
+.idea
+chunks
+uploads
+runtime
+tmp
+main
+.vscode
+dist
+target
+assets
+*.png
+*.jpg
+*.mp3
+*.mp4
+media
+logs

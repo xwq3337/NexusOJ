@@ -1,0 +1,69 @@
+FROM ubuntu:22.04
+
+COPY cpp/googletest /tmp/googletest
+COPY cpp/folly /tmp/folly
+COPY cpp/fast_float /tmp/fast_float
+
+RUN sed -i 's@archive.ubuntu.com@mirrors.aliyun.com@g' /etc/apt/sources.list \
+    && sed -i 's@security.ubuntu.com@mirrors.aliyun.com@g' /etc/apt/sources.list  \
+    && apt-get update && apt-get remove -y --purge nodejs libnode* && \
+    apt-get install -y \
+    python3.10 \
+    g++ \
+    gcc \
+    cmake \
+    wget \
+    make \
+    libboost-all-dev \
+    libevent-dev \
+    libdouble-conversion-dev \
+    libgoogle-glog-dev \
+    libgflags-dev \
+    libiberty-dev \
+    liblz4-dev \
+    liblzma-dev \
+    libsnappy-dev \
+    zlib1g-dev \
+    binutils-dev \
+    libjemalloc-dev \
+    libssl-dev \
+    pkg-config \
+    libunwind-dev \
+    libfmt-dev \
+    libunwind8-dev \
+    libelf-dev \
+    libdwarf-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && cd /tmp/googletest \
+    && cmake . \
+    && make \
+    && make install \
+    && cd /tmp/fast_float \
+    && mkdir _build && cd _build \
+    && cmake .. \
+    && make \
+    && make install \
+    && cd /tmp/folly \
+    && mkdir _build && cd _build \
+    && cmake .. \
+    && make -j$(nproc) \
+    && make install \
+    && ldconfig  
+
+
+RUN cd /tmp && \
+    wget https://golang.google.cn/dl/go1.23.6.linux-amd64.tar.gz&& \
+    tar -C /usr/local -xzf go1.23.6.linux-amd64.tar.gz && \
+    rm go1.23.6.linux-amd64.tar.gz 
+
+COPY python/requirements.txt /tmp/requirements.txt
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get update && apt-get install -y nodejs python3-pip && \
+    npm config set registry https://registry.npmmirror.com && \
+    npm install -g ts-node typescript 
+RUN  pip3 install --no-cache-dir -r /tmp/requirements.txt -i https://mirrors.aliyun.com/pypi/simple
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:/usr/local/go/bin:${PATH}"
+

@@ -1,0 +1,71 @@
+body.dark {
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: #f8fafc;
+  --contrast-color: #fff;
+  /* Tailwind dark theme colors */
+  --color-dark-900: #0f172a;
+  --color-dark-800: #1e293b;
+  --color-dark-700: #334155;
+  /* Background colors */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-card: #1e293b;
+  --bg-modal: #1e293b;
+  /* Text colors */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-disabled: #475569;
+  /* Border colors */
+  --border-color: #334155;
+  --border-light: #475569;
+  --border-focus: #60a5fa;
+  /* Accent colors - aligned with Tailwind config */
+  --accent-color: #3b82f6;
+  --accent-hover: #2563eb;
+  --primary: #3b82f6;
+  --secondary: #6366f1;
+  /* Status colors */
+  --success-color: #10b981;
+  --success-bg: #065f46;
+  --warning-color: #f59e0b;
+  --warning-bg: #92400e;
+  --error-color: #ef4444;
+  --error-bg: #991b1b;
+  --info-color: #60a5fa;
+  --info-bg: #1e40af;
+  /* Button colors */
+  --btn-primary: #3b82f6;
+  --btn-primary-hover: #2563eb;
+  --btn-secondary: #64748b;
+  --btn-secondary-hover: #475569;
+  --btn-success: #10b981;
+  --btn-success-hover: #059669;
+  --btn-warning: #f59e0b;
+  --btn-warning-hover: #d97706;
+  --btn-danger: #ef4444;
+  --btn-danger-hover: #dc2626;
+  /* Input colors */
+  --input-bg: #1e293b;
+  --input-border: #334155;
+  --input-focus: #60a5fa;
+  --input-placeholder: #64748b;
+  /* Card and surface colors */
+  --surface-primary: #1e293b;
+  --surface-secondary: #334155;
+  --surface-tertiary: #475569;
+  /* Shadow colors */
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --shadow-light: rgba(0, 0, 0, 0.1);
+  /* Selection colors */
+  --selection-bg: #3b82f6;
+  --selection-text: #ffffff;
+
+  /* Ensure compatibility with Tailwind dark mode */
+  color-scheme: dark;
+}

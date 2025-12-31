@@ -1,0 +1,10 @@
+{
+    "c" : "c",
+    "cpp" : "cpp",
+    "python":"py",
+    "java":"java",
+    "go" : "go",
+    "rust" : "rs",
+    "csharp" : "cs",
+    "asm" : "asm"
+}

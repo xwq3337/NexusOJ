@@ -1,0 +1,42 @@
+{
+  "name": "nexusoj",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "format": "prettier --write .",
+    "upload": "node scripts/upload.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.33.0",
+    "@kangc/v-md-editor": "^2.3.18",
+    "@vueuse/core": "^14.1.0",
+    "ace-builds": "^1.43.5",
+    "axios": "^1.13.2",
+    "echarts": "^5.4.0",
+    "highlight.js": "^11.11.1",
+    "lucide-vue-next": "^0.301.0",
+    "pinia": "^3.0.4",
+    "pinia-plugin-persistedstate": "^4.7.1",
+    "prismjs": "^1.30.0",
+    "vue": "^3.3.4",
+    "vue-echarts": "^6.0.0-rc.4",
+    "vue-router": "^4.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-vue": "^4.0.0",
+    "autoprefixer": "^10.4.23",
+    "naive-ui": "^2.43.2",
+    "postcss": "^8.5.6",
+    "prettier": "3.7.4",
+    "tailwindcss": "^4.1.18",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "vue3-ace-editor": "^2.2.4"
+  }
+}
