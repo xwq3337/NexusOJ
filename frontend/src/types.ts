@@ -40,6 +40,7 @@ export interface Blog {
   tags: string[]
   collection: number
   like: number
+  view?: number
   is_private: boolean
   created_at: string
   status: number

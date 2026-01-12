@@ -124,34 +124,65 @@
                   </div>
                 </div>
 
-                <div v-if="activeChatId" class="flex-1 p-4 overflow-y-auto max-h-[45vh]">
+                <div v-if="activeChatId" class="flex-1 p-6 overflow-y-auto max-h-[45vh] bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
                   <div
                     v-for="message in activeChat?.messages"
                     :key="message.id"
-                    :class="['mb-4 flex', message.isOwn ? 'justify-end' : 'justify-start']"
+                    :class="['mb-6 flex gap-3', message.isOwn ? 'flex-row-reverse' : 'flex-row']"
                   >
+                    <!-- 头像 -->
+                    <n-avatar
+                      round
+                      :size="40"
+                      :src="message.isOwn ? userStore.avatar : activeChat?.avatar"
+                      class="flex-shrink-0 shadow-md"
+                    />
+
+                    <!-- 消息气泡 -->
                     <div
-                      :class="[
-                        'max-w-[80%] rounded-2xl px-4 py-2',
-                        message.isOwn
-                          ? 'bg-blue-600 text-white rounded-br-none'
-                          : 'text-gray-200 rounded-bl-none border'
-                      ]"
-                      :style="
-                        message.isOwn
-                          ? {}
-                          : {
-                              backgroundColor: 'var(--surface-tertiary)',
-                              borderColor: 'var(--border-light)',
-                              borderWidth: '1px',
-                              borderStyle: 'solid'
-                            }
-                      "
+                      :class="['flex flex-col max-w-[70%]', message.isOwn ? 'items-end' : 'items-start']"
                     >
-                      <p>{{ message.text }}</p>
-                      <p class="text-xs mt-1 opacity-70">
-                        {{ message.time }}
-                      </p>
+                      <!-- 发送者名称 -->
+                      <div
+                        v-if="!message.isOwn"
+                        class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 px-2"
+                      >
+                        {{ activeChat?.name }}
+                      </div>
+
+                      <!-- 消息内容 -->
+                      <div
+                        :class="[
+                          'relative px-4 py-3 shadow-md transition-all duration-200',
+                          message.isOwn
+                            ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-2xl rounded-br-sm'
+                            : 'bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-2xl rounded-bl-sm border-2 border-slate-200 dark:border-slate-600'
+                        ]"
+                      >
+                        <p class="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                          {{ message.text }}
+                        </p>
+
+                        <!-- 时间戳 -->
+                        <div
+                          :class="[
+                            'text-xs mt-2 flex items-center gap-1',
+                            message.isOwn ? 'text-blue-100' : 'text-slate-400 dark:text-slate-500'
+                          ]"
+                        >
+                          <svg
+                            class="w-3 h-3"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                          >
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                          </svg>
+                          {{ message.time }}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -436,18 +467,19 @@ const selectChat = async (id: number) => {
       // 更新当前聊天的消息列表
       const chat = chatList.value.find((c) => c.id === id)
       if (chat) {
+        console.log(response.info)
         // 转换消息格式
         chat.messages =
-          response.result?.map((msg: any) => ({
-            id: msg.id,
-            text: msg.content,
-            time: msg.time || msg.createdAt,
-            isOwn: msg.senderId === userStore.id // 如果发送者是当前用户，则为自己的消息
+          response.info?.map((msg: any) => ({
+            isRead : msg.Status,
+            text: msg.Content,
+            time: msg.CreatedAt,
+            isOwn: msg.SenderID === userStore.id // 如果发送者是当前用户，则为自己的消息
           })) || []
-
+          console.log(chat.messages)
         // 更新最后消息显示
-        if (response.result && response.result.length > 0) {
-          const lastMessage = response.result[response.result.length - 1]
+        if (response.info && response.info.length > 0) {
+          const lastMessage = response.info[response.info.length - 1]
           chat.lastMessage = lastMessage.content
           chat.time = lastMessage.time || lastMessage.createdAt
         }
@@ -589,17 +621,16 @@ const fetchFriendList = async () => {
     if (response && (response.code === 200 || response.code === 0)) {
       // 转换API响应为页面需要的格式
       friendList.value =
-        response.result?.map((friend: Friend) => ({
+        response.info?.map((friend: Friend) => ({
           id: friend.id,
           name: friend.nickname || friend.account,
-          avatar: friend.avatar || DEFAULT_AVATAR,
-          lastMessage: '上次在线: ' + friend.status,
+          avatar:  DEFAULT_AVATAR,
+          lastMessage: '上次在线: ' + '1970年1月1日',
           time: '',
           unread: 0,
           status: friend.status,
           messages: []
         })) || []
-
       // 更新聊天列表
       chatList.value = friendList.value
     } else {
@@ -640,7 +671,7 @@ const searchUsers = async () => {
     const response = await Request.get(`/user/search?keyword=${searchKeyword.value}`)
     if (response && (response.code === 200 || response.code === 0)) {
       searchResults.value =
-        response.result?.map((user: SearchResult) => ({
+        response.info?.map((user: SearchResult) => ({
           id: user.id,
           account: user.account,
           nickname: user.nickname,
@@ -683,7 +714,7 @@ const fetchFriendRequests = async () => {
     const response = await Request.get('/user/newfriend')
     if (response && (response.code === 200 || response.code === 0)) {
       friendRequests.value =
-        response.result?.map((req: any) => ({
+        response.info?.map((req: any) => ({
           id: req.id,
           senderId: req.senderId,
           senderAccount: req.senderAccount,

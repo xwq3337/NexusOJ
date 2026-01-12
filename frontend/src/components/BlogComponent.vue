@@ -30,83 +30,63 @@
       />
     </div>
 
-    <!-- 博客列表 -->
-    <div class="space-y-6">
+    <!-- 博客列表 - 紧凑型卡片布局 -->
+    <div class="blog-list">
       <div v-if="loading" class="flex justify-center items-center py-12">
         <n-spin size="large" />
       </div>
       <template v-else>
-        <n-card
+        <div
           v-for="blog in filteredBlogs"
           :key="blog.id"
-          class="blog-card hover:shadow-lg transition-shadow cursor-pointer"
+          class="blog-card"
           :style="{ backgroundColor: 'var(--surface-primary)' }"
-          @click="$router.push({ name: 'BlogDetail', params: { id: blog.id } })"
+          @click="router.push({ name: 'BlogDetail', params: { id: blog.id } })"
         >
-          <div class="flex flex-col md:flex-row gap-6">
-            <!-- 博客图片/封面 -->
-            <div class="md:w-1/4">
-              <div
-                class="h-40 bg-linear-to-r from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center"
-              >
-                <FileText :size="48" class="text-white" />
-              </div>
-            </div>
-
-            <!-- 博客内容 -->
-            <div class="flex-1">
-              <div class="flex items-center gap-2 mb-2">
-                <span
-                  class="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-full text-xs font-medium"
-                >
-                  作者: {{ blog.username }}
-                </span>
-                <span class="text-gray-500 text-sm">{{
-                  new Date(blog.created_at).toLocaleDateString()
-                }}</span>
-              </div>
-
-              <h3 class="text-xl font-bold mb-2" :style="{ color: 'var(--text-primary)' }">
-                {{ blog.title }}
-              </h3>
-
-              <p class="text-gray-500 mb-3" :style="{ color: 'var(--text-secondary)' }">
-                {{ blog.context.substring(0, 100) }}{{ blog.context.length > 100 ? '...' : '' }}
-              </p>
-
-              <div class="flex flex-wrap gap-2 mb-3">
-                <span
-                  v-for="tag in blog.tags"
-                  :key="tag"
-                  class="px-2 py-1 bg-gray-500/10 text-gray-400 rounded text-xs"
-                >
-                  {{ tag }}
-                </span>
-              </div>
-
-              <div class="flex items-center justify-between text-sm text-gray-500">
-                <div class="flex items-center">
-                  <User :size="14" class="mr-1" />
-                  <span>{{ blog.username }}</span>
-                </div>
-                <div class="flex items-center gap-4">
-                  <div class="flex items-center">
-                    <MessageCircle :size="14" class="mr-1" />
-                    <span>{{ blog.collection }}</span>
-                  </div>
-                  <div class="flex items-center">
-                    <Eye :size="14" class="mr-1" />
-                    <span>{{ blog.like }}</span>
-                  </div>
-                  <div class="flex items-center">
-                    <Heart :size="14" class="mr-1" />
-                    <span>{{ blog.like }}</span>
-                  </div>
-                </div>
+          <!-- 用户信息区域 -->
+          <div class="blog-header">
+            <div class="user-info">
+              <div class="avatar">{{ blog.username?.charAt(0)?.toUpperCase() || 'U' }}</div>
+              <div class="user-details">
+                <span class="username">{{ blog.username }}</span>
+                <span class="publish-time">{{ formatTime(blog.created_at) }}</span>
               </div>
             </div>
           </div>
-        </n-card>
+
+          <!-- 博客标题 -->
+          <h3 class="blog-title">{{ blog.title }}</h3>
+
+          <!-- 博客摘要 -->
+          <p class="blog-excerpt">
+            {{ blog.context.substring(0, 120) }}{{ blog.context.length > 120 ? '...' : '' }}
+          </p>
+
+          <!-- 标签 -->
+          <div class="blog-tags" v-if="blog.tags && blog.tags.length">
+            <span v-for="tag in blog.tags.slice(0, 3)" :key="tag" class="tag">
+              {{ tag }}
+            </span>
+          </div>
+
+          <!-- 底部统计信息 -->
+          <div class="blog-footer">
+            <div class="stats">
+              <div class="stat-item">
+                <Eye :size="14" />
+                <span>{{ formatNumber(blog.view || 0) }}</span>
+              </div>
+              <div class="stat-item">
+                <Heart :size="14" />
+                <span>{{ formatNumber(blog.like || 0) }}</span>
+              </div>
+              <div class="stat-item">
+                <Bookmark :size="14" />
+                <span>{{ formatNumber(blog.collection || 0) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </template>
 
       <div v-if="!loading && filteredBlogs.length === 0" class="text-center py-12 text-gray-500">
@@ -129,22 +109,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  Search,
-  FileText,
-  User,
-  MessageCircle,
-  Eye,
-  Heart,
-  Code,
-  Cpu,
-  Palette,
-  Database,
-  BookText
-} from 'lucide-vue-next'
-import { NCard, NInput, NSelect, NPagination, NSpin } from 'naive-ui'
+import { Search, Eye, Heart, Bookmark } from 'lucide-vue-next'
+import { NInput, NSelect, NPagination, NSpin } from 'naive-ui'
 import Request from '@/services/api'
 import type { Blog } from '@/types'
+
+const router = useRouter()
 
 // 博客数据
 const blogs = ref<Blog[]>([])
@@ -225,16 +195,192 @@ const filteredBlogs = computed(() => {
   const end = start + pageSize
   return result.slice(start, end)
 })
+
+// 格式化时间显示
+const formatTime = (dateString: string) => {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+
+  if (days === 0) {
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+    if (hours === 0) {
+      const minutes = Math.floor(diff / (1000 * 60))
+      return minutes === 0 ? '刚刚' : `${minutes}分钟前`
+    }
+    return `${hours}小时前`
+  } else if (days === 1) {
+    return '昨天'
+  } else if (days < 7) {
+    return `${days}天前`
+  } else {
+    return date.toLocaleDateString()
+  }
+}
+
+// 格式化数字显示
+const formatNumber = (num: number) => {
+  if (num >= 10000) {
+    return `${(num / 10000).toFixed(1)}w`
+  } else if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}k`
+  }
+  return num.toString()
+}
 </script>
 
 <style scoped>
+.blog-list {
+  display: grid;
+  gap: 16px;
+}
+
 .blog-card {
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--surface-primary);
 }
 
 .blog-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary-color, #6366f1);
+}
+
+/* 头部用户信息 */
+.blog-header {
+  margin-bottom: 12px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.username {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.publish-time {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* 博客标题 */
+.blog-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* 博客摘要 */
+.blog-excerpt {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 12px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* 标签 */
+.blog-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 4px 10px;
+  background: var(--tag-bg, rgba(99, 102, 241, 0.1));
+  color: var(--tag-color, #6366f1);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 底部统计 */
+.blog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+}
+
+.stats {
+  display: flex;
+  gap: 16px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.stat-item svg {
+  stroke: var(--text-secondary);
+  opacity: 0.7;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .blog-card {
+    padding: 16px;
+  }
+
+  .blog-title {
+    font-size: 16px;
+  }
+
+  .blog-excerpt {
+    font-size: 13px;
+  }
+
+  .stats {
+    gap: 12px;
+  }
 }
 </style>

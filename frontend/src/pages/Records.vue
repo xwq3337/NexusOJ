@@ -4,51 +4,39 @@
       <h1 class="text-3xl font-bold mb-6" :style="{ color: 'var(--text-primary)' }">评测记录</h1>
 
       <!-- 筛选和搜索区域 -->
-      <div
-        class="mb-6 flex gap-4 p-4 rounded-lg"
-        :style="{ backgroundColor: 'var(--surface-primary)' }"
-      >
-        <n-input
-          v-model:value="searchKeyword"
-          placeholder="搜索题目或用户..."
-          style="max-width: 300px"
-          :style="{ backgroundColor: 'var(--surface-tertiary)' }"
-          clearable
-        >
+      <div class="mb-6 flex gap-4 p-4 rounded-lg" :style="{ backgroundColor: 'var(--surface-primary)' }">
+        <n-input v-model:value="searchKeyword" placeholder="搜索题目或用户..." style="max-width: 300px"
+          :style="{ backgroundColor: 'var(--surface-tertiary)' }" clearable>
           <template #prefix>
             <Search :size="18" />
           </template>
         </n-input>
 
-        <n-select
-          v-model:value="statusFilter"
-          :options="statusOptions"
-          placeholder="状态"
-          style="min-width: 120px"
-          clearable
-        />
+        <n-select v-model:value="statusFilter" :options="statusOptions" placeholder="状态" style="min-width: 120px"
+          clearable />
 
-        <n-select
-          v-model:value="languageFilter"
-          :options="languageOptions"
-          placeholder="语言"
-          style="min-width: 120px"
-          clearable
-        />
+        <n-select v-model:value="languageFilter" :options="languageOptions" placeholder="语言" style="min-width: 120px"
+          clearable />
 
         <n-button @click="resetFilters" type="default">重置</n-button>
       </div>
 
       <!-- 记录表格 -->
       <n-card :style="{ backgroundColor: 'var(--surface-primary)' }" content-style="padding: 0;">
-        <n-data-table
-          :columns="columns"
-          :data="records"
-          :loading="loading"
-          :pagination="pagination"
-          size="small"
-          :row-key="(row) => row.id"
-        />
+        <n-data-table :columns="columns" :data="records" :loading="loading" size="small" :row-key="(row) => row.id" />
+        <div class="flex justify-end p-4">
+          <n-pagination
+            v-model:page="pagination.page"
+            v-model:page-size="pagination.pageSize"
+            :page-count="Math.ceil(Number(totalRecords/pagination.pageSize))"
+            :page-sizes="pagination.pageSizes"
+            size="medium"
+            show-quick-jumper
+            show-size-picker
+            @update-page="pagination.onUpdatePage"
+            @update-page-size="pagination.onUpdatePageSize"
+          />
+        </div>
       </n-card>
     </div>
   </div>
@@ -56,7 +44,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, onMounted } from 'vue'
-import { NDataTable, NCard, NInput, NSelect, NButton, NTag, NAvatar } from 'naive-ui'
+import { NDataTable, NCard, NInput, NSelect, NButton, NTag, NAvatar ,NPagination} from 'naive-ui'
 import { Search, CheckCircle, XCircle, Clock, Code, User, Calendar } from 'lucide-vue-next'
 import { h } from 'vue'
 import Request from '@/services/api'
