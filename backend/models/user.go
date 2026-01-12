@@ -102,7 +102,7 @@ func (FriendShips) TableName() string {
 
 func GetAllFriends(id string) ([]User, error) {
 	var users []User
-	err := dao.MysqlClient.Raw("SELECT id, username, avatar FROM user WHERE id IN (SELECT user_id2 as `id`  FROM friendship WHERE user_id1 = ? AND status = 'accepted' UNION ALL SELECT user_id1 as `id` FROM friendship WHERE user_id2 = ? AND status = 'accepted')", id, id).Scan(&users).Error
+	err := dao.MysqlClient.Raw("SELECT id, nickname, username, avatar FROM user WHERE id IN (SELECT user_id2 as `id`  FROM friendship WHERE user_id1 = ? AND status = 'accepted' UNION ALL SELECT user_id1 as `id` FROM friendship WHERE user_id2 = ? AND status = 'accepted')", id, id).Scan(&users).Error
 	return users, err
 }
 

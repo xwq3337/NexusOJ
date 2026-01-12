@@ -80,11 +80,14 @@ func QueryRecordById(id string) (map[string]interface{}, error) {
 }
 
 /**
- * 获取所有记录
+ * 获取所有记录（支持分页和查询）
  */
-func GetAllRecord() ([]map[string]interface{}, error) {
+func GetAllRecord(page, pageSize int, search, verdict, language string) ([]map[string]interface{}, int64, error) {
 	var results []map[string]interface{}
-	err := dao.MysqlClient.Table("record").
+	var total int64
+
+	// 构建基础查询
+	query := dao.MysqlClient.Table("record").
 		Select(`record.id AS id,
 				record.user_id AS user_id,
 				record.problem_id AS problem_id,
@@ -97,7 +100,47 @@ func GetAllRecord() ([]map[string]interface{}, error) {
 				user.username AS username
 		`).
 		Joins(`JOIN user ON user.id = record.user_id`).
-		Joins(`JOIN problem ON problem.id = record.problem_id`).
-		Order("created_at DESC").Find(&results).Error
-	return results, err
+		Joins(`JOIN problem ON problem.id = record.problem_id`)
+
+	// 添加搜索条件
+	if search != "" {
+		query = query.Where("problem.title LIKE ? OR user.username LIKE ?", "%"+search+"%", "%"+search+"%")
+	}
+
+	// 添加状态筛选
+	if verdict != "" {
+		query = query.Where("record.verdict = ?", verdict)
+	}
+
+	// 添加语言筛选
+	if language != "" {
+		query = query.Where("record.language = ?", language)
+	}
+
+	// 获取总数
+	countQuery := dao.MysqlClient.Table("record").
+		Joins(`JOIN user ON user.id = record.user_id`).
+		Joins(`JOIN problem ON problem.id = record.problem_id`)
+
+	if search != "" {
+		countQuery = countQuery.Where("problem.title LIKE ? OR user.username LIKE ?", "%"+search+"%", "%"+search+"%")
+	}
+	if verdict != "" {
+		countQuery = countQuery.Where("record.verdict = ?", verdict)
+	}
+	if language != "" {
+		countQuery = countQuery.Where("record.language = ?", language)
+	}
+
+	err := countQuery.Count(&total).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// 计算偏移量
+	offset := (page - 1) * pageSize
+
+	// 执行查询并返回分页结果
+	err = query.Order("created_at DESC").Limit(pageSize).Offset(offset).Find(&results).Error
+	return results, total, err
 }

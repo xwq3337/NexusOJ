@@ -1,3 +1,11 @@
+/*
+ * @Author: x_wq3337 854541540@qq.com
+ * @Date: 2025-12-16 13:14:02
+ * @LastEditors: x_wq3337 854541540@qq.com
+ * @LastEditTime: 2026-01-12 20:01:28
+ * @FilePath: /frontend/constants.ts
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
 import { Problem, Contest } from './src/types'
 
 export const MOCK_PROBLEMS: Problem[] = [
@@ -81,4 +89,137 @@ export const ACTIVITY_DATA = [
   { name: 'Sun', submissions: 750 }
 ]
 
-export const SUPPORTED_LANGUAGES = ['C++', 'Java', 'Python', 'JavaScript', 'Go', 'Rust', 'C']
+// 语言配置映射表
+export const LANGUAGE_CONFIG = {
+  c: {
+    value: 'c',
+    label: 'C',
+    aceMode: 'c_cpp',
+    apiValue: 'c',
+    defaultCode: `#include <stdio.h>
+int main() {
+    // Your code here
+    return 0;
+}`
+  },
+  cpp: {
+    value: 'cpp',
+    label: 'C++',
+    aceMode: 'c_cpp',
+    apiValue: 'cpp',
+    defaultCode: `#include <iostream>
+using namespace std;
+
+int main() {
+    // Your code here
+    return 0;
+}`
+  },
+  python: {
+    value: 'python',
+    label: 'Python',
+    aceMode: 'python',
+    apiValue: 'python',
+    defaultCode: `def main():
+    # Your code here
+    pass
+
+if __name__ == "__main__":
+    main()`
+  },
+  java: {
+    value: 'java',
+    label: 'Java',
+    aceMode: 'java',
+    apiValue: 'java',
+    defaultCode: `public class Main {
+    public static void main(String[] args) {
+        // Your code here
+    }
+}`
+  },
+  javascript: {
+    value: 'javascript',
+    label: 'JavaScript',
+    aceMode: 'javascript',
+    apiValue: 'javascript',
+    defaultCode: `// Your code here
+console.log("Hello, World!");`
+  },
+  go: {
+    value: 'go',
+    label: 'Go',
+    aceMode: 'go',
+    apiValue: 'javascript',
+    defaultCode: `package main
+    
+import "fmt"
+
+func main(){
+    fmt.Println("Hello world")
+}`
+  },
+  rust: {
+    value: 'rust',
+    label: 'Rust',
+    aceMode: 'rust',
+    apiValue: 'rust',
+    defaultCode: `fn main(){
+  println!("Hello world")
+}`
+  },
+  csharp: {
+    value: 'csharp',
+    label: 'C#',
+    aceMode: 'csharp',
+    apiValue: 'csharp',
+    defaultCode: `using System;
+
+class Program {
+    static void Main() {
+        // Your code here
+    }
+}`
+  }
+} as const
+
+function transformCodeObject(inputObj) {
+    const transformed = {};
+    // 遍历输入对象的每个键（如 'c'）
+    for (const key in inputObj) {
+        // 检查属性是否为对象自身所有（非继承）
+        if (inputObj.hasOwnProperty(key)) {
+            const value = inputObj[key];
+            
+            // 判断该属性的值是否为对象，并且包含 defaultCode 属性
+            if (value && typeof value === 'object' && 'defaultCode' in value) {
+                // 如果满足条件，则提取 defaultCode 的值
+                transformed[key] = value.defaultCode;
+            } else {
+                // 如果不满足条件，则保留原始值
+                transformed[key] = value;
+            }
+        }
+    }
+    
+    return transformed;
+}
+
+export const DEFAULT_CODES = transformCodeObject(LANGUAGE_CONFIG) as Record<string,string>
+export const LANGUAGE_OPTIONS = Object.keys(LANGUAGE_CONFIG)
+export const ACE_MODE_OPTIONS = LANGUAGE_OPTIONS.map(
+  (lang) => LANGUAGE_CONFIG[lang as keyof typeof LANGUAGE_CONFIG].aceMode
+)
+export type ACE_MODE = (typeof ACE_MODE_OPTIONS)[number]
+export type LanguageValue = keyof typeof LANGUAGE_CONFIG
+
+export const EDITOR_THEME_OPTIONS = [
+  'github',
+  'chrome',
+  'monokai',
+  'xcode',
+  'dracula',
+  'clouds',
+  'terminal'
+]
+export type EDITOR_THEHE = (typeof EDITOR_THEME_OPTIONS)[number]

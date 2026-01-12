@@ -43,10 +43,10 @@
       <n-card :style="{ backgroundColor: 'var(--surface-primary)' }" content-style="padding: 0;">
         <n-data-table
           :columns="columns"
-          :data="filteredRecords"
+          :data="records"
           :loading="loading"
           :pagination="pagination"
-          remote
+          size="small"
           :row-key="(row) => row.id"
         />
       </n-card>
@@ -55,14 +55,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, watch, onMounted } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { NDataTable, NCard, NInput, NSelect, NButton, NTag, NAvatar } from 'naive-ui'
 import { Search, CheckCircle, XCircle, Clock, Code, User, Calendar } from 'lucide-vue-next'
 import { h } from 'vue'
 import Request from '@/services/api'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 // 评测记录数据结构
-interface Record {
+interface RecordItem {
   id: number
   created_at: string
   language: string
@@ -74,11 +77,6 @@ interface Record {
   username: string
   verdict: string
 }
-onMounted(async () => {
-  await Request.get('/record/list').then((res) => {
-    records.value = res.info
-  })
-})
 
 // 状态选项
 const statusOptions = [
@@ -108,25 +106,54 @@ const languageFilter = ref<string | null>(null)
 const loading = ref(false)
 
 // 记录数据
-const records = ref<Record[]>([])
+const records = ref<RecordItem[]>([])
 
-// 计算筛选后的记录
-const filteredRecords = computed(() => {
-  return records.value.filter((record) => {
-    // 搜索关键词筛选
-    const matchesSearch =
-      !searchKeyword.value ||
-      record.problem_title.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
-      record.username.toLowerCase().includes(searchKeyword.value.toLowerCase())
+// 总记录数
+const totalRecords = ref(0)
 
-    // 状态筛选
-    const matchesStatus = !statusFilter.value || record.verdict === statusFilter.value
+// 分页状态
+const currentPage = ref(1)
+const pageSize = ref(10)
 
-    // 语言筛选
-    const matchesLanguage = !languageFilter.value || record.language === languageFilter.value
+// 获取记录列表
+const fetchRecords = async () => {
+  loading.value = true
+  try {
+    const params: { [key: string]: any } = {
+      page: currentPage.value,
+      page_size: pageSize.value
+    }
 
-    return matchesSearch && matchesStatus && matchesLanguage
-  })
+    // 添加筛选参数
+    if (searchKeyword.value) {
+      params.search = searchKeyword.value
+    }
+    if (statusFilter.value) {
+      params.verdict = statusFilter.value
+    }
+    if (languageFilter.value) {
+      params.language = languageFilter.value
+    }
+
+    await Request.get('/record/list', { params }).then((res) => {
+      records.value = res.info.data || []
+      totalRecords.value = res.info.total || res.info?.length || 0
+    })
+  } catch (error) {
+    console.error('获取记录失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 组件挂载时获取数据
+onMounted(() => {
+  // 从路由获取初始页码
+  const pageParam = router.currentRoute.value.query.page as string
+  if (pageParam) {
+    currentPage.value = parseInt(pageParam, 10)
+  }
+  fetchRecords()
 })
 
 // 重置筛选条件
@@ -134,6 +161,9 @@ const resetFilters = () => {
   searchKeyword.value = ''
   statusFilter.value = null
   languageFilter.value = null
+  currentPage.value = 1
+  updateRouteQuery()
+  fetchRecords()
 }
 
 // 获取状态标签类型
@@ -221,15 +251,23 @@ const formatMemory = (memory: number) => {
 const formatTime = (time: number) => {
   return `${time} ms`
 }
-import { useRouter } from 'vue-router'
-const router = useRouter()
+
+// 更新路由参数
+const updateRouteQuery = () => {
+  router.push({
+    query: {
+      ...router.currentRoute.value.query,
+      page: currentPage.value.toString()
+    }
+  })
+}
 // 表格列定义
 const columns = [
   {
     title: 'ID',
     key: 'id',
     width: 150,
-    render(row: Record) {
+    render(row: RecordItem) {
       return h(
         'span',
         {
@@ -246,7 +284,7 @@ const columns = [
     title: '题目',
     key: 'problem_title',
     width: 200,
-    render(row: Record) {
+    render(row: RecordItem) {
       return h('div', [
         h(
           'div',
@@ -265,7 +303,7 @@ const columns = [
     title: '用户',
     key: 'username',
     width: 120,
-    render(row: Record) {
+    render(row: RecordItem) {
       return h('div', [
         h('div', { style: { fontWeight: 'bold', color: 'var(--text-primary)' } }, row.username),
         h(
@@ -280,7 +318,7 @@ const columns = [
     title: '状态',
     key: 'verdict',
     width: 150,
-    render(row: Record) {
+    render(row: RecordItem) {
       return h(
         NTag,
         {
@@ -298,7 +336,7 @@ const columns = [
     title: '语言',
     key: 'language',
     width: 100,
-    render(row: Record) {
+    render(row: RecordItem) {
       return h(
         NTag,
         {
@@ -316,7 +354,7 @@ const columns = [
     title: '内存',
     key: 'max_memory',
     width: 100,
-    render(row: Record) {
+    render(row: RecordItem) {
       return formatMemory(row.max_memory)
     }
   },
@@ -324,7 +362,7 @@ const columns = [
     title: '时间',
     key: 'max_time',
     width: 100,
-    render(row: Record) {
+    render(row: RecordItem) {
       return formatTime(row.max_time)
     }
   },
@@ -332,14 +370,11 @@ const columns = [
     title: '提交时间',
     key: 'created_at',
     width: 180,
-    render(row: Record) {
+    render(row: RecordItem) {
       return formatDate(row.created_at)
     }
   }
 ]
-
-const currentPage = ref(1)
-const pageSize = ref(10)
 
 // 分页配置
 const pagination = reactive({
@@ -350,10 +385,14 @@ const pagination = reactive({
   itemCount: 0,
   onUpdatePage: (page: number) => {
     currentPage.value = page
+    updateRouteQuery()
+    fetchRecords()
   },
   onUpdatePageSize: (size: number) => {
     pageSize.value = size
     currentPage.value = 1
+    updateRouteQuery()
+    fetchRecords()
   }
 })
 
@@ -366,11 +405,15 @@ watch(pageSize, () => {
   pagination.pageSize = pageSize.value
 })
 
-// 监听filteredRecords长度变化，更新itemCount
-watch(
-  () => filteredRecords.value.length,
-  (newLength) => {
-    pagination.itemCount = newLength
-  }
-)
+// 监听totalRecords变化，更新itemCount
+watch(totalRecords, (newTotal) => {
+  pagination.itemCount = newTotal
+})
+
+// 监听筛选条件变化，重新获取数据
+watch([searchKeyword, statusFilter, languageFilter], () => {
+  currentPage.value = 1
+  updateRouteQuery()
+  fetchRecords()
+})
 </script>

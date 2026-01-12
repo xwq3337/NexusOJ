@@ -2,29 +2,35 @@ import ace from 'ace-builds'
 import 'ace-builds/src-noconflict/ext-language_tools' // 启用语言工具扩展
 
 // 设置模式的 URL
-import modeJsonUrl from 'ace-builds/src-noconflict/mode-json?url'
-ace.config.setModuleUrl('ace/mode/json', modeJsonUrl)
+// JSON
+// import modeJsonUrl from 'ace-builds/src-noconflict/mode-json?url'
+// ace.config.setModuleUrl('ace/mode/json', modeJsonUrl)
 
 import modeJavascriptUrl from 'ace-builds/src-noconflict/mode-javascript?url'
 ace.config.setModuleUrl('ace/mode/javascript', modeJavascriptUrl)
 
-import modeHtmlUrl from 'ace-builds/src-noconflict/mode-html?url'
-ace.config.setModuleUrl('ace/mode/html', modeHtmlUrl)
+// HTML
+// import modeHtmlUrl from 'ace-builds/src-noconflict/mode-html?url'
+// ace.config.setModuleUrl('ace/mode/html', modeHtmlUrl)
 
 import modeCppUrl from 'ace-builds/src-noconflict/mode-c_cpp?url'
 ace.config.setModuleUrl('ace/mode/c_cpp', modeCppUrl)
 
-import modeYamlUrl from 'ace-builds/src-noconflict/mode-yaml?url'
-ace.config.setModuleUrl('ace/mode/yaml', modeYamlUrl)
+// YAML
+// import modeYamlUrl from 'ace-builds/src-noconflict/mode-yaml?url'
+// ace.config.setModuleUrl('ace/mode/yaml', modeYamlUrl)
 
-import modeSqlUrl from 'ace-builds/src-noconflict/mode-sql?url'
-ace.config.setModuleUrl('ace/mode/sql', modeSqlUrl)
+// SQL
+// import modeSqlUrl from 'ace-builds/src-noconflict/mode-sql?url'
+// ace.config.setModuleUrl('ace/mode/sql', modeSqlUrl)
 
-import modeXmlUrl from 'ace-builds/src-noconflict/mode-xml?url'
-ace.config.setModuleUrl('ace/mode/xml', modeXmlUrl)
+// XML
+// import modeXmlUrl from 'ace-builds/src-noconflict/mode-xml?url'
+// ace.config.setModuleUrl('ace/mode/xml', modeXmlUrl)
 
-import modeMarkdownUrl from 'ace-builds/src-noconflict/mode-markdown?url'
-ace.config.setModuleUrl('ace/mode/markdown', modeMarkdownUrl)
+// MARKDOWN
+// import modeMarkdownUrl from 'ace-builds/src-noconflict/mode-markdown?url'
+// ace.config.setModuleUrl('ace/mode/markdown', modeMarkdownUrl)
 
 import modeTextUrl from 'ace-builds/src-noconflict/mode-text?url'
 ace.config.setModuleUrl('ace/mode/text', modeTextUrl)
@@ -37,6 +43,12 @@ ace.config.setModuleUrl('ace/mode/java', modeJavaUrl)
 
 import modeCsharpUrl from 'ace-builds/src-noconflict/mode-csharp?url'
 ace.config.setModuleUrl('ace/mode/csharp', modeCsharpUrl)
+
+// import modeGoUrl from 'ace-builds/src-noconflict/mode-go?url'
+// ace.config.setModuleUrl('ace/mode/go', modeGoUrl)
+
+import modeRustUrl from 'ace-builds/src-noconflict/mode-rust?url'
+ace.config.setModuleUrl('ace/mode/rust', modeRustUrl)
 
 // 设置主题的 URL
 import themeGithubUrl from 'ace-builds/src-noconflict/theme-github?url'

@@ -1,179 +1,123 @@
+<!--
+ * @Author: x_wq3337 854541540@qq.com
+ * @Date: 2026-01-12 19:12:06
+ * @LastEditors: x_wq3337 854541540@qq.com
+ * @LastEditTime: 2026-01-12 21:56:27
+ * @FilePath: /frontend/src/pages/ProblemDetail.vue
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+-->
 <template>
   <div class="flex h-screen overflow-hidden">
     <n-split direction="horizontal" :max="0.75" :min="0.25">
       <template #1>
-        <div
-          class="p-4 border-b"
-          :style="{
+        <div class="h-full overflow-y-auto" :style="{
+          backgroundColor: 'var(--surface-secondary)',
+          color: 'var(--text-primary)'
+        }">
+          <div class="p-4 border-b" :style="{
             backgroundColor: 'var(--surface-primary)',
             borderColor: 'var(--border-color)',
             borderWidth: '1px',
             borderStyle: 'solid'
-          }"
-        >
-          <h1 class="text-2xl font-bold mb-2" :style="{ color: 'var(--text-primary)' }">
-            {{ problem.title }}
-          </h1>
-          <div class="flex gap-4 text-sm">
-            <span
-              class="font-medium"
-              :class="difficultyMap[Number(problem.difficulty) - 1]?.color"
-              >{{ difficultyMap[Number(problem.difficulty) - 1]?.text }}</span
-            >
-            <span class="text-black">通过率: {{ problem.acceptance }}</span>
-            <span class="text-black">标签: {{ problem.tags.join(', ') }}</span>
-            <span class="text-black"
-              >判题配置: {{ problem.judge_config.time_limit }}s
-              {{ problem.judge_config.memory_limit }}MB</span
-            >
+          }">
+            <h1 class="text-2xl font-bold mb-2" :style="{ color: 'var(--text-primary)' }">
+              {{ problem.title }}
+            </h1>
+            <div class="flex gap-4 text-sm">
+              <span class="font-medium" :class="difficultyMap[Number(problem.difficulty) - 1]?.color">{{
+                difficultyMap[Number(problem.difficulty) - 1]?.text }}</span>
+              <span class="text-black">通过率: {{ problem.acceptance }}</span>
+              <span class="text-black">标签: {{ problem.tags.join(', ') }}</span>
+              <span class="text-black">判题配置: {{ problem.judge_config.time_limit }}s
+                {{ problem.judge_config.memory_limit }}MB</span>
+            </div>
           </div>
-        </div>
-        <MarkdownPreview
-          :text="ProblemContext"
-          :style="{
+          <MarkdownPreview :text="ProblemContext" style="height: 80%;" :style="{
             padding: '5px',
-            height: 'calc(100vh - 128px)',
-            overflowY: 'auto',
-            backgroundColor: 'var(--surface-secondary)',
-            color: 'var(--text-primary)'
-          }"
-        />
+            backgroundColor: 'transparent'
+          }" />
+        </div>
       </template>
       <template #2>
-        <div
-          class="h-12 border-b flex items-center justify-between px-4"
-          :style="{
-            backgroundColor: 'var(--surface-primary)',
-            borderColor: 'var(--border-color)',
-            borderWidth: '1px',
-            borderStyle: 'solid'
-          }"
-        >
+        <div class="h-12 border-b flex items-center justify-between px-4" :style="{
+          backgroundColor: 'var(--surface-primary)',
+          borderColor: 'var(--border-color)',
+          borderWidth: '1px',
+          borderStyle: 'solid'
+        }">
           <div class="flex items-center gap-2">
             <!-- TODO: 主题切换-背景 -->
-            <n-select
-              v-model:value="Language"
-              :options="languageOptions"
-              :style="{ width: '120px' }"
-              :dropdown-props="{ style: { maxHeight: '200px', overflowY: 'auto' } }"
-              placeholder="选择语言"
-            >
+            <n-select v-model:value="Language"
+              :options="Object.values(LANGUAGE_CONFIG).map(config => ({ value: config.value, label: config.label }))"
+              :style="{ width: '120px' }" :dropdown-props="{ style: { maxHeight: '200px', overflowY: 'auto' } }"
+              placeholder="选择语言">
             </n-select>
             <n-popover trigger="click" placement="bottom">
               <template #trigger>
-                <n-button
-                  :style="{ color: 'var(--text-primary)' }"
-                  class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors"
-                >
+                <n-button :style="{ color: 'var(--text-primary)' }"
+                  class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors">
                   <Settings :size="14" /> 设置
                 </n-button>
               </template>
               <n-grid x-gap="12" :cols="2" :style="{ width: '15rem' }">
                 <n-gi>
-                  <n-select
-                    v-model:value="Theme"
-                    :options="themeOptions"
-                    :dropdown-props="{
-                      style: { maxHeight: '200px', overflowY: 'auto' }
-                    }"
-                    placeholder="选择主题"
-                  >
+                  <n-select v-model:value="Theme" :options="EDITOR_THEME_OPTIONS.map(
+                    (i) => {
+                      return { label: i, value: i }
+                    }
+                  )" :dropdown-props="{
+                    style: { maxHeight: '200px', overflowY: 'auto' }
+                  }" placeholder="选择主题">
                   </n-select>
                 </n-gi>
                 <n-gi>
-                  <n-input-number
-                    v-model:value="fontSize"
-                    :update-value-on-input="false"
-                    placeholder=""
-                    :min="10"
-                    :max="30"
-                  />
+                  <n-input-number v-model:value="fontSize" :update-value-on-input="false" placeholder="" :min="10"
+                    :max="30" />
                 </n-gi>
               </n-grid>
             </n-popover>
           </div>
           <div class="flex items-center gap-2">
-            <button
-              class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors"
-              :style="{
-                color: 'var(--text-primary)',
-                backgroundColor: hoverBgColor2
-              }"
-              @mouseenter="() => (hoverBgColor2 = 'var(--surface-tertiary)')"
-              @mouseleave="() => (hoverBgColor2 = 'transparent')"
-            >
+            <button class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors" :style="{
+              color: 'var(--text-primary)',
+              backgroundColor: hoverBgColor2
+            }" @mouseenter="() => (hoverBgColor2 = 'var(--surface-tertiary)')"
+              @mouseleave="() => (hoverBgColor2 = 'transparent')">
               <RotateCcw :size="14" /> 重置
             </button>
-            <button
-              @click="handleTest"
-              :disabled="isTesting"
+            <button @click="handleTest" :disabled="isTesting"
               class="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 rounded transition-colors"
-              :style="{ color: 'var(--text-primary)' }"
-              :class="isTesting ? 'opacity-70 cursor-wait' : ''"
-            >
+              :style="{ color: 'var(--text-primary)' }" :class="isTesting ? 'opacity-70 cursor-wait' : ''">
               <Play :size="14" /> {{ isTesting ? '测试中...' : '测试代码' }}
             </button>
-            <button
-              @click="handleRun"
-              :disabled="isRunning"
+            <button @click="handleRun" :disabled="isRunning"
               class="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 rounded transition-colors"
-              :style="{ color: 'var(--text-primary)' }"
-              :class="isRunning ? 'opacity-70 cursor-wait' : ''"
-            >
+              :style="{ color: 'var(--text-primary)' }" :class="isRunning ? 'opacity-70 cursor-wait' : ''">
               <Play :size="14" /> {{ isRunning ? '运行中...' : '运行代码' }}
             </button>
           </div>
         </div>
 
         <div class="flex-1 relative font-mono" style="height: 66%">
-          <codeEditor
-            @change="handleEditorChange"
-            :value="code"
-            @update:languageOptions="
-              ($event) =>
-                (languageOptions = $event.map((i) => {
-                  return { value: i, label: i }
-                }))
-            "
-            @update:themeOptions="
-              ($event) =>
-                (themeOptions = $event.map((i) => {
-                  return { value: i, label: i }
-                }))
-            "
-            :theme="Theme"
-            :language="Language"
-          />
+          <codeEditor @change="handleEditorChange" :value="code" " :theme="Theme"
+            :language="LANGUAGE_CONFIG[Language].aceMode" />
         </div>
 
-        <div
-          class="h-40 border-t px-2 py-0 font-mono text-sm overflow-y-auto"
-          :style="{
-            backgroundColor: 'var(--surface-secondary)',
-            borderColor: 'var(--border-color)',
-            borderTopWidth: '1px',
-            borderStyle: 'solid'
-          }"
-        >
+        <div class="h-40 border-t px-2 py-0 font-mono text-sm overflow-y-auto" :style="{
+          backgroundColor: 'var(--surface-secondary)',
+          borderColor: 'var(--border-color)',
+          borderTopWidth: '1px',
+          borderStyle: 'solid'
+        }">
           <n-tabs type="line" animated>
             <n-tab-pane name="Case" tab="测试用例">
               <n-grid x-gap="12" :cols="2" :style="{ height: '100%' }">
                 <n-gi>
-                  <n-input
-                    autosize
-                    type="textarea"
-                    v-model:value="test_case.input"
-                    placeholder="输入"
-                  ></n-input>
+                  <n-input autosize type="textarea" v-model:value="test_case.input" placeholder="输入"></n-input>
                 </n-gi>
                 <n-gi>
-                  <n-input
-                    autosize
-                    disabled
-                    type="textarea"
-                    v-model:value="test_case.output"
-                    placeholder="输出"
-                  ></n-input>
+                  <n-input autosize disabled type="textarea" v-model:value="test_case.output"
+                    placeholder="输出"></n-input>
                 </n-gi>
               </n-grid>
             </n-tab-pane>
@@ -187,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, reactive, ref } from 'vue'
+import { defineAsyncComponent, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   NSplit,
@@ -197,12 +141,11 @@ import {
   NTabPane,
   NTabs,
   NInput,
-  NCol,
   NGrid,
   NGi,
   NInputNumber,
-  NTag
 } from 'naive-ui'
+import { LANGUAGE_CONFIG, EDITOR_THEME_OPTIONS, type EDITOR_THEHE, type LanguageValue, LANGUAGE_OPTIONS } from '../../constants'
 import { Play, RotateCcw, Settings } from 'lucide-vue-next'
 import AiAssistant from '@/components/AiAssistant.vue'
 import { useLocalStorage } from '@vueuse/core'
@@ -210,12 +153,11 @@ import { RemovableRef } from '@vueuse/core'
 import MarkdownPreview from '@/components/MarkdownPreview.vue'
 import Request from '@/services/api'
 import { useMessage } from 'naive-ui'
-import { TagColor } from 'naive-ui/es/tag/src/common-props'
+import indexedDBService from '@/services/indexedDB'
 const message = useMessage()
 const route = useRoute()
 const codeEditor = defineAsyncComponent(() => import('@/components/AceEditor/AceEditor.vue'))
-const languageOptions = ref([])
-const themeOptions = ref([])
+// const codeEditor = defineAsyncComponent(() => import('@/components/CodeMirror/CodeMirror.vue'))
 const ProblemContext = ref('')
 const fontSize = useLocalStorage('editor_font_size', 14)
 const problem = reactive({
@@ -231,7 +173,127 @@ const problem = reactive({
   tip: '',
   tags: []
 })
+
+const Language = useLocalStorage<LanguageValue>('language', 'cpp')
+const Theme = useLocalStorage('editor_theme', 'chrome') as RemovableRef<EDITOR_THEHE>
+
+// 将内部语言值转换为API需要的值
+const languageToApi = (lang: LanguageValue): string => {
+  return LANGUAGE_CONFIG[lang].apiValue
+}
+
+const difficultyMap = [
+  { text: '简单', color: 'text-green-400', type: 'success' },
+  { text: '容易', color: 'text-yellow-400', type: 'warning' },
+  { text: '中等', color: 'text-orange-400', type: 'info' },
+  { text: '困难', color: 'text-red-400', type: 'error' },
+  { text: '极难', color: 'text-purple-400', type: 'error' }
+]
+
+// 使用 IndexedDB 存储代码
+const code = ref('')
+const testCaseInput = ref('')
+const testCaseExpected = ref('')
+
+const result = ref<string | null>(null)
+const isRunning = ref(false)
+const isTesting = ref(false)
+const hoverBgColor2 = ref('transparent')
+
+const test_case = ref({
+  input: '1 2',
+  expected: '3',
+  output: ''
+})
+
+// 加载指定语言的代码
+const loadCodeForLanguage = async (language: LanguageValue) => {
+  try {
+    const codeRecord = await indexedDBService.getCode(String(route.params.id), language)
+    if (codeRecord) {
+      code.value = codeRecord.code
+    } else {
+      // 如果没有保存的代码，使用默认模板
+      code.value = indexedDBService.getDefaultCode(language)
+    }
+  } catch (error) {
+    console.error(`Failed to load code for language ${language}:`, error)
+    // 出错时使用默认模板
+
+    code.value = indexedDBService.getDefaultCode(language)
+  }
+}
+
+// 初始化 IndexedDB 并加载数据
+const initIndexedDB = async () => {
+  try {
+    await indexedDBService.init()
+
+    // 加载当前语言的代码
+    await loadCodeForLanguage(Language.value)
+
+    // 加载保存的测试用例
+    const testCaseRecord = await indexedDBService.getTestCase(String(route.params.id))
+    if (testCaseRecord) {
+      test_case.value.input = testCaseRecord.input
+      test_case.value.expected = testCaseRecord.expected
+      testCaseInput.value = testCaseRecord.input
+      testCaseExpected.value = testCaseRecord.expected
+    }
+  } catch (error) {
+    console.error('Failed to load data from IndexedDB:', error)
+  }
+}
+
+// 保存代码到 IndexedDB (按语言分别保存)
+const saveCodeToDB = async (language: LanguageValue) => {
+  try {
+    await indexedDBService.saveCode(String(route.params.id), language, code.value)
+  } catch (error) {
+    console.error('Failed to save code to IndexedDB:', error)
+  }
+}
+
+// 保存测试用例到 IndexedDB
+const saveTestCaseToDB = async () => {
+  try {
+    await indexedDBService.saveTestCase(
+      String(route.params.id),
+      test_case.value.input,
+      test_case.value.expected
+    )
+  } catch (error) {
+    console.error('Failed to save test case to IndexedDB:', error)
+  }
+}
+
+// 监听代码变化，自动保存
+watch(code, () => {
+  saveCodeToDB(Language.value)
+})
+
+// 监听测试用例变化，自动保存
+watch(
+  () => [test_case.value.input, test_case.value.expected],
+  () => {
+    saveTestCaseToDB()
+  }
+)
+
+// 监听语言变化，切换到对应语言的代码
+watch(Language, async (newLanguage, oldLanguage) => {
+  // 保存旧语言的代码
+  if (oldLanguage) {
+    await saveCodeToDB(oldLanguage)
+  }
+  // 加载新语言的代码
+  await loadCodeForLanguage(newLanguage)
+})
+
 onMounted(async () => {
+  // 初始化 IndexedDB
+  await initIndexedDB()
+
   await Request.get('/problem/' + route.params.id)
     .then((res) => {
       problem.id = res.info.id
@@ -245,6 +307,14 @@ onMounted(async () => {
       problem.judge_sample = res.info.judge_sample
       problem.tip = res.info.tip
       problem.tags = res.info.tags
+
+      // 如果有样例，使用第一个样例作为默认测试用例
+      if (res.info.judge_sample && res.info.judge_sample.length > 0 && !testCaseInput.value) {
+        test_case.value.input = res.info.judge_sample[0].input
+        test_case.value.expected = res.info.judge_sample[0].expected
+        testCaseInput.value = res.info.judge_sample[0].input
+        testCaseExpected.value = res.info.judge_sample[0].expected
+      }
     })
     .finally(() => {
       var res = ''
@@ -263,62 +333,15 @@ onMounted(async () => {
       })
     })
 })
-const Language = useLocalStorage('language', 'c_cpp') as RemovableRef<
-  'c_cpp' | 'javascript' | 'sql' | 'text' | 'python' | 'java' | 'csharp'
->
-const Theme = useLocalStorage('editor_theme', 'chrome') as RemovableRef<
-  'chrome' | 'github' | 'monokai' | 'xcode' | 'dracula' | 'clouds' | 'terminal'
->
 
-const difficultyMap = [
-  { text: '简单', color: 'text-green-400', type: 'success' },
-  { text: '容易', color: 'text-yellow-400', type: 'warning' },
-  { text: '中等', color: 'text-orange-400', type: 'info' },
-  { text: '困难', color: 'text-red-400', type: 'error' },
-  { text: '极难', color: 'text-purple-400', type: 'error' }
-]
-const code = useLocalStorage(
-  'code' + route.params.id,
-  `#include <iostream>
-using namespace std;
-
-int main() {
-    // Your code here
-    return 0;
-}`
-)
-
-const result = ref<string | null>(null)
-const isRunning = ref(false)
-const isTesting = ref(false)
-const hoverBgColor2 = ref('transparent')
-
-const test_case = ref({
-  input: '1 2',
-  expected: '3',
-  output: ''
-})
-const language_translator = (s: string) => {
-  const map = {
-    c_cpp: 'cpp',
-    javascript: 'javascript',
-    sql: 'sql',
-    text: 'plaintext',
-    python: 'python',
-    java: 'java',
-    csharp: 'csharp'
-  }
-  return map[s]
-}
 const handleTest = async () => {
   isTesting.value = true
   result.value = null
-  isTesting.value = true
   test_case.value.output = ''
   await Request.post('/ide/submit', {
     submission_id: 123456789,
     code: code.value,
-    language: language_translator(Language.value),
+    language: languageToApi(Language.value),
     test_cases: [
       {
         case_id: 1,
@@ -350,14 +373,7 @@ const handleTest = async () => {
 }
 
 const handleRun = () => {
-  isRunning.value = true
-  result.value = null
-  setTimeout(() => {
-    isRunning.value = false
-    const outcomes = ['Accepted', 'Wrong Answer', 'Time Limit Exceeded']
-    const randomOutcome = outcomes[Math.floor(Math.random() * outcomes.length)]
-    result.value = randomOutcome
-  }, 1500)
+  // TODO: 实现运行代码功能
 }
 
 const handleEditorChange = (newCode: string) => {
