@@ -78,7 +78,6 @@ const routes: RouteRecordRaw[] = [
       }
     ]
   },
-
   {
     path: '/problem/:id',
     component: () => import('@/pages/ProblemDetail.vue'),

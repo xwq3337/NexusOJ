@@ -2,7 +2,7 @@
  * @Author: x_wq3337 854541540@qq.com
  * @Date: 2026-01-12 19:12:06
  * @LastEditors: x_wq3337 854541540@qq.com
- * @LastEditTime: 2026-01-12 21:56:27
+ * @LastEditTime: 2026-01-14 12:10:49
  * @FilePath: /frontend/src/pages/ProblemDetail.vue
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 -->
@@ -10,7 +10,7 @@
   <div class="flex h-screen overflow-hidden">
     <n-split direction="horizontal" :max="0.75" :min="0.25">
       <template #1>
-        <div class="h-full overflow-y-auto" :style="{
+        <div class="h-full overflow-y-auto markdown-container" :style="{
           backgroundColor: 'var(--surface-secondary)',
           color: 'var(--text-primary)'
         }">
@@ -32,7 +32,7 @@
                 {{ problem.judge_config.memory_limit }}MB</span>
             </div>
           </div>
-          <MarkdownPreview :text="ProblemContext" style="height: 80%;" :style="{
+          <MarkdownPreview :text="ProblemContext" style="height: 50rem;" :style="{
             padding: '5px',
             backgroundColor: 'transparent'
           }" />
@@ -103,7 +103,7 @@
             :language="LANGUAGE_CONFIG[Language].aceMode" />
         </div>
 
-        <div class="h-40 border-t px-2 py-0 font-mono text-sm overflow-y-auto" :style="{
+        <div class="h-full border-t px-2 py-0 font-mono text-sm overflow-y-auto" :style="{
           backgroundColor: 'var(--surface-secondary)',
           borderColor: 'var(--border-color)',
           borderTopWidth: '1px',
@@ -121,7 +121,7 @@
                 </n-gi>
               </n-grid>
             </n-tab-pane>
-            <n-tab-pane name="console" tab="控制台"> {{ result }}(fake) </n-tab-pane>
+            <n-tab-pane name="console" tab="控制台"> 模拟 {{ result }} </n-tab-pane>
           </n-tabs>
         </div>
       </template>
@@ -131,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, reactive, ref, watch } from 'vue'
+import { defineAsyncComponent, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   NSplit,
@@ -379,4 +379,23 @@ const handleRun = () => {
 const handleEditorChange = (newCode: string) => {
   code.value = newCode
 }
+onMounted(()=>{
+      // 禁止 body 和 html 滚动
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+
+})
+onUnmounted(() => {
+    // 恢复 body 和 html 滚动
+    document.body.style.overflow = ''
+    document.documentElement.style.overflow = ''
+})
 </script>
+<style scoped>
+.markdown-container {
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+</style>
