@@ -37,7 +37,7 @@ const columns = [
   {
     title: '状态',
     key: 'status',
-    width: 120,
+    width: 60,
     render(row) {
       return h(row.status === 'solved' ? CheckCircle2 : Circle, {
         size: 18,

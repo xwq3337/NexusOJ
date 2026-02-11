@@ -102,7 +102,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { NBadge } from 'naive-ui'
 import {
@@ -117,31 +116,14 @@ import {
   FileText
 } from 'lucide-vue-next'
 import { useLocalStorage } from '@vueuse/core'
+import { useTheme } from '@/composables/useTheme'
+
 const account = useLocalStorage('account', '')
 const route = useRoute()
+const { theme: currentTheme, toggleTheme } = useTheme()
+
 const isActive = (path: string) =>
   route.path === path
     ? 'text-blue-400'
     : `text-gray-400 hover:${currentTheme.value === 'dark' ? 'text-white' : 'text-black'}`
-const currentTheme = ref<'light' | 'dark'>('light')
-const toggleTheme = () => {
-  const newTheme = currentTheme.value === 'light' ? 'dark' : 'light'
-  document.body.classList.remove(currentTheme.value)
-  document.body.classList.add(newTheme)
-  document.documentElement.classList.remove(currentTheme.value === 'dark' ? 'dark' : 'light')
-  document.documentElement.classList.add(newTheme === 'dark' ? 'dark' : 'light')
-  localStorage.setItem('theme', newTheme)
-  currentTheme.value = newTheme
-}
-
-onMounted(() => {
-  const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-  const theme = savedTheme || (prefersDark ? 'dark' : 'light')
-  currentTheme.value = theme
-  document.body.classList.remove('light', 'dark')
-  document.body.classList.add(theme)
-  document.documentElement.classList.remove('light', 'dark')
-  document.documentElement.classList.add(theme === 'dark' ? 'dark' : 'light')
-})
 </script>

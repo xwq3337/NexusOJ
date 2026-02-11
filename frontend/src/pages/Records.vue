@@ -12,11 +12,12 @@
           </template>
         </n-input>
 
-        <n-select v-model:value="statusFilter" :options="statusOptions" placeholder="状态" style="min-width: 120px"
+        <n-select v-model:value="statusFilter" :options="STATUS_OPTIONS" placeholder="状态" style="min-width: 120px"
           clearable />
 
-        <n-select v-model:value="languageFilter" :options="languageOptions" placeholder="语言" style="min-width: 120px"
-          clearable />
+        <n-select v-model:value="languageFilter"
+          :options="LANGUAGE_OPTIONS.map(lang => ({ label: LANGUAGE_CONFIG[lang].label, value: lang }))"
+          placeholder="语言" style="min-width: 120px" clearable />
 
         <n-button @click="resetFilters" type="default">重置</n-button>
       </div>
@@ -25,17 +26,10 @@
       <n-card :style="{ backgroundColor: 'var(--surface-primary)' }" content-style="padding: 0;">
         <n-data-table :columns="columns" :data="records" :loading="loading" size="small" :row-key="(row) => row.id" />
         <div class="flex justify-end p-4">
-          <n-pagination
-            v-model:page="pagination.page"
-            v-model:page-size="pagination.pageSize"
-            :page-count="Math.ceil(Number(totalRecords/pagination.pageSize))"
-            :page-sizes="pagination.pageSizes"
-            size="medium"
-            show-quick-jumper
-            show-size-picker
-            @update-page="pagination.onUpdatePage"
-            @update-page-size="pagination.onUpdatePageSize"
-          />
+          <n-pagination v-model:page="pagination.page" v-model:page-size="pagination.pageSize"
+            :page-count="Math.ceil(Number(totalRecords / pagination.pageSize))" :page-sizes="pagination.pageSizes"
+            size="medium" show-quick-jumper show-size-picker @update-page="pagination.onUpdatePage"
+            @update-page-size="pagination.onUpdatePageSize" />
         </div>
       </n-card>
     </div>
@@ -44,14 +38,15 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, onMounted } from 'vue'
-import { NDataTable, NCard, NInput, NSelect, NButton, NTag, NAvatar ,NPagination} from 'naive-ui'
+import { useMessage, NDataTable, NCard, NInput, NSelect, NButton, NTag, NAvatar, NPagination } from 'naive-ui'
 import { Search, CheckCircle, XCircle, Clock, Code, User, Calendar } from 'lucide-vue-next'
 import { h } from 'vue'
 import Request from '@/services/api'
 import { useRouter } from 'vue-router'
-
+import { useClipboard } from '@vueuse/core'
+const { copy } = useClipboard()
 const router = useRouter()
-
+const message = useMessage()
 // 评测记录数据结构
 interface RecordItem {
   id: number
@@ -65,25 +60,6 @@ interface RecordItem {
   username: string
   verdict: string
 }
-
-// 状态选项
-const statusOptions = [
-  { label: '通过', value: 'Accepted' },
-  { label: '答案错误', value: 'WrongAnswer' },
-  { label: '超时', value: 'TimeLimitExceeded' },
-  { label: '内存超限', value: 'MemoryLimitExceeded' },
-  { label: '运行错误', value: 'RuntimeError' },
-  { label: '编译错误', value: 'CompilationError' }
-]
-
-// 语言选项
-const languageOptions = [
-  { label: 'C++', value: 'cpp' },
-  { label: 'Python', value: 'python' },
-  { label: 'Java', value: 'java' },
-  { label: 'JavaScript', value: 'javascript' },
-  { label: 'C#', value: 'csharp' }
-]
 
 // 筛选条件
 const searchKeyword = ref('')
@@ -154,22 +130,6 @@ const resetFilters = () => {
   fetchRecords()
 }
 
-// 获取状态标签类型
-const getStatusType = (verdict: string) => {
-  switch (verdict) {
-    case 'Accepted':
-      return 'success'
-    case 'WrongAnswer':
-    case 'RuntimeError':
-    case 'TimeLimitExceeded':
-    case 'MemoryLimitExceeded':
-      return 'error'
-    case 'CompilationError':
-      return 'warning'
-    default:
-      return 'default'
-  }
-}
 
 // 获取状态图标
 const getStatusIcon = (verdict: string) => {
@@ -186,44 +146,7 @@ const getStatusIcon = (verdict: string) => {
       return Clock
   }
 }
-
-// 获取语言标签
-const getLanguageLabel = (lang: string) => {
-  switch (lang) {
-    case 'cpp':
-      return 'C++'
-    case 'python':
-      return 'Python'
-    case 'java':
-      return 'Java'
-    case 'javascript':
-      return 'JavaScript'
-    case 'csharp':
-      return 'C#'
-    default:
-      return lang
-  }
-}
-
-// 获取语言类型
-const getLanguageType = (lang: string) => {
-  switch (lang) {
-    case 'cpp':
-    case 'csharp':
-      return 'primary'
-    case 'python':
-      return 'success'
-    case 'java':
-    case 'rust':
-      return 'warning'
-    case 'go':
-    case 'javascript':
-      return 'info'
-    default:
-      return 'default'
-  }
-}
-
+import { LANGUAGE_OPTIONS, LANGUAGE_CONFIG, STATUS_OPTIONS, STATUS_COLORS } from '@/constants'
 // 格式化日期
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
@@ -232,7 +155,7 @@ const formatDate = (dateString: string) => {
 
 // 格式化内存
 const formatMemory = (memory: number) => {
-  return `${memory} MB`
+  return `${Math.round(memory / 1024 / 1024 * 100) / 100} MB`
 }
 
 // 格式化时间
@@ -276,12 +199,22 @@ const columns = [
       return h('div', [
         h(
           'div',
-          { style: { fontWeight: 'bold', color: 'var(--text-primary)' } },
-          row.problem_title
+          {
+            style: { fontWeight: 'bold', color: 'var(--text-primary)', cursor: 'pointer' },
+            onClick: () => router.push({
+              name: "ProblemDetail", params: {
+                id: row.problem_id
+              }
+            })
+          },
+          row.problem_title,
         ),
         h(
           'div',
-          { style: { fontSize: '12px', color: 'var(--text-secondary)' } },
+          {
+            style: { fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer' },
+            onClick: () => { copy(row.problem_id), message.success('复制成功') },
+          },
           `ID: ${row.problem_id}`
         )
       ])
@@ -310,8 +243,8 @@ const columns = [
       return h(
         NTag,
         {
-          type: getStatusType(row.verdict),
           size: 'small',
+          color: STATUS_COLORS[row.verdict],
           style: { margin: '2px' }
         },
         {
@@ -328,12 +261,12 @@ const columns = [
       return h(
         NTag,
         {
-          type: getLanguageType(row.language),
           size: 'small',
-          style: { margin: '2px' }
+          style: { margin: '2px' },
+          color: LANGUAGE_CONFIG[row.language].color
         },
         {
-          default: () => getLanguageLabel(row.language)
+          default: () => LANGUAGE_CONFIG[row.language].label
         }
       )
     }

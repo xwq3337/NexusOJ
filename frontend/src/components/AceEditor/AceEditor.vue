@@ -12,7 +12,7 @@ const props = defineProps({
 const code = defineModel<string>('value', { required: true })
 
 const emit = defineEmits(['change', 'update:languageOptions', 'update:themeOptions', 'onMounted'])
-import { EDITOR_THEME_OPTIONS, ACE_MODE_OPTIONS, type ACE_MODE, type LanguageValue, type EDITOR_THEHE } from '../../../constants'
+import { EDITOR_THEME_OPTIONS, ACE_MODE_OPTIONS, type ACE_MODE, type LanguageValue, type EDITOR_THEHE } from '@/constants'
 
 onMounted(() => {
   emit('update:languageOptions', ACE_MODE_OPTIONS)

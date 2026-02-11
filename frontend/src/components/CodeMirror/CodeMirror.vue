@@ -14,7 +14,7 @@ import {
   ACE_MODE_OPTIONS,
   type ACE_MODE,
   type EDITOR_THEHE
-} from '../../../constants'
+} from '@/constants'
 
 const props = defineProps({
   height: { type: [String, Number], default: '100%' },

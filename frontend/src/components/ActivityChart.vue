@@ -19,7 +19,7 @@
       </div>
     </div>
 
-    <div class="h-[300px] w-full">
+    <div class="h-75 w-full">
       <VChart :option="option" autoresize class="w-full h-full" />
     </div>
   </div>
@@ -33,7 +33,7 @@ import { LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { use } from 'echarts/core'
-import { ACTIVITY_DATA } from '../../constants'
+import { ACTIVITY_DATA } from '@/constants'
 
 use([CanvasRenderer, LineChart, GridComponent, TooltipComponent])
 

@@ -40,5 +40,5 @@
 </template>
 
 <script setup lang="ts">
-import { MOCK_CONTESTS } from '../../constants'
+import { MOCK_CONTESTS } from '@/constants'
 </script>

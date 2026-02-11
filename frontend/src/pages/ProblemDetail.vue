@@ -1,11 +1,3 @@
-<!--
- * @Author: x_wq3337 854541540@qq.com
- * @Date: 2026-01-12 19:12:06
- * @LastEditors: x_wq3337 854541540@qq.com
- * @LastEditTime: 2026-01-14 12:10:49
- * @FilePath: /frontend/src/pages/ProblemDetail.vue
- * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
--->
 <template>
   <div class="flex h-screen overflow-hidden">
     <n-split direction="horizontal" :max="0.75" :min="0.25">
@@ -145,7 +137,7 @@ import {
   NGi,
   NInputNumber,
 } from 'naive-ui'
-import { LANGUAGE_CONFIG, EDITOR_THEME_OPTIONS, type EDITOR_THEHE, type LanguageValue, LANGUAGE_OPTIONS } from '../../constants'
+import { LANGUAGE_CONFIG, EDITOR_THEME_OPTIONS, type EDITOR_THEHE, type LanguageValue, LANGUAGE_OPTIONS } from '@/constants'
 import { Play, RotateCcw, Settings } from 'lucide-vue-next'
 import AiAssistant from '@/components/AiAssistant.vue'
 import { useLocalStorage } from '@vueuse/core'
@@ -154,8 +146,10 @@ import MarkdownPreview from '@/components/MarkdownPreview.vue'
 import Request from '@/services/api'
 import { useMessage } from 'naive-ui'
 import indexedDBService from '@/services/indexedDB'
+import { useUserStore } from '@/stores/useUserStore'
 const message = useMessage()
 const route = useRoute()
+const userStore = useUserStore()
 const codeEditor = defineAsyncComponent(() => import('@/components/AceEditor/AceEditor.vue'))
 // const codeEditor = defineAsyncComponent(() => import('@/components/CodeMirror/CodeMirror.vue'))
 const ProblemContext = ref('')
@@ -372,8 +366,39 @@ const handleTest = async () => {
     .finally(() => (isTesting.value = false))
 }
 
-const handleRun = () => {
-  // TODO: 实现运行代码功能
+const handleRun = async () => {
+  if (!userStore.id) {
+    message.error('请先登录')
+    return
+  }
+
+  if (!code.value.trim()) {
+    message.error('请输入代码')
+    return
+  }
+
+  isRunning.value = true
+  result.value = null
+
+  try {
+    await Request.post('/problem/submit', {
+      problem_id: String(route.params.id),
+      user_id: userStore.id,
+      code: code.value,
+      language: languageToApi(Language.value)
+    })
+      .then((res) => {
+        message.success('代码提交成功')
+        // 可以根据返回结果更新UI
+        console.log('Run result:', res)
+      })
+      .catch((err) => {
+        console.error('Run failed:', err)
+        message.error('运行失败: ' + (err.response?.data?.message || err.message))
+      })
+  } finally {
+    isRunning.value = false
+  }
 }
 
 const handleEditorChange = (newCode: string) => {

@@ -11,61 +11,47 @@
                 <span class="text-gray-500">ID:</span>
                 <span class="font-mono" :style="{ color: 'var(--text-primary)' }">{{
                   record.id
-                }}</span>
+                  }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <span class="text-gray-500">题目:</span>
                 <span class="font-medium" :style="{ color: 'var(--text-primary)' }">{{
                   record.problem_title
-                }}</span>
+                  }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <span class="text-gray-500">用户:</span>
                 <span class="font-medium" :style="{ color: 'var(--text-primary)' }">{{
                   record.username
-                }}</span>
+                  }}</span>
               </div>
             </div>
           </div>
           <div class="flex items-center gap-4">
-            <n-tag :type="getStatusType(record.verdict)" size="large">
+            <n-tag :color="STATUS_COLORS[record.verdict]" size="large">
               {{ record.verdict }}
             </n-tag>
             <n-tag type="info" size="large">
-              {{ getLanguageLabel(record.language) }}
+              {{ LANGUAGE_CONFIG[record.language]?.label || 'Unknown' }}
             </n-tag>
           </div>
         </div>
 
-        <div
-          class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t"
-          :style="{ borderColor: 'var(--border-color)' }"
-        >
-          <div
-            class="text-center p-3 rounded-lg"
-            :style="{ backgroundColor: 'var(--surface-secondary)' }"
-          >
-            <div class="text-2xl font-bold text-blue-400">{{ record.max_time }}ms</div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t"
+          :style="{ borderColor: 'var(--border-color)' }">
+          <div class="text-center p-3 rounded-lg" :style="{ backgroundColor: 'var(--surface-secondary)' }">
+            <div class="text-2xl font-bold text-blue-400">{{ formatTime(record.max_time) }}</div>
             <div class="text-sm text-gray-500">最大时间</div>
           </div>
-          <div
-            class="text-center p-3 rounded-lg"
-            :style="{ backgroundColor: 'var(--surface-secondary)' }"
-          >
-            <div class="text-2xl font-bold text-green-400">{{ record.max_memory }}MB</div>
+          <div class="text-center p-3 rounded-lg" :style="{ backgroundColor: 'var(--surface-secondary)' }">
+            <div class="text-2xl font-bold text-green-400">{{ formatMemory(record.max_memory) }}</div>
             <div class="text-sm text-gray-500">最大内存</div>
           </div>
-          <div
-            class="text-center p-3 rounded-lg"
-            :style="{ backgroundColor: 'var(--surface-secondary)' }"
-          >
+          <div class="text-center p-3 rounded-lg" :style="{ backgroundColor: 'var(--surface-secondary)' }">
             <div class="text-2xl font-bold text-purple-400">{{ testCases.length }}</div>
             <div class="text-sm text-gray-500">测试用例</div>
           </div>
-          <div
-            class="text-center p-3 rounded-lg"
-            :style="{ backgroundColor: 'var(--surface-secondary)' }"
-          >
+          <div class="text-center p-3 rounded-lg" :style="{ backgroundColor: 'var(--surface-secondary)' }">
             <div class="text-2xl font-bold text-yellow-400">
               {{ formatDate(record.created_at) }}
             </div>
@@ -85,20 +71,13 @@
             复制代码
           </n-button>
         </div>
-        <div
-          class="rounded-xl overflow-hidden border"
-          :style="{ borderColor: 'var(--border-color)' }"
-        >
-          <pre
-            class="p-4 text-sm overflow-x-auto"
-            :style="{
-              backgroundColor: 'var(--surface-tertiary)',
-              color: 'var(--text-primary)',
-              fontFamily: 'monospace',
-              lineHeight: '1.5'
-            }"
-            v-html="highlightedCode"
-          ></pre>
+        <div class="rounded-xl overflow-hidden border" :style="{ borderColor: 'var(--border-color)' }">
+          <pre class="p-4 text-sm overflow-x-auto" :style="{
+            backgroundColor: 'var(--surface-tertiary)',
+            color: 'var(--text-primary)',
+            fontFamily: 'monospace',
+            lineHeight: '1.5'
+          }" v-html="highlightedCode"></pre>
         </div>
       </div>
 
@@ -107,28 +86,23 @@
         <h2 class="text-xl font-bold mb-4" :style="{ color: 'var(--text-primary)' }">评测结果</h2>
 
         <div class="space-y-4">
-          <div
-            v-for="(testCase, index) in testCases"
-            :key="testCase.case_id"
-            class="p-4 rounded-xl border"
-            :style="{
-              borderColor: getTestCaseBorderColor(testCase.status),
-              backgroundColor: 'var(--surface-secondary)'
-            }"
-          >
+          <div v-for="(testCase, index) in testCases" :key="testCase.case_id" class="p-4 rounded-xl border" :style="{
+            borderColor: STATUS_COLORS[testCase.status].borderColor,
+            backgroundColor: STATUS_COLORS[testCase.status].color,
+          }">
             <div class="flex justify-between items-center mb-3">
               <div class="flex items-center gap-3">
-                <n-tag :type="getTestCaseStatusType(testCase.status)">{{ testCase.status }}</n-tag>
+                <n-tag :color="STATUS_COLORS[testCase.status]">{{ testCase.status }}</n-tag>
                 <span class="font-mono text-sm">#{{ testCase.case_id }}</span>
               </div>
               <div class="flex items-center gap-4 text-sm">
                 <div class="flex items-center gap-1">
                   <Clock :size="14" />
-                  <span>{{ testCase.time }}ms</span>
+                  <span>{{ formatTime(testCase.time) }}</span>
                 </div>
                 <div class="flex items-center gap-1">
                   <Database :size="14" />
-                  <span>{{ testCase.memory }}MB</span>
+                  <span>{{ formatMemory(testCase.memory) }}</span>
                 </div>
               </div>
             </div>
@@ -136,53 +110,33 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <h4 class="font-medium mb-2 text-sm text-gray-500">输入</h4>
-                <pre
-                  class="p-3 rounded text-sm overflow-x-auto"
-                  :style="{
-                    backgroundColor: 'var(--surface-tertiary)',
-                    color: 'var(--text-secondary)'
-                  }"
-                  >{{ testCase.stdin }}</pre
-                >
+                <pre class="p-3 rounded text-sm overflow-x-auto" :style="{
+                  backgroundColor: 'var(--surface-tertiary)',
+                  color: 'var(--text-secondary)'
+                }">{{ testCase.stdin }}</pre>
               </div>
               <div>
                 <h4 class="font-medium mb-2 text-sm text-gray-500">输出</h4>
-                <pre
-                  class="p-3 rounded text-sm overflow-x-auto"
-                  :style="{
-                    backgroundColor: 'var(--surface-tertiary)',
-                    color: 'var(--text-secondary)'
-                  }"
-                  >{{ testCase.stdout }}</pre
-                >
+                <pre class="p-3 rounded text-sm overflow-x-auto" :style="{
+                  backgroundColor: 'var(--surface-tertiary)',
+                  color: 'var(--text-secondary)'
+                }">{{ testCase.stdout }}</pre>
               </div>
               <div>
                 <h4 class="font-medium mb-2 text-sm text-gray-500">期望输出</h4>
-                <pre
-                  class="p-3 rounded text-sm overflow-x-auto"
-                  :style="{
-                    backgroundColor: 'var(--surface-tertiary)',
-                    color: 'var(--text-secondary)'
-                  }"
-                  >{{ testCase.expected }}</pre
-                >
+                <pre class="p-3 rounded text-sm overflow-x-auto" :style="{
+                  backgroundColor: 'var(--surface-tertiary)',
+                  color: 'var(--text-secondary)'
+                }">{{ testCase.expected }}</pre>
               </div>
               <div>
                 <h4 class="font-medium mb-2 text-sm text-gray-500">错误输出</h4>
-                <pre
-                  v-if="testCase.stderr"
-                  class="p-3 rounded text-sm overflow-x-auto"
-                  :style="{
-                    backgroundColor: 'var(--surface-tertiary)',
-                    color: 'var(--text-secondary)'
-                  }"
-                  >{{ testCase.stderr }}</pre
-                >
-                <div
-                  v-else
-                  class="p-3 rounded text-sm text-gray-500"
-                  :style="{ backgroundColor: 'var(--surface-tertiary)' }"
-                >
+                <pre v-if="testCase.stderr" class="p-3 rounded text-sm overflow-x-auto" :style="{
+                  backgroundColor: 'var(--surface-tertiary)',
+                  color: 'var(--text-secondary)'
+                }">{{ testCase.stderr }}</pre>
+                <div v-else class="p-3 rounded text-sm text-gray-500"
+                  :style="{ backgroundColor: 'var(--surface-tertiary)' }">
                   无错误输出
                 </div>
               </div>
@@ -202,6 +156,7 @@ import { NTag, NButton } from 'naive-ui'
 import { Clock, Database, Copy } from 'lucide-vue-next'
 import Request from '@/services/api'
 import { safeJsonParse } from '@/utils/safeJsonParse'
+import { LANGUAGE_CONFIG, STATUS_COLORS } from '@/constants'
 
 onMounted(async () => {
   await Request.get('/record/' + route.params.id).then((res) => {
@@ -268,89 +223,35 @@ const highlightedCode = computed(() => {
   return highlighted.value
 })
 
-// 获取状态类型
-const getStatusType = (verdict: string) => {
-  switch (verdict) {
-    case 'Accepted':
-      return 'success'
-    case 'WrongAnswer':
-    case 'RuntimeError':
-    case 'TimeLimitExceeded':
-    case 'MemoryLimitExceeded':
-      return 'error'
-    case 'CompilationError':
-      return 'warning'
-    default:
-      return 'default'
-  }
+// 格式化内存
+const formatMemory = (memory: number) => {
+  return `${Math.round(memory / 1024 / 1024 * 100) / 100} MB`
 }
 
-// 获取测试用例状态类型
-const getTestCaseStatusType = (status: string) => {
-  switch (status) {
-    case 'Accepted':
-      return 'success'
-    case 'WrongAnswer':
-    case 'RuntimeError':
-    case 'TimeLimitExceeded':
-    case 'MemoryLimitExceeded':
-      return 'error'
-    case 'CompilationError':
-      return 'warning'
-    default:
-      return 'default'
-  }
+// 格式化时间
+const formatTime = (time: number) => {
+  return `${time} ms`
 }
 
-// 获取测试用例边框颜色
-const getTestCaseBorderColor = (status: string) => {
-  switch (status) {
-    case 'Accepted':
-      return 'var(--success-color)'
-    case 'WrongAnswer':
-    case 'RuntimeError':
-    case 'TimeLimitExceeded':
-    case 'MemoryLimitExceeded':
-      return 'var(--error-color)'
-    case 'CompilationError':
-      return 'var(--warning-color)'
-    default:
-      return 'var(--border-color)'
-  }
-}
-
-// 获取语言标签
-const getLanguageLabel = (lang: string) => {
-  switch (lang) {
-    case 'cpp':
-      return 'C++'
-    case 'python':
-      return 'Python'
-    case 'java':
-      return 'Java'
-    case 'javascript':
-      return 'JavaScript'
-    case 'csharp':
-      return 'C#'
-    default:
-      return lang
-  }
-}
 
 // 格式化日期
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
   return date.toLocaleString('zh-CN')
 }
-
+import { useClipboard } from '@vueuse/core'
+const { copy } = useClipboard()
+import { useMessage } from 'naive-ui'
+const message = useMessage()
 // 复制代码
 const copyCode = async () => {
   try {
-    await navigator.clipboard.writeText(record.value.code)
+    await copy(record.value.code)
     // 这里可以添加一个提示，但需要从app中获取message实例
-    console.log('代码已复制到剪贴板')
+    message.success('代码已复制到剪贴板')
+
   } catch (err) {
-    console.error('复制代码失败:', err)
+    message.error('复制代码失败', err)
   }
 }
 </script>

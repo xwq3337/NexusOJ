@@ -3,7 +3,7 @@
  * 用于存储题目代码和测试用例
  */
 
-import { DEFAULT_CODES } from "../../constants"
+import { DEFAULT_CODES } from "@/constants"
 
 const DB_NAME = 'NexusOJ_DB'
 const DB_VERSION = 3

@@ -68,4 +68,5 @@ body.dark {
 
   /* Ensure compatibility with Tailwind dark mode */
   color-scheme: dark;
+  
 }
