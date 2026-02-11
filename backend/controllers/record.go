@@ -11,6 +11,7 @@ package controllers
 import (
 	"net/http"
 	"pkg/models"
+	"pkg/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -23,10 +24,10 @@ func (RecodeController) GetRecodeInfo(c *gin.Context) {
 
 	record, err := models.QueryRecordById(id)
 	if err == nil {
-		ReturnSuccess(c, http.StatusOK, "success", record)
+		utils.ReturnSuccess(c, http.StatusOK, "success", record)
 		return
 	}
-	ReturnError(c, http.StatusNotFound, err)
+	utils.ReturnError(c, http.StatusNotFound, err)
 }
 
 func (RecodeController) GetList(c *gin.Context) {
@@ -53,7 +54,7 @@ func (RecodeController) GetList(c *gin.Context) {
 	results, total, err := models.GetAllRecord(pageInt, pageSizeInt, search, verdict, language)
 
 	if err == nil {
-		ReturnSuccess(c, http.StatusOK, "success", gin.H{
+		utils.ReturnSuccess(c, http.StatusOK, "success", gin.H{
 			"data":      results,
 			"total":     total,
 			"page":      pageInt,
@@ -61,7 +62,7 @@ func (RecodeController) GetList(c *gin.Context) {
 		})
 		return
 	}
-	ReturnError(c, http.StatusInternalServerError, err)
+	utils.ReturnError(c, http.StatusInternalServerError, err)
 }
 func (RecodeController) CreateRecord(c *gin.Context) {
 	data := &models.Record{}
@@ -71,9 +72,9 @@ func (RecodeController) CreateRecord(c *gin.Context) {
 func (RecodeController) GetRecodeListByUser(c *gin.Context) {
 	results, err := models.QueryRecordByUserId(c.Param("id"))
 	if err != nil {
-		ReturnError(c, http.StatusNotFound, err)
+		utils.ReturnError(c, http.StatusNotFound, err)
 		return
 	}
-	ReturnSuccess(c, http.StatusOK, "success", results)
+	utils.ReturnSuccess(c, http.StatusOK, "success", results)
 
 }

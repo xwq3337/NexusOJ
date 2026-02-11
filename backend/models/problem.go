@@ -57,7 +57,18 @@ func (Problem) TableName() string {
 }
 
 func (Problem) CreateProblem(problem *Problem) error {
-	err := dao.MysqlClient.Create(problem).Error
+	// 获取当前最大的ID
+	var maxID int64
+	err := dao.MysqlClient.Model(&Problem{}).Select("COALESCE(MAX(id), 1000)").Scan(&maxID).Error
+	if err != nil {
+		return err
+	}
+
+	// 设置为最大ID+1
+	problem.ID = maxID + 1
+
+	// 创建题目
+	err = dao.MysqlClient.Create(problem).Error
 	return err
 }
 func (Problem) UpdateProblem(problem *Problem) error {
@@ -94,6 +105,6 @@ func (Problem) GetProblemInfoWithoutUsername(id string) (Problem, error) {
 
 func (Problem) GetAllProblem() ([]Problem, error) {
 	var problems []Problem
-	err := dao.MysqlClient.Raw("SELECT id ,title, difficulty,collection, tags, accept,submission, created_at, updated_at FROM problem WHERE deleted_at IS NULL ORDER BY created_at DESC;").Scan(&problems).Error
+	err := dao.MysqlClient.Raw("SELECT id ,title, difficulty,collection, tags, accept,submission, created_at, updated_at FROM problem WHERE deleted_at IS NULL ORDER BY id;").Scan(&problems).Error
 	return problems, err
 }

@@ -6,8 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"pkg/cache"
+	"pkg/dao"
 	"pkg/models"
+	"pkg/utils"
 	"pkg/utils/jsonx"
 	"pkg/utils/logger"
 	"strconv"
@@ -180,7 +181,7 @@ func sendPrivateMsg(msg MessageStruct) { //私聊
 	channel := "unread_record:" + msg.Receiver
 	ctx := context.Background()
 	count, _ := models.QueryUnReadRecord(msg.Receiver)
-	err := cache.RedisClient.Publish(ctx, channel, strconv.Itoa(count+1)).Err()
+	err := dao.RedisClient.Publish(ctx, channel, strconv.Itoa(count+1)).Err()
 	if err != nil {
 		logger.Error("redis publish error", err)
 	}
@@ -227,23 +228,23 @@ func (ChatController) GetChatRecord(c *gin.Context) {
 	id2 := c.Query("id")
 	chatRecords, err := models.QueryChatRecord(id1, id2)
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, err)
+		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
 	}
-	ReturnSuccess(c, http.StatusOK, "success", chatRecords)
+	utils.ReturnSuccess(c, http.StatusOK, "success", chatRecords)
 }
 
 func (ChatController) GetUnReadRecord(c *gin.Context) {
 	id := c.Query("id")
 	if id == "" {
-		ReturnError(c, http.StatusBadRequest, "缺少用户ID")
+		utils.ReturnError(c, http.StatusBadRequest, "缺少用户ID")
 		return
 	}
 	channel := "unread_record:" + id
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
-	pubsub := cache.RedisClient.Subscribe(c.Request.Context(), channel)
+	pubsub := dao.RedisClient.Subscribe(c.Request.Context(), channel)
 	ticker := time.NewTicker(20 * time.Second)
 
 	msgChan := make(chan int, 10)

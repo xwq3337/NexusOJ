@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"pkg/models"
+	"pkg/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,5 +14,5 @@ func (IDEController) JudgeCode(c *gin.Context) {
 	data := &models.JudgeInputStruct{}
 	_ = c.BindJSON(&data)
 	result, _ := JudgeController{}.EvaluateCode(data)
-	ReturnSuccess(c, http.StatusOK, "success", result)
+	utils.ReturnSuccess(c, http.StatusOK, "success", result)
 }

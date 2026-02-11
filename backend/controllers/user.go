@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	jwtgo "pkg/middleware/jwt"
 	"pkg/models"
+	"pkg/utils"
 	"pkg/utils/logger"
 	"time"
 
@@ -24,40 +25,33 @@ func (UserController) GetUserInfo(c *gin.Context) {
 	id := c.Param("id")
 	user, err := models.User{}.QueryUserById(id)
 	if err == nil {
-		ReturnSuccess(c, http.StatusOK, "suceess", user)
+		utils.ReturnSuccess(c, http.StatusOK, "suceess", user)
 		return
 	}
-	ReturnError(c, http.StatusInternalServerError, err)
+	utils.ReturnError(c, http.StatusInternalServerError, err)
 }
-func (UserController) GetList(c *gin.Context) {
-	Users, err := models.GetAllUsers()
-	if err == nil {
-		ReturnSuccess(c, http.StatusOK, "success", Users)
-		return
-	}
-	ReturnError(c, http.StatusInternalServerError, err)
-}
+
 func (UserController) GetNumber(c *gin.Context) {
 	count, err := models.User{}.GetUserNumber()
 	if err == nil {
-		ReturnSuccess(c, http.StatusOK, "success", count)
+		utils.ReturnSuccess(c, http.StatusOK, "success", count)
 		return
 	}
-	ReturnError(c, http.StatusInternalServerError, err)
+	utils.ReturnError(c, http.StatusInternalServerError, err)
 }
 func (UserController) CreateUser(c *gin.Context) {
 	user := &models.User{}
 	err := c.BindJSON(&user)
 	if err != nil {
-		ReturnError(c, http.StatusBadRequest, "请求参数错误"+err.Error())
+		utils.ReturnError(c, http.StatusBadRequest, "请求参数错误"+err.Error())
 		return
 	}
 	user.ID = fmt.Sprintf("%d", idgen.NextId())
 	if err := models.CreateUser(user); err != nil {
-		ReturnError(c, http.StatusInternalServerError, err)
+		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
 	}
-	ReturnSuccess(c, http.StatusOK, "success", user)
+	utils.ReturnSuccess(c, http.StatusOK, "success", user)
 }
 func (UserController) UserLogin(c *gin.Context) {
 	data := make(map[string]string)
@@ -65,15 +59,15 @@ func (UserController) UserLogin(c *gin.Context) {
 	user, err := models.User{Username: data["username"], Password: data["password"]}.QueryUser()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", data["username"]))
+			utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", data["username"]))
 			return
 		} else {
-			ReturnError(c, http.StatusInternalServerError, fmt.Sprintf("查询出错 %v", err))
+			utils.ReturnError(c, http.StatusInternalServerError, fmt.Sprintf("查询出错 %v", err))
 			return
 		}
 	}
 	if user.ID == "" {
-		ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", data["username"]))
+		utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", data["username"]))
 		return
 	}
 	access_token, _ := generateToken(c, user, 6*60*60)
@@ -81,42 +75,19 @@ func (UserController) UserLogin(c *gin.Context) {
 	var tokens []string
 	tokens = append(tokens, access_token)
 	tokens = append(tokens, refresh_token)
-	ReturnSuccess(c, http.StatusOK, tokens, user)
+	utils.ReturnSuccess(c, http.StatusOK, tokens, user)
 }
-func (UserController) AdminLogin(c *gin.Context) {
-	data := make(map[string]string)
-	_ = c.BindJSON(&data)
-	user, err := models.User{Username: data["username"], Password: data["password"], UserRole: 2}.QueryUser()
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", data["username"]))
-			return
-		} else {
-			ReturnError(c, http.StatusInternalServerError, fmt.Sprintf("查询出错 %v", err))
-			return
-		}
-	}
-	if user.ID == "" {
-		ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", data["username"]))
-		return
-	}
-	access_token, _ := generateToken(c, user, 6*60*60)
-	refresh_token, _ := generateToken(c, user, 7*24*60*60)
-	var tokens []string
-	tokens = append(tokens, access_token)
-	tokens = append(tokens, refresh_token)
-	ReturnSuccess(c, http.StatusOK, tokens, user)
-}
+
 func (UserController) GetAllFriends(c *gin.Context) {
 	x, _ := ParserToken(c.Request.Header.Get("Authorization"))
 	id := x.UserID
 	var users []models.User
 	users, err := models.GetAllFriends(id)
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, err)
+		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
 	}
-	ReturnSuccess(c, http.StatusOK, "success", users)
+	utils.ReturnSuccess(c, http.StatusOK, "success", users)
 }
 func (UserController) FuzzyQuery(c *gin.Context) {
 	keyWord := c.Query("keyword")
@@ -124,10 +95,10 @@ func (UserController) FuzzyQuery(c *gin.Context) {
 	var users []models.User
 	users, err := models.User{}.FuzzyQuery(keyWord)
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, err)
+		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
 	}
-	ReturnSuccess(c, http.StatusOK, "success", users)
+	utils.ReturnSuccess(c, http.StatusOK, "success", users)
 }
 
 func (UserController) AddFirend(c *gin.Context) {
@@ -139,24 +110,24 @@ func (UserController) AddFirend(c *gin.Context) {
 	verification := data["verification"]
 	err := models.AddFirend(applicant, recipient, verification)
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, err.Error())
+		utils.ReturnError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	ReturnSuccess(c, http.StatusOK, "success", nil)
+	utils.ReturnSuccess(c, http.StatusOK, "success", nil)
 }
 func (UserController) UserLogout(c *gin.Context) {
-	ReturnSuccess(c, http.StatusOK, "success", nil)
+	utils.ReturnSuccess(c, http.StatusOK, "success", nil)
 }
 func (UserController) GetNewFriends(c *gin.Context) {
 	x, _ := ParserToken(c.Request.Header.Get("Authorization"))
 	id := x.UserID
 	items, err := models.GetNewFriends(id)
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, err.Error())
+		utils.ReturnError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ReturnSuccess(c, http.StatusOK, "success", items)
+	utils.ReturnSuccess(c, http.StatusOK, "success", items)
 }
 func (UserController) HandleNewFriend(c *gin.Context) {
 	x, _ := ParserToken(c.Request.Header.Get("Authorization"))
@@ -164,15 +135,15 @@ func (UserController) HandleNewFriend(c *gin.Context) {
 	apply_id := c.Query("apply_id")
 	status := c.Query("status")
 	if len(apply_id) == 0 || (status != "rejected" && status != "accepted") {
-		ReturnError(c, http.StatusInternalServerError, "状态错误")
+		utils.ReturnError(c, http.StatusInternalServerError, "状态错误")
 		return
 	}
 	err := models.HandleNewFriend(apply_id, receive_id, status)
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, err)
+		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
 	}
-	ReturnSuccess(c, http.StatusOK, "success", nil)
+	utils.ReturnSuccess(c, http.StatusOK, "success", nil)
 }
 func (UserController) ChangeAvatar(c *gin.Context) {
 	x, _ := ParserToken(c.Request.Header.Get("Authorization"))
@@ -180,16 +151,16 @@ func (UserController) ChangeAvatar(c *gin.Context) {
 	file, err := c.FormFile("avatar")
 	DirPath := config.ImagesDir
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, "上传头像失败-1")
+		utils.ReturnError(c, http.StatusInternalServerError, "上传头像失败-1")
 		return
 	}
 
 	if err = c.SaveUploadedFile(file, filepath.Join(DirPath, fmt.Sprintf("/%s.png", id))); err != nil {
-		ReturnError(c, http.StatusInternalServerError, "上传头像失败-2")
+		utils.ReturnError(c, http.StatusInternalServerError, "上传头像失败-2")
 		return
 	}
 	models.ChangeAvatar(id)
-	ReturnSuccess(c, http.StatusOK, "success", nil)
+	utils.ReturnSuccess(c, http.StatusOK, "success", nil)
 
 }
 
@@ -199,21 +170,21 @@ func (UserController) ChangePassword(c *gin.Context) {
 	data := make(map[string]string)
 	_ = c.BindJSON(&data)
 	if len(data["oldPassword"]) == 0 || len(data["newPassword"]) == 0 {
-		ReturnError(c, http.StatusInternalServerError, "密码不能为空")
+		utils.ReturnError(c, http.StatusInternalServerError, "密码不能为空")
 		return
 	}
 	user, err := models.User{ID: id, Password: data["oldPassword"]}.QueryUser()
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, "旧密码错误")
+		utils.ReturnError(c, http.StatusInternalServerError, "旧密码错误")
 		return
 	}
 	user.Password = data["newPassword"]
 	err = models.UpdateUser(&user)
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, "修改密码失败")
+		utils.ReturnError(c, http.StatusInternalServerError, "修改密码失败")
 		return
 	}
-	ReturnSuccess(c, http.StatusOK, "success", nil)
+	utils.ReturnSuccess(c, http.StatusOK, "success", nil)
 }
 func (UserController) GetAccessToken(c *gin.Context) {
 	data := make(map[string]string)
@@ -224,7 +195,7 @@ func (UserController) GetAccessToken(c *gin.Context) {
 	var tokens []string
 	tokens = append(tokens, token_access)
 	tokens = append(tokens, token_refresh)
-	ReturnSuccess(c, http.StatusOK, "success", tokens)
+	utils.ReturnSuccess(c, http.StatusOK, "success", tokens)
 }
 
 func generateToken(c *gin.Context, user models.User, Time int64) (string, error) {

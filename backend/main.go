@@ -6,6 +6,7 @@ import (
 	"pkg/config"
 	"pkg/migrations"
 	"pkg/router"
+	"pkg/services"
 	"pkg/utils/logger"
 
 	"github.com/yitter/idgenerator-go/idgen"
@@ -20,6 +21,11 @@ func main() {
 	defer logger.Sync()
 	idgen.SetIdGenerator(options)
 	migrations.Migrate()
+
+	// 初始化判题队列
+	// 参数说明: workerNum=5(并发判题worker数量), queueSize=100(队列容量)
+	services.InitJudgeQueue(5, 100)
+
 	r := router.Router()
 	defer func() {
 		if err := recover(); err != nil {

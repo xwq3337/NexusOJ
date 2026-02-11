@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"pkg/models"
+	"pkg/utils"
 	"pkg/utils/jsonx"
 
 	"github.com/gin-gonic/gin"
@@ -22,10 +23,10 @@ func (CommentController) GetComment(c *gin.Context) {
 		results = append(results, result)
 	}
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, err)
+		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
 	}
-	ReturnSuccess(c, http.StatusOK, "success", results)
+	utils.ReturnSuccess(c, http.StatusOK, "success", results)
 }
 
 func (CommentController) CreateComment(c *gin.Context) {
@@ -34,10 +35,10 @@ func (CommentController) CreateComment(c *gin.Context) {
 	commmet.ID = uuid.New().String()
 	err := models.CreateComment(commmet)
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, err)
+		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
 	}
-	ReturnSuccess(c, http.StatusOK, "success", commmet)
+	utils.ReturnSuccess(c, http.StatusOK, "success", commmet)
 
 }
 func (CommentController) CreateSubComment(c *gin.Context) {
@@ -46,8 +47,8 @@ func (CommentController) CreateSubComment(c *gin.Context) {
 	subcommmet.ID = uuid.New().String()
 	err := models.CreateSubComment(subcommmet)
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, err)
+		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
 	}
-	ReturnSuccess(c, http.StatusOK, "success", subcommmet)
+	utils.ReturnSuccess(c, http.StatusOK, "success", subcommmet)
 }

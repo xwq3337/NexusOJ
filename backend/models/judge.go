@@ -1,3 +1,11 @@
+/*
+ * @Author: x_wq3337 854541540@qq.com
+ * @Date: 2025-07-29 16:28:52
+ * @LastEditors: x_wq3337 854541540@qq.com
+ * @LastEditTime: 2026-01-15 13:07:15
+ * @FilePath: /backend/models/judge.go
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
 package models
 
 import (
@@ -68,7 +76,6 @@ type JudgeInputStruct struct {
 }
 type ProblemJudgeStruct struct {
 	ProblemID string `json:"problem_id"`
-	UserID    string `json:"user_id"`
 	Code      string `json:"code"`
 	Language  string `json:"language"`
 }

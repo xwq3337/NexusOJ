@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"pkg/config"
+	"pkg/utils"
 	"strconv"
 	"strings"
 
@@ -19,7 +20,7 @@ func (FileDownloadController) GetTest(c *gin.Context) {
 	filePath := "./Makefile"
 	file, err := os.Open(filePath)
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, "无法打开文件")
+		utils.ReturnError(c, http.StatusInternalServerError, "无法打开文件")
 		return
 	}
 	defer file.Close()
@@ -38,21 +39,21 @@ func (FileDownloadController) GetChunk(c *gin.Context) {
 	Range := strings.Split(c.Request.Header.Get("Range"), "-")
 	start, err := strconv.ParseInt(Range[0], 10, 64)
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, "范围出错")
+		utils.ReturnError(c, http.StatusInternalServerError, "范围出错")
 		return
 	}
 	end, err := strconv.ParseInt(Range[1], 10, 64)
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, "范围出错")
+		utils.ReturnError(c, http.StatusInternalServerError, "范围出错")
 		return
 	}
 	if start > end {
-		ReturnError(c, http.StatusInternalServerError, "范围出错")
+		utils.ReturnError(c, http.StatusInternalServerError, "范围出错")
 		return
 	}
 	fileBytes, err := readFileByRange(filepath, int64(start), int64(end))
 	if err != nil {
-		ReturnError(c, http.StatusInternalServerError, "找不到文件,请确认文件名是否正确")
+		utils.ReturnError(c, http.StatusInternalServerError, "找不到文件,请确认文件名是否正确")
 		return
 	}
 	c.Header("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, int64(start)+int64(len(fileBytes))-1))
@@ -60,7 +61,7 @@ func (FileDownloadController) GetChunk(c *gin.Context) {
 	c.Header("Content-Type", "application/octet-stream")
 	c.Status(http.StatusPartialContent)
 	c.Writer.Write(fileBytes)
-	// ReturnSuccess(c, http.StatusOK, "success", fileBytes, 1)
+	// utils.ReturnSuccess(c, http.StatusOK, "success", fileBytes, 1)
 }
 
 func readFileByRange(path string, start, end int64) ([]byte, error) {

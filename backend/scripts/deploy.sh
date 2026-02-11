@@ -38,6 +38,7 @@ echo -e "${COLOR_GREEN}√ 构建目录准备完成${COLOR_RESET}"
 
 # 步骤1：构建Go二进制文件
 echo -e "${COLOR_BLUE}[步骤1/5] 正在构建Go二进制文件...${COLOR_RESET}"
+export GIN_MODE=release
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ${BUILD_DIR}/oj-backend || {
     echo -e "${COLOR_RED}[错误] Go二进制文件构建失败!${COLOR_RESET}"
     exit 1

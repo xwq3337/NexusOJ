@@ -9,6 +9,7 @@ cmd = "go build -o ./target/dev/main ."
 delay = 1000
 exclude_dir = [
   "assets",
+  "media",
   "tmp",
   "vendor",
   "testdata",

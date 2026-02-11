@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"pkg/config"
 	"pkg/utils/logger"
+	"strconv"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -18,6 +20,7 @@ import (
 var (
 	MysqlClient   *gorm.DB
 	MongoDBClient *mongo.Client
+	RedisClient   *redis.Client
 	ctx           = context.Background()
 )
 
@@ -64,6 +67,21 @@ func mySql() {
 	db.SetMaxOpenConns(100) // 打开最大连接
 	db.SetConnMaxLifetime(time.Hour)
 }
+func init() {
+	db, _ := strconv.ParseUint(config.RedisDbName, 10, 64)
+	RedisClient = redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%s", config.RedisAddr, config.RedisPort),
+		Password: config.RedisPwd,
+		DB:       int(db),
+		PoolSize: 20,
+	})
+	_, err := RedisClient.Ping(ctx).Result()
+	if err != nil {
+		logger.Error("redis connect error", err)
+		panic(err)
+	}
+}
+
 func InsertDocument(db, collection string, document interface{}) error {
 	Collection := MongoDBClient.Database(db).Collection(collection)
 	_, err := Collection.InsertOne(ctx, document)

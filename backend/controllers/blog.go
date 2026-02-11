@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"pkg/models"
+	"pkg/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -14,29 +15,29 @@ type BlogController struct{}
 func (BlogController) CreateBlog(c *gin.Context) {
 	data := &models.Blog{}
 	if Err := c.BindJSON(&data); Err != nil {
-		ReturnError(c, http.StatusInternalServerError, Err)
+		utils.ReturnError(c, http.StatusInternalServerError, Err)
 		return
 	}
 	data.ID = uuid.New().String()
 	if err := (models.CreateBlog(data)); err != nil {
-		ReturnError(c, http.StatusInternalServerError, err)
+		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
 	}
-	ReturnSuccess(c, http.StatusOK, "success", data)
+	utils.ReturnSuccess(c, http.StatusOK, "success", data)
 }
 
 // 修改博客
 func (BlogController) ChangeBlog(c *gin.Context) {
 	data := &models.Blog{}
 	if Err := c.BindJSON(&data); Err != nil {
-		ReturnError(c, http.StatusInternalServerError, Err)
+		utils.ReturnError(c, http.StatusInternalServerError, Err)
 		return
 	}
 	if err := (models.ChangeBlog(data)); err != nil {
-		ReturnError(c, http.StatusInternalServerError, err)
+		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
 	}
-	ReturnSuccess(c, http.StatusOK, "success", data)
+	utils.ReturnSuccess(c, http.StatusOK, "success", data)
 }
 
 // 删除博客
@@ -44,10 +45,10 @@ func (BlogController) DeleteBlog(c *gin.Context) {
 	id := c.Query("id")
 	err := models.DeleteBlog(id)
 	if err == nil {
-		ReturnSuccess(c, http.StatusOK, "suceess", nil)
+		utils.ReturnSuccess(c, http.StatusOK, "suceess", nil)
 		return
 	}
-	ReturnError(c, http.StatusInternalServerError, err)
+	utils.ReturnError(c, http.StatusInternalServerError, err)
 }
 
 // 获取博客详情
@@ -55,30 +56,30 @@ func (BlogController) GetBlogInfo(c *gin.Context) {
 	id := c.Param("id")
 	blog, err := models.QueryBlog(id)
 	if err == nil {
-		ReturnSuccess(c, http.StatusOK, "suceess", blog)
+		utils.ReturnSuccess(c, http.StatusOK, "suceess", blog)
 		return
 	}
-	ReturnError(c, http.StatusNotFound, err)
+	utils.ReturnError(c, http.StatusNotFound, err)
 }
 
 // 获取博客数量
 func (BlogController) GetNumber(c *gin.Context) {
 	count, err := models.Blog{}.GetBlogNumber()
 	if err == nil {
-		ReturnSuccess(c, http.StatusOK, "success", count)
+		utils.ReturnSuccess(c, http.StatusOK, "success", count)
 		return
 	}
-	ReturnError(c, http.StatusInternalServerError, err)
+	utils.ReturnError(c, http.StatusInternalServerError, err)
 }
 
 // 获取所有博客列表
 func (BlogController) GetList(c *gin.Context) {
 	results, err := models.Blog{}.GetAllBlog()
 	if err == nil {
-		ReturnSuccess(c, http.StatusOK, "success", results)
+		utils.ReturnSuccess(c, http.StatusOK, "success", results)
 		return
 	}
-	ReturnError(c, http.StatusInternalServerError, err)
+	utils.ReturnError(c, http.StatusInternalServerError, err)
 }
 
 // 获取用户的个人博客列表
@@ -86,26 +87,26 @@ func (BlogController) GetUserBlogList(c *gin.Context) {
 	x, _ := ParserToken(c.Request.Header.Get("Authorization"))
 	results, err := models.Blog{}.GetUserBlogList(x.UserID)
 	if err == nil {
-		ReturnSuccess(c, http.StatusOK, "success", results)
+		utils.ReturnSuccess(c, http.StatusOK, "success", results)
 		return
 	}
-	ReturnError(c, http.StatusInternalServerError, err)
+	utils.ReturnError(c, http.StatusInternalServerError, err)
 }
 func (BlogController) RecycleBlog(c *gin.Context) {
 	blogs, err := models.Blog{}.GetRecycleBlog()
 	if err == nil {
-		ReturnSuccess(c, http.StatusOK, "success", blogs)
+		utils.ReturnSuccess(c, http.StatusOK, "success", blogs)
 		return
 	}
-	ReturnError(c, http.StatusInternalServerError, err)
+	utils.ReturnError(c, http.StatusInternalServerError, err)
 }
 func (BlogController) GetVerifyList(c *gin.Context) {
 	blogs, err := models.Blog{}.GetVerifyList()
 	if err == nil {
-		ReturnSuccess(c, http.StatusOK, "success", blogs)
+		utils.ReturnSuccess(c, http.StatusOK, "success", blogs)
 		return
 	}
-	ReturnError(c, http.StatusInternalServerError, err)
+	utils.ReturnError(c, http.StatusInternalServerError, err)
 }
 
 // 获取用户的可见博客列表（考虑其他用户私密博客）
@@ -115,8 +116,8 @@ func (BlogController) GetAvailableBlogList(c *gin.Context) {
 	results, err := models.Blog{}.GetAvailableBlog(x.UserID, keyword)
 
 	if err == nil {
-		ReturnSuccess(c, http.StatusOK, "success", results)
+		utils.ReturnSuccess(c, http.StatusOK, "success", results)
 		return
 	}
-	ReturnError(c, http.StatusInternalServerError, err)
+	utils.ReturnError(c, http.StatusInternalServerError, err)
 }
