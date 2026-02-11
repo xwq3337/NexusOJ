@@ -139,9 +139,6 @@ onMounted(() => {
 
 
 <style scoped>
-.blog-info-container {
-  padding: 20px;
-}
 
 .blog-card {
   margin-bottom: 20px;

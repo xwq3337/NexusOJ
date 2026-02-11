@@ -51,7 +51,7 @@ const performLogin = async () => {
   loading.value = true;
   try {
     const res = await Request.post({
-      url: '/user/admin-login',
+      url: '/admin/login',
       data: {
         username: form.username,
         password: form.password

@@ -33,7 +33,7 @@ const roleForm = reactive({
 const fetchUserList = async () => {
   loading.value = true
     await Request.get({
-      url: '/user/list',
+      url: '/admin/user-list',
       params: {
         page: page.value,
         pageSize: pageSize.value,
