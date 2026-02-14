@@ -1,9 +1,7 @@
 <template>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <div
-      class="p-6 rounded-xl hover:border-blue-500/50 transition-colors"
-      :style="{ backgroundColor: 'var(--surface-primary)' }"
-    >
+    <div class="p-6 border-2 border-transparent rounded-xl hover:border-blue-500  transition-colors"
+      :style="{ backgroundColor: 'var(--surface-primary)' }">
       <div class="flex items-center gap-4 mb-2">
         <div class="p-3 bg-blue-500/10 rounded-lg text-blue-400">
           <Code2 :size="24" />
@@ -13,10 +11,8 @@
       <p class="text-gray-400 text-sm">Problems Available</p>
     </div>
 
-    <div
-      class="p-6 rounded-xl hover:border-purple-500/50 transition-colors"
-      :style="{ backgroundColor: 'var(--surface-primary)' }"
-    >
+    <div class="p-6 border-2 border-transparent rounded-xl hover:border-purple-500/50 transition-colors"
+      :style="{ backgroundColor: 'var(--surface-primary)' }">
       <div class="flex items-center gap-4 mb-2">
         <div class="p-3 bg-purple-500/10 rounded-lg text-purple-400">
           <Users :size="24" />
@@ -26,10 +22,8 @@
       <p class="text-gray-400 text-sm">Active Developers</p>
     </div>
 
-    <div
-      class="p-6 rounded-xl hover:border-green-500/50 transition-colors"
-      :style="{ backgroundColor: 'var(--surface-primary)' }"
-    >
+    <div class="p-6 border-2 border-transparent rounded-xl hover:border-green-500/50 transition-colors"
+      :style="{ backgroundColor: 'var(--surface-primary)' }">
       <div class="flex items-center gap-4 mb-2">
         <div class="p-3 bg-green-500/10 rounded-lg text-green-400">
           <Zap :size="24" />

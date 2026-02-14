@@ -73,6 +73,20 @@ body.light {
   --selection-bg: #3b82f6;
   --selection-text: #ffffff;
 
+  /* Home hero section */
+  --hero-bg-from: rgba(59, 130, 246, 0.15);
+  --hero-bg-to: rgba(99, 102, 241, 0.15);
+  --hero-border: rgba(0, 0, 0, 0.08);
+  --hero-title-color: #1e293b;
+  --hero-desc-color: #475569;
+  --hero-glow-blue: rgba(59, 130, 246, 0.12);
+  --hero-glow-purple: rgba(168, 85, 247, 0.08);
+  --hero-btn-primary-bg: #3b82f6;
+  --hero-btn-primary-hover: #2563eb;
+  --hero-btn-primary-shadow: rgba(59, 130, 246, 0.25);
+  --hero-btn-secondary-bg: #e2e8f0;
+  --hero-btn-secondary-hover: #cbd5e1;
+
   /* Ensure compatibility with Tailwind light mode */
   color-scheme: light;
 }

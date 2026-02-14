@@ -19,9 +19,11 @@
         &copy; 2025 NexusOJ. Built with Vue & Tailwind.
       </div>
     </footer>
+    <AiAssistant />
   </div>
 </template>
 
 <script setup lang="ts">
 import Navbar from '../components/Navbar.vue'
+import AiAssistant from '../components/AiAssistant.vue'
 </script>

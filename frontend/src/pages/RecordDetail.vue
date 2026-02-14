@@ -149,14 +149,77 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import hljs from 'highlight.js'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { NTag, NButton } from 'naive-ui'
+import { NTag, NButton, useMessage } from 'naive-ui'
 import { Clock, Database, Copy } from 'lucide-vue-next'
+import { useClipboard } from '@vueuse/core'
 import Request from '@/services/api'
 import { safeJsonParse } from '@/utils/safeJsonParse'
 import { LANGUAGE_CONFIG, STATUS_COLORS } from '@/constants'
+import hljs from 'highlight.js/lib/common'
+import javascript from 'highlight.js/lib/languages/javascript'
+import cpp from 'highlight.js/lib/languages/cpp'
+import python from 'highlight.js/lib/languages/python'
+import java from 'highlight.js/lib/languages/java'
+import rust from 'highlight.js/lib/languages/rust'
+import go from 'highlight.js/lib/languages/go'
+import { useTheme } from '@/composables/useTheme'
+
+const {theme} = useTheme()
+
+// 动态加载 highlight.js 主题 CSS
+let highlightThemeLoaded: string | null = null
+
+const loadHighlightTheme = async (isDark: boolean) => {
+  const themeName = isDark ? 'dark' : 'light'
+
+  // 如果已经加载了相同的主题，跳过
+  if (highlightThemeLoaded === themeName) {
+    return
+  }
+
+  // 移除旧的样式表
+  const oldStyle = document.getElementById('highlightjs-theme')
+  if (oldStyle) {
+    oldStyle.remove()
+  }
+
+  try {
+    // 动态导入 CSS 文本内容
+    const cssContent = isDark
+      ? (await import('highlight.js/styles/github-dark.css?raw')).default
+      : (await import('highlight.js/styles/github.css?raw')).default
+
+    // 创建 style 标签并插入
+    const style = document.createElement('style')
+    style.id = 'highlightjs-theme'
+    style.textContent = cssContent
+    document.head.appendChild(style)
+
+    highlightThemeLoaded = themeName
+  } catch (error) {
+    console.error('加载 highlight.js 主题失败:', error)
+  }
+}
+
+// 注册语言
+hljs.registerLanguage('javascript', javascript)
+hljs.registerLanguage('cpp', cpp)
+hljs.registerLanguage('python', python)
+hljs.registerLanguage('java', java)
+hljs.registerLanguage('rust', rust)
+hljs.registerLanguage('go',go)
+
+// 初始化时加载主题
+onMounted(() => {
+  loadHighlightTheme(theme.value === 'dark')
+})
+
+// 监听主题变化
+watch(theme, (newTheme) => {
+  loadHighlightTheme(newTheme === 'dark')
+})
 
 onMounted(async () => {
   await Request.get('/record/' + route.params.id).then((res) => {
@@ -165,7 +228,7 @@ onMounted(async () => {
 })
 
 // 评测记录数据结构
-interface Record {
+interface JudgeRecord {
   id: number
   code: string
   created_at: string
@@ -198,7 +261,7 @@ interface TestCase {
 const route = useRoute()
 
 // 记录数据
-const record = ref<Record>({} as Record)
+const record = ref({} as JudgeRecord)
 
 // 解析测试用例
 const testCases = computed<TestCase[]>(() => {
@@ -208,19 +271,27 @@ const testCases = computed<TestCase[]>(() => {
 
 // 代码高亮
 const highlightedCode = computed(() => {
-  const langMap = {
+  const langMap: Record<string, string> = {
     cpp: 'cpp',
     python: 'python',
     java: 'java',
     javascript: 'javascript',
     csharp: 'csharp',
     c: 'c',
-    text: 'plaintext'
+    text: 'plaintext',
+    rust: 'rust',
+    go : 'go'
   }
 
   const language = langMap[record.value.language] || 'plaintext'
-  const highlighted = hljs.highlight(record.value.code ?? '', { language })
-  return highlighted.value
+  const code = record.value.code || ''
+  try {
+    const result = hljs.highlight(code, { language })
+    return result.value || ''
+  } catch (error) {
+    console.error('代码高亮失败:', error)
+    return code
+  }
 })
 
 // 格式化内存
@@ -233,25 +304,22 @@ const formatTime = (time: number) => {
   return `${time} ms`
 }
 
-
 // 格式化日期
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
   return date.toLocaleString('zh-CN')
 }
-import { useClipboard } from '@vueuse/core'
+
 const { copy } = useClipboard()
-import { useMessage } from 'naive-ui'
 const message = useMessage()
+
 // 复制代码
 const copyCode = async () => {
   try {
     await copy(record.value.code)
-    // 这里可以添加一个提示，但需要从app中获取message实例
     message.success('代码已复制到剪贴板')
-
   } catch (err) {
-    message.error('复制代码失败', err)
+    message.error('复制代码失败')
   }
 }
 </script>

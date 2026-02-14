@@ -66,7 +66,21 @@ body.dark {
   --selection-bg: #3b82f6;
   --selection-text: #ffffff;
 
+  /* Home hero section */
+  --hero-bg-from: rgba(30, 58, 138, 0.4);
+  --hero-bg-to: rgba(49, 46, 129, 0.4);
+  --hero-border: rgba(255, 255, 255, 0.1);
+  --hero-title-color: #f8fafc;
+  --hero-desc-color: #cbd5e1;
+  --hero-glow-blue: rgba(59, 130, 246, 0.2);
+  --hero-glow-purple: rgba(168, 85, 247, 0.1);
+  --hero-btn-primary-bg: #2563eb;
+  --hero-btn-primary-hover: #1d4ed8;
+  --hero-btn-primary-shadow: rgba(37, 99, 235, 0.25);
+  --hero-btn-secondary-bg: #475569;
+  --hero-btn-secondary-hover: #334155;
+
   /* Ensure compatibility with Tailwind dark mode */
   color-scheme: dark;
-  
+
 }

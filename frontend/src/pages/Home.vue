@@ -1,41 +1,50 @@
 <template>
   <div class="animate-fade-in">
     <div
-      class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-white/10 p-8 md:p-12 mb-12"
+      class="relative overflow-hidden rounded-3xl p-8 md:p-12 mb-12 border hero-section"
+      :style="{
+        background: `linear-gradient(to right, var(--hero-bg-from), var(--hero-bg-to))`,
+        borderColor: 'var(--hero-border)'
+      }"
     >
       <div class="relative z-10 max-w-2xl">
         <h1
           class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight"
-          :style="{ color: 'var(--text-primary)' }"
+          :style="{ color: 'var(--hero-title-color)' }"
         >
           Master Algorithms <br />
           <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400"
             >Build the Future</span
           >
         </h1>
-        <p class="text-gray-300 text-lg mb-8 leading-relaxed">
+        <p
+          class="text-lg mb-8 leading-relaxed"
+          :style="{ color: 'var(--hero-desc-color)' }"
+        >
           加入新一代的编程竞技。在这里，你可以解决各种算法问题，参加大型的编程竞赛，并获取实时的人工智能指导，帮你理清思路、调试代码。
         </p>
         <div class="flex flex-wrap gap-4">
           <RouterLink
             to="/problems"
-            class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition-all hover:scale-105 shadow-lg shadow-blue-500/25"
+            class="hero-btn-primary text-white px-8 py-3 rounded-xl font-semibold transition-all hover:scale-105 shadow-lg hover:shadow-xl"
             >开始解题</RouterLink
           >
           <RouterLink
             to="/contests"
-            class="text-white px-8 py-3 rounded-xl font-semibold transition-all"
-            :style="{ backgroundColor: 'var(--btn-secondary)' }"
-            :class="['hover:bg-gray-700']"
+            class="hero-btn-secondary text-white px-8 py-3 rounded-xl font-semibold transition-all"
             >浏览比赛</RouterLink
           >
         </div>
       </div>
 
       <div
-        class="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"
+        class="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 rounded-full blur-3xl"
+        :style="{ backgroundColor: 'var(--hero-glow-blue)' }"
       ></div>
-      <div class="absolute bottom-0 left-20 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl"></div>
+      <div
+        class="absolute bottom-0 left-20 w-72 h-72 rounded-full blur-3xl"
+        :style="{ backgroundColor: 'var(--hero-glow-purple)' }"
+      ></div>
     </div>
 
     <Stats />
@@ -185,3 +194,21 @@ import { CheckCircle2, Circle } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 import { ref } from 'vue'
 </script>
+
+<style scoped>
+.hero-btn-primary {
+  background-color: var(--hero-btn-primary-bg);
+}
+
+.hero-btn-primary:hover {
+  background-color: var(--hero-btn-primary-hover);
+}
+
+.hero-btn-secondary {
+  background-color: var(--hero-btn-secondary-bg);
+}
+
+.hero-btn-secondary:hover {
+  background-color: var(--hero-btn-secondary-hover);
+}
+</style>

@@ -38,10 +38,10 @@
           borderStyle: 'solid'
         }">
           <div class="flex items-center gap-2">
-            <!-- TODO: 主题切换-背景 -->
+            <!-- TODO: 题目页 主题切换 -->
             <n-select v-model:value="Language"
               :options="Object.values(LANGUAGE_CONFIG).map(config => ({ value: config.value, label: config.label }))"
-              :style="{ width: '120px' }" :dropdown-props="{ style: { maxHeight: '200px', overflowY: 'auto' } }"
+              :style="{ width: '140px' }" :dropdown-props="{ style: { maxHeight: '200px', overflowY: 'auto' } }"
               placeholder="选择语言">
             </n-select>
             <n-popover trigger="click" placement="bottom">
@@ -70,23 +70,24 @@
             </n-popover>
           </div>
           <div class="flex items-center gap-2">
-            <button class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors" :style="{
+            <n-button class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors" :style="{
               color: 'var(--text-primary)',
               backgroundColor: hoverBgColor2
             }" @mouseenter="() => (hoverBgColor2 = 'var(--surface-tertiary)')"
               @mouseleave="() => (hoverBgColor2 = 'transparent')">
               <RotateCcw :size="14" /> 重置
-            </button>
-            <button @click="handleTest" :disabled="isTesting"
-              class="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 rounded transition-colors"
+            </n-button>
+            <n-button @click="handleTest" :disabled="isTesting"
+              class="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded transition-colors"
               :style="{ color: 'var(--text-primary)' }" :class="isTesting ? 'opacity-70 cursor-wait' : ''">
-              <Play :size="14" /> {{ isTesting ? '测试中...' : '测试代码' }}
-            </button>
-            <button @click="handleRun" :disabled="isRunning"
-              class="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 rounded transition-colors"
+              <Play :size="14" /> {{ isTesting ? '测试中...' : '自测运行' }}
+            </n-button>
+            <n-button @click="handleRun" :disabled="isRunning"
+              type="success"
+              class="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded transition-colors"
               :style="{ color: 'var(--text-primary)' }" :class="isRunning ? 'opacity-70 cursor-wait' : ''">
-              <Play :size="14" /> {{ isRunning ? '运行中...' : '运行代码' }}
-            </button>
+               {{ isRunning ? '提交中...' : '提交代码' }}
+            </n-button>
           </div>
         </div>
 

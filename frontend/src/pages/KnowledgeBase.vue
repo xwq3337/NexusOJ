@@ -2,16 +2,12 @@
   <div :style="{ backgroundColor: 'var(--bg-primary)' }" class="min-h-screen flex">
     <!-- 左侧导航菜单 -->
     <div
-      class="w-64 border-r"
+      class="w-40 border-r"
       :style="{
         backgroundColor: 'var(--surface-primary)',
         borderColor: 'var(--border-color)'
       }"
     >
-      <div class="p-6 border-b" :style="{ borderColor: 'var(--border-color)' }">
-        <h2 class="text-xl font-bold" :style="{ color: 'var(--text-primary)' }">知识库</h2>
-      </div>
-
       <div class="p-4">
         <n-menu :options="menuOptions" :value="currentRoute" @update:value="handleMenuSelect" />
       </div>

@@ -2,7 +2,6 @@
   <div class="animate-fade-in max-w-6xl mx-auto">
     <div class="mb-8">
       <!-- TODO:搜索 -->
-      <!-- TODO:主题色 -->
       <div
         class="divide-y"
         :style="{

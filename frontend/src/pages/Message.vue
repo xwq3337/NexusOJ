@@ -1,15 +1,13 @@
 <template>
   <div :style="{ backgroundColor: 'var(--bg-primary)' }" class="min-h-screen p-6">
     <div class="max-w-6xl mx-auto">
-      <h1 class="text-3xl font-bold mb-6" :style="{ color: 'var(--text-primary)' }">消息中心</h1>
-
       <n-tabs type="line" v-model:value="activeTab" animated>
         <n-tab-pane name="chat" tab="聊天消息">
           <div class="chat-container mt-4">
             <div class="flex gap-4">
               <!-- 聊天列表侧边栏 -->
               <div
-                class="w-1/3 border rounded-lg"
+                class="w-1/5 border rounded-lg"
                 :style="{
                   backgroundColor: 'var(--surface-primary)',
                   borderColor: 'var(--border-color)'
