@@ -1,0 +1,271 @@
+整除分块（Divisor Block Technique）
+===================================
+
+基本概念
+--------
+整除分块是一种用于优化涉及⌊n/i⌋求和问题的算法技巧。
+它利用了⌊n/i⌋的值在某个区间内保持不变的性质，
+将O(n)的复杂度优化到O(√n)。
+
+核心思想
+--------
+对于固定的n，⌊n/i⌋的值在i∈[l, r]区间内保持不变，其中：
+    l = i
+    r = n / (n / i)
+
+这意味着对于相同的⌊n/i⌋值，可以一次性计算整个区间的贡献。
+
+基础模板
+--------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 整除分块求和：Σ⌊n/i⌋，i从1到n
+ll divisor_block_sum(ll n) {
+    ll sum = 0;
+    for (ll l = 1, r; l <= n; l = r + 1) {
+        r = n / (n / l);
+        sum += (r - l + 1) * (n / l);
+    }
+    return sum;
+}
+
+int main() {
+    ll n;
+    cin >> n;
+
+    cout << "Σ⌊" << n << "/i⌋ = " << divisor_block_sum(n) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def divisor_block_sum(n: int) -> int:
+    """整除分块求和：Σ⌊n/i⌋"""
+    total = 0
+    l = 1
+    while l <= n:
+        r = n // (n // l)
+        total += (r - l + 1) * (n // l)
+        l = r + 1
+    return total
+
+def solve():
+    n = int(input())
+    result = divisor_block_sum(n)
+    print(f"Σ⌊{n}/i⌋ = {result}")
+
+solve()
+```
+
+应用一：求和问题
+--------------
+求Σ⌊n/i⌋，i从1到n
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 方法1：整除分块
+ll divisor_block(ll n) {
+    ll sum = 0;
+    for (ll l = 1, r; l <= n; l = r + 1) {
+        r = n / (n / l);
+        sum += (r - l + 1) * (n / l);
+    }
+    return sum;
+}
+
+// 方法2：直接枚举（用于对比）
+ll brute_force(ll n) {
+    ll sum = 0;
+    for (ll i = 1; i <= n; i++) {
+        sum += n / i;
+    }
+    return sum;
+}
+
+int main() {
+    ll n;
+    cin >> n;
+
+    cout << "整除分块：" << divisor_block(n) << '\n';
+    cout << "暴力枚举：" << brute_force(n) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def divisor_block(n: int) -> int:
+    """整除分块"""
+    total = 0
+    l = 1
+    while l <= n:
+        r = n // (n // l)
+        total += (r - l + 1) * (n // l)
+        l = r + 1
+    return total
+
+def brute_force(n: int) -> int:
+    """暴力枚举"""
+    total = 0
+    for i in range(1, n + 1):
+        total += n // i
+    return total
+
+def solve():
+    n = int(input())
+    print(f"整除分块：{divisor_block(n)}")
+    print(f"暴力枚举：{brute_force(n)}")
+
+solve()
+```
+
+应用二：复杂求和
+--------------
+求Σ⌊k/i⌋，i从1到n
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 计算Σ⌊k/i⌋，i从1到n
+ll floor_sum(ll n, ll k) {
+    ll sum = 0;
+    for (ll l = 1, r; l <= n; l = r + 1) {
+        r = min(n, k / (k / l));
+        if (k / l == 0) r = n;
+        sum += (r - l + 1) * (k / l);
+    }
+    return sum;
+}
+
+int main() {
+    ll n, k;
+    cin >> n >> k;
+
+    cout << "Σ⌊" << k << "/i⌋ (i=1 to " << n << ") = "
+         << floor_sum(n, k) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def floor_sum(n: int, k: int) -> int:
+    """计算Σ⌊k/i⌋"""
+    total = 0
+    l = 1
+    while l <= n:
+        r = k // (k // l) if k // l != 0 else n
+        r = min(r, n)
+        total += (r - l + 1) * (k // l)
+        l = r + 1
+    return total
+
+def solve():
+    n, k = map(int, input().split())
+    result = floor_sum(n, k)
+    print(f"Σ⌊{k}/i⌋ (i=1 to {n}) = {result}")
+
+solve()
+```
+
+应用三：结合欧拉函数
+------------------
+求Σgcd(i, n)，i从1到n
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 求欧拉函数
+ll phi(ll n) {
+    ll res = n;
+    for (ll i = 2; i * i <= n; i++) {
+        if (n % i == 0) {
+            while (n % i == 0) n /= i;
+            res = res / i * (i - 1);
+        }
+    }
+    if (n > 1) res = res / n * (n - 1);
+    return res;
+}
+
+// 求Σgcd(i, n)，i从1到n
+ll gcd_sum(ll n) {
+    ll sum = 0;
+    for (ll l = 1, r; l <= n; l = r + 1) {
+        r = n / (n / l);
+        sum += (r - l + 1) * (n / l);
+    }
+    return sum;
+}
+
+// 或者使用公式：Σgcd(i, n) = Σ(d × φ(n/d))，d|n
+ll gcd_sum_formula(ll n) {
+    ll sum = 0;
+    for (ll l = 1, r; l <= n; l = r + 1) {
+        r = n / (n / l);
+        ll d = n / l;
+        sum += phi(d) * d;
+    }
+    return sum;
+}
+
+int main() {
+    ll n;
+    cin >> n;
+
+    cout << "Σgcd(i, " << n << ") = " << gcd_sum_formula(n) << '\n';
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 余数求和（洛谷P2261）：整除分块基础
+2. 神奇的函数（洛谷P2398）：整除分块应用
+3. GCD之和（洛谷P2398）：结合欧拉函数
+
+注意事项
+--------
+1. 适用场景：
+   - 涉及⌊n/i⌋的求和问题
+   - n很大时（可达10^12）
+
+2. 时间复杂度：
+   - O(√n)
+   - 比暴力O(n)快很多
+
+3. 实现细节：
+   - 注意r的边界
+   - 处理k/i = 0的情况
+
+时间复杂度总结
+--------------
+- 时间复杂度：O(√n)
+- 空间复杂度：O(1)
+
+整除分块是一个重要的优化技巧，
+掌握它能高效解决很多数论求和问题。

@@ -1,0 +1,699 @@
+单调栈（Monotonic Stack）
+====================
+
+算法概述
+--------
+单调栈是一种特殊的栈，栈内元素保持单调递增或单调递减的顺序。它常用于解决"寻找下一个更大/更小元素"类问题。
+
+核心特点：
+1. 栈内元素保持单调性（递增或递减）
+2. 可以在O(n)时间复杂度内解决某些问题
+3. 通常用于寻找元素的"下一个"或"上一个"满足条件的元素
+4. 分为单调递增栈和单调递减栈
+
+核心思想
+--------
+1. 单调递增栈：从栈底到栈顶元素递增
+2. 单调递减栈：从栈底到栈顶元素递减
+3. 遍历数组时，维护栈的单调性
+4. 破坏单调性时，弹出栈顶元素并处理
+
+基础模板：单调递增栈
+------------------
+
+C++版本（求下一个更大元素）：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> nextGreaterElement(vector<int>& nums) {
+    int n = nums.size();
+    vector<int> result(n, -1);
+    stack<int> st;  // 存储下标
+
+    for (int i = 0; i < n; i++) {
+        // 维护单调递增栈
+        while (!st.empty() && nums[st.top()] < nums[i]) {
+            result[st.top()] = nums[i];
+            st.pop();
+        }
+        st.push(i);
+    }
+
+    return result;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<int> nums(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nums[i];
+    }
+
+    vector<int> result = nextGreaterElement(nums);
+
+    cout << "原数组: ";
+    for (int x : nums) {
+        cout << x << " ";
+    }
+    cout << endl;
+
+    cout << "下一个更大元素: ";
+    for (int x : result) {
+        cout << x << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def next_greater_element(nums):
+    """求每个元素右边第一个更大的元素"""
+    n = len(nums)
+    result = [-1] * n
+    stack = []  # 存储下标
+
+    for i in range(n):
+        # 维护单调递增栈
+        while stack and nums[stack[-1]] < nums[i]:
+            result[stack[-1]] = nums[i]
+            stack.pop()
+        stack.append(i)
+
+    return result
+
+# 测试
+n = int(input())
+nums = list(map(int, input().split()))
+
+result = next_greater_element(nums)
+
+print("原数组:", *nums)
+print("下一个更大元素:", *result)
+```
+
+应用一：求上一个更大元素
+----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> previousGreaterElement(vector<int>& nums) {
+    int n = nums.size();
+    vector<int> result(n, -1);
+    stack<int> st;  // 存储下标
+
+    for (int i = 0; i < n; i++) {
+        // 维护单调递减栈
+        while (!st.empty() && nums[st.top()] <= nums[i]) {
+            st.pop();
+        }
+
+        if (!st.empty()) {
+            result[i] = nums[st.top()];
+        }
+
+        st.push(i);
+    }
+
+    return result;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<int> nums(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nums[i];
+    }
+
+    vector<int> result = previousGreaterElement(nums);
+
+    cout << "原数组: ";
+    for (int x : nums) {
+        cout << x << " ";
+    }
+    cout << endl;
+
+    cout << "上一个更大元素: ";
+    for (int x : result) {
+        cout << x << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def previous_greater_element(nums):
+    """求每个元素左边第一个更大的元素"""
+    n = len(nums)
+    result = [-1] * n
+    stack = []  # 存储下标
+
+    for i in range(n):
+        # 维护单调递减栈
+        while stack and nums[stack[-1]] <= nums[i]:
+            stack.pop()
+
+        if stack:
+            result[i] = nums[stack[-1]]
+
+        stack.append(i)
+
+    return result
+
+# 测试
+n = int(input())
+nums = list(map(int, input().split()))
+
+result = previous_greater_element(nums)
+
+print("原数组:", *nums)
+print("上一个更大元素:", *result)
+```
+
+应用二：柱状图中最大矩形
+----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int largestRectangleArea(vector<int>& heights) {
+    int n = heights.size();
+    stack<int> st;
+    int maxArea = 0;
+
+    for (int i = 0; i <= n; i++) {
+        // 在末尾添加高度为0的柱子，清空栈
+        int h = (i == n) ? 0 : heights[i];
+
+        // 维护单调递增栈
+        while (!st.empty() && heights[st.top()] > h) {
+            int height = heights[st.top()];
+            st.pop();
+
+            // 计算宽度
+            int width = st.empty() ? i : i - st.top() - 1;
+            maxArea = max(maxArea, height * width);
+        }
+
+        st.push(i);
+    }
+
+    return maxArea;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<int> heights(n);
+    for (int i = 0; i < n; i++) {
+        cin >> heights[i];
+    }
+
+    cout << "最大矩形面积: " << largestRectangleArea(heights) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def largest_rectangle_area(heights):
+    """求柱状图中最大矩形面积"""
+    stack = []
+    max_area = 0
+    n = len(heights)
+
+    for i in range(n + 1):
+        # 在末尾添加高度为0的柱子，清空栈
+        h = 0 if i == n else heights[i]
+
+        # 维护单调递增栈
+        while stack and heights[stack[-1]] > h:
+            height = heights[stack.pop()]
+            # 计算宽度
+            width = i if not stack else i - stack[-1] - 1
+            max_area = max(max_area, height * width)
+
+        stack.append(i)
+
+    return max_area
+
+# 测试
+n = int(input())
+heights = list(map(int, input().split()))
+
+print(f"最大矩形面积: {largest_rectangle_area(heights)}")
+```
+
+应用三：每日温度
+------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> dailyTemperatures(vector<int>& temperatures) {
+    int n = temperatures.size();
+    vector<int> result(n, 0);
+    stack<int> st;  // 存储下标
+
+    for (int i = 0; i < n; i++) {
+        // 维护单调递减栈
+        while (!st.empty() && temperatures[st.top()] < temperatures[i]) {
+            int idx = st.top();
+            result[idx] = i - idx;
+            st.pop();
+        }
+        st.push(i);
+    }
+
+    return result;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<int> temperatures(n);
+    for (int i = 0; i < n; i++) {
+        cin >> temperatures[i];
+    }
+
+    vector<int> result = dailyTemperatures(temperatures);
+
+    cout << "等待天数: ";
+    for (int x : result) {
+        cout << x << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def daily_temperatures(temperatures):
+    """计算需要等待多少天才能遇到更温暖的天气"""
+    n = len(temperatures)
+    result = [0] * n
+    stack = []  # 存储下标
+
+    for i in range(n):
+        # 维护单调递减栈
+        while stack and temperatures[stack[-1]] < temperatures[i]:
+            idx = stack.pop()
+            result[idx] = i - idx
+
+        stack.append(i)
+
+    return result
+
+# 测试
+n = int(input())
+temperatures = list(map(int, input().split()))
+
+result = daily_temperatures(temperatures)
+print("等待天数:", *result)
+```
+
+应用四：下一个更大元素II（循环数组）
+-------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> nextGreaterElements(vector<int>& nums) {
+    int n = nums.size();
+    vector<int> result(n, -1);
+    stack<int> st;  // 存储下标
+
+    // 遍历两次，处理循环数组
+    for (int i = 0; i < 2 * n; i++) {
+        int idx = i % n;
+
+        while (!st.empty() && nums[st.top()] < nums[idx]) {
+            if (result[st.top()] == -1) {
+                result[st.top()] = nums[idx];
+            }
+            st.pop();
+        }
+
+        st.push(idx);
+    }
+
+    return result;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<int> nums(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nums[i];
+    }
+
+    vector<int> result = nextGreaterElements(nums);
+
+    cout << "下一个更大元素（循环）: ";
+    for (int x : result) {
+        cout << x << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def next_greater_elements(nums):
+    """循环数组中找下一个更大元素"""
+    n = len(nums)
+    result = [-1] * n
+    stack = []  # 存储下标
+
+    # 遍历两次，处理循环数组
+    for i in range(2 * n):
+        idx = i % n
+
+        while stack and nums[stack[-1]] < nums[idx]:
+            if result[stack[-1]] == -1:
+                result[stack[-1]] = nums[idx]
+            stack.pop()
+
+        stack.append(idx)
+
+    return result
+
+# 测试
+n = int(input())
+nums = list(map(int, input().split()))
+
+result = next_greater_elements(nums)
+print("下一个更大元素（循环）:", *result)
+```
+
+应用五：移除重复字母（单调栈+贪心）
+-------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+string removeDuplicateLetters(string s) {
+    vector<int> count(26, 0);
+    vector<bool> visited(26, false);
+    stack<char> st;
+
+    // 统计字符出现次数
+    for (char c : s) {
+        count[c - 'a']++;
+    }
+
+    for (char c : s) {
+        count[c - 'a']--;
+
+        if (visited[c - 'a']) continue;
+
+        // 维护单调递增栈
+        while (!st.empty() && c < st.top() && count[st.top() - 'a'] > 0) {
+            visited[st.top() - 'a'] = false;
+            st.pop();
+        }
+
+        st.push(c);
+        visited[c - 'a'] = true;
+    }
+
+    string result = "";
+    while (!st.empty()) {
+        result = st.top() + result;
+        st.pop();
+    }
+
+    return result;
+}
+
+int main() {
+    string s;
+    cin >> s;
+
+    cout << "移除重复字母后: " << removeDuplicateLetters(s) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def remove_duplicate_letters(s):
+    """移除重复字母，使结果字典序最小"""
+    count = [0] * 26
+    visited = [False] * 26
+    stack = []
+
+    # 统计字符出现次数
+    for c in s:
+        count[ord(c) - ord('a')] += 1
+
+    for c in s:
+        count[ord(c) - ord('a')] -= 1
+
+        if visited[ord(c) - ord('a')]:
+            continue
+
+        # 维护单调递增栈
+        while stack and c < stack[-1] and count[ord(stack[-1]) - ord('a')] > 0:
+            visited[ord(stack[-1]) - ord('a')] = False
+            stack.pop()
+
+        stack.append(c)
+        visited[ord(c) - ord('a')] = True
+
+    return ''.join(stack)
+
+# 测试
+s = input().strip()
+print(f"移除重复字母后: {remove_duplicate_letters(s)}")
+```
+
+应用六：接雨水
+-----------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int trap(vector<int>& height) {
+    int n = height.size();
+    if (n == 0) return 0;
+
+    stack<int> st;
+    int water = 0;
+
+    for (int i = 0; i < n; i++) {
+        // 维护单调递减栈
+        while (!st.empty() && height[st.top()] < height[i]) {
+            int bottom = st.top();
+            st.pop();
+
+            if (st.empty()) break;
+
+            int left = st.top();
+            int width = i - left - 1;
+            int h = min(height[left], height[i]) - height[bottom];
+            water += h * width;
+        }
+
+        st.push(i);
+    }
+
+    return water;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<int> height(n);
+    for (int i = 0; i < n; i++) {
+        cin >> height[i];
+    }
+
+    cout << "接水量: " << trap(height) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def trap(height):
+    """计算可以接多少雨水"""
+    stack = []
+    water = 0
+
+    for i in range(len(height)):
+        # 维护单调递减栈
+        while stack and height[stack[-1]] < height[i]:
+            bottom = stack.pop()
+
+            if not stack:
+                break
+
+            left = stack[-1]
+            width = i - left - 1
+            h = min(height[left], height[i]) - height[bottom]
+            water += h * width
+
+        stack.append(i)
+
+    return water
+
+# 测试
+n = int(input())
+height = list(map(int, input().split()))
+
+print(f"接水量: {trap(height)}")
+```
+
+应用七：滑动窗口最大值（双端队列，类似单调栈）
+--------------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> maxSlidingWindow(vector<int>& nums, int k) {
+    deque<int> dq;  // 存储下标，保持递减
+    vector<int> result;
+
+    for (int i = 0; i < nums.size(); i++) {
+        // 移除超出窗口的元素
+        while (!dq.empty() && dq.front() <= i - k) {
+            dq.pop_front();
+        }
+
+        // 保持队列递减
+        while (!dq.empty() && nums[dq.back()] < nums[i]) {
+            dq.pop_back();
+        }
+
+        dq.push_back(i);
+
+        // 记录窗口最大值
+        if (i >= k - 1) {
+            result.push_back(nums[dq.front()]);
+        }
+    }
+
+    return result;
+}
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+
+    vector<int> nums(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nums[i];
+    }
+
+    vector<int> result = maxSlidingWindow(nums, k);
+
+    cout << "滑动窗口最大值: ";
+    for (int x : result) {
+        cout << x << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from collections import deque
+
+def max_sliding_window(nums, k):
+    """滑动窗口最大值"""
+    dq = deque()  # 存储下标，保持递减
+    result = []
+
+    for i in range(len(nums)):
+        # 移除超出窗口的元素
+        while dq and dq[0] <= i - k:
+            dq.popleft()
+
+        # 保持队列递减
+        while dq and nums[dq[-1]] < nums[i]:
+            dq.pop()
+
+        dq.append(i)
+
+        # 记录窗口最大值
+        if i >= k - 1:
+            result.append(nums[dq[0]])
+
+    return result
+
+# 测试
+n, k = map(int, input().split())
+nums = list(map(int, input().split()))
+
+result = max_sliding_window(nums, k)
+print("滑动窗口最大值:", *result)
+```
+
+典型例题
+--------
+1. 下一个更大元素I（LeetCode 496）：单调栈基础
+2. 下一个更大元素II（LeetCode 503）：循环数组
+3. 每日温度（LeetCode 739）：单调栈应用
+4. 柱状图中最大矩形（LeetCode 84）：经典单调栈
+5. 接雨水（LeetCode 42）：单调栈应用
+6. 移除重复字母（LeetCode 316）：单调栈+贪心
+7. 最大矩形（LeetCode 85）：二维单调栈
+8. 滑动窗口最大值（LeetCode 239）：单调队列
+
+注意事项
+--------
+1. 单调递增栈用于找"下一个更大元素"
+2. 单调递减栈用于找"下一个更小元素"
+3. 循环数组问题可以通过遍历两次来处理
+4. 栈中通常存储下标而不是值
+5. 注意边界条件和空栈的处理
+6. 单调栈的时间复杂度通常是O(n)，因为每个元素最多入栈出栈一次
+7. 有时需要预处理数组（如统计字符出现次数）
+
+时间复杂度总结
+--------------
+- 单调栈遍历：O(n)
+- 空间复杂度：O(n)
+- 每个元素最多入栈出栈一次
+
+单调栈是处理"下一个/上一个"类问题的利器，掌握它能高效解决很多看似复杂的问题。

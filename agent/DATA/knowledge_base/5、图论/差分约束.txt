@@ -1,0 +1,268 @@
+差分约束系统
+===========
+
+算法概述
+--------
+差分约束系统(Difference Constraints System)是一组形如xa - xb ≤ c的不等式组。通过将这些不等式转化为图中的边,可以利用最短路算法求解。差分约束在解决约束满足问题中非常有用。
+
+核心思想
+--------
+1. 不等式转图:xa - xb ≤ c 转化为边 b→a,权值为c
+2. 最短路:如果dist数组满足所有约束,则是一组可行解
+3. 超级源点:添加源点连接所有点,确保图连通
+4. 判定无解:存在负权环则无解
+5. 最大/最小值:根据不等式方向选择最长路或最短路
+
+转化规则
+--------
+1. xa - xb ≤ c: b→a,权值c (求最短路)
+2. xa - xb ≥ c: 转化为 xb - xa ≤ -c,即 a→b,权值-c
+3. xa = xb: 转化为 xa - xb ≤ 0 和 xb - xa ≤ 0
+4. xa ≤ c: 添加超级源点s, xa - xs ≤ c
+
+求可行解
+--------
+时间复杂度:O(nm),使用SPFA
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 5005;
+const int MAXM = 10005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];
+int dist[MAXN];
+bool in_queue[MAXN];
+int cnt[MAXN];
+
+bool spfa(int start) {
+    memset(dist, 0x3f, sizeof(dist));
+    memset(cnt, 0, sizeof(cnt));
+    memset(in_queue, false, sizeof(in_queue));
+
+    dist[start] = 0;
+    queue<int> q;
+    q.push(start);
+    in_queue[start] = true;
+    cnt[start] = 1;
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        in_queue[u] = false;
+
+        for (auto& e : adj[u]) {
+            int v = e.first;
+            int w = e.second;
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                if (!in_queue[v]) {
+                    q.push(v);
+                    in_queue[v] = true;
+                    cnt[v]++;
+                    if (cnt[v] > n) {
+                        return true;  // 存在负权环
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int op, a, b, c;
+        cin >> op >> a >> b >> c;
+
+        if (op == 1) {
+            // xa - xb <= c
+            adj[b].push_back({a, c});
+        } else if (op == 2) {
+            // xa - xb >= c, 转化为 xb - xa <= -c
+            adj[a].push_back({b, -c});
+        } else if (op == 3) {
+            // xa = xb
+            adj[a].push_back({b, 0});
+            adj[b].push_back({a, 0});
+        }
+    }
+
+    // 添加超级源点
+    int s = 0;
+    for (int i = 1; i <= n; i++) {
+        adj[s].push_back({i, 0});
+    }
+
+    if (spfa(s)) {
+        cout << "No solution!\n";
+    } else {
+        cout << "Solution:\n";
+        for (int i = 1; i <= n; i++) {
+            cout << "x" << i << " = " << dist[i] << "\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+
+    for _ in range(m):
+        parts = input().split()
+        op = int(parts[0])
+        a, b = int(parts[1]), int(parts[2])
+
+        if op == 1:
+            c = int(parts[3])
+            adj[b].append((a, c))
+        elif op == 2:
+            c = int(parts[3])
+            adj[a].append((b, -c))
+        elif op == 3:
+            adj[a].append((b, 0))
+            adj[b].append((a, 0))
+
+    # 超级源点
+    s = 0
+    for i in range(1, n + 1):
+        adj[s].append((i, 0))
+
+    INF = float('inf')
+    dist = [INF] * (n + 1)
+    in_queue = [False] * (n + 1)
+    cnt = [0] * (n + 1)
+
+    dist[s] = 0
+    q = deque([s])
+    in_queue[s] = True
+    cnt[s] = 1
+
+    has_negative = False
+
+    while q and not has_negative:
+        u = q.popleft()
+        in_queue[u] = False
+
+        for v, w in adj[u]:
+            if dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                if not in_queue[v]:
+                    q.append(v)
+                    in_queue[v] = True
+                    cnt[v] += 1
+                    if cnt[v] > n:
+                        has_negative = True
+                        break
+
+    if has_negative:
+        print("No solution!")
+    else:
+        print("Solution:")
+        for i in range(1, n + 1):
+            print(f"x{i} = {dist[i]}")
+
+solve()
+```
+
+求最大解/最小解
+--------------
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 5005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];
+int dist[MAXN];
+bool in_queue[MAXN];
+
+void spfa(int start) {
+    memset(dist, 0x3f, sizeof(dist));
+    memset(in_queue, false, sizeof(in_queue));
+    dist[start] = 0;
+
+    queue<int> q;
+    q.push(start);
+    in_queue[start] = true;
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        in_queue[u] = false;
+
+        for (auto& e : adj[u]) {
+            int v = e.first;
+            int w = e.second;
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                if (!in_queue[v]) {
+                    q.push(v);
+                    in_queue[v] = true;
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    // 求最大解:所有不等式为 xi - xj <= c
+    // 使用最短路算法
+
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int a, b, c;
+        cin >> a >> b >> c;
+        // xa - xb <= c
+        adj[b].push_back({a, c});
+    }
+
+    int s = 0;
+    for (int i = 1; i <= n; i++) {
+        adj[s].push_back({i, 0});
+    }
+
+    spfa(s);
+
+    cout << "Maximum solution:\n";
+    for (int i = 1; i <= n; i++) {
+        cout << "x" << i << " = " << dist[i] << "\n";
+    }
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 差分约束(洛谷P5960): 差分约束模板
+2. 布局(洛谷P2294): 差分约束应用
+3. X星之旅(洛谷P1993): 差分约束判定
+
+注意事项
+--------
+1. 转化为图时注意不等式方向
+2. 需要添加超级源点确保连通
+3. 存在负权环则无解
+4. 求最大解用最短路,求最小解用最长路
+5. SPFA适合差分约束问题

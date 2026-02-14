@@ -1,0 +1,207 @@
+可持久化树状数组（Persistent Binary Indexed Tree）
+====================
+
+算法概述
+--------
+可持久化树状数组是树状数组的可持久化版本，支持历史版本查询。相比可持久化线段树，它的常数更小，但实现相对复杂。
+
+核心特点：
+1. 保留所有历史版本
+2. 支持单点修改和前缀查询
+3. 时间复杂度O(log n)
+4. 空间复杂度O(n log n)
+
+核心思想
+--------
+1. 每次修改创建新版本
+2. 修改路径上的所有节点
+3. 未修改的节点共享
+4. 版本差值查询
+
+基础模板
+--------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int MAXM = MAXN * 200;  // n * log(n)
+
+int tree[MAXM];
+int lChild[MAXM];
+int rChild[MAXM];
+int roots[MAXN];
+int node_cnt = 0;
+int n;
+
+int lowbit(int x) {
+    return x & (-x);
+}
+
+int newNode() {
+    node_cnt++;
+    tree[node_cnt] = 0;
+    lChild[node_cnt] = rChild[node_cnt] = 0;
+    return node_cnt;
+}
+
+int cloneNode(int node) {
+    node_cnt++;
+    tree[node_cnt] = tree[node];
+    lChild[node_cnt] = lChild[node];
+    rChild[node_cnt] = rChild[node];
+    return node_cnt;
+}
+
+// 初始化
+void init(int n) {
+    for (int i = 1; i <= n; i++) {
+        roots[i] = newNode();
+    }
+}
+
+// 单点修改
+void update(int& root, int x, int val) {
+    while (x <= n) {
+        int new_node = cloneNode(root);
+        tree[new_node] += val;
+        root = new_node;
+        x += lowbit(x);
+    }
+}
+
+// 前缀查询
+int query(int root, int x) {
+    int sum = 0;
+    while (x > 0) {
+        sum += tree[root];
+        root = lChild[root];
+        x -= lowbit(x);
+    }
+    return sum;
+}
+
+int main() {
+    cin >> n;
+
+    init(n);
+
+    int q;
+    cin >> q;
+
+    int current_version = 0;
+    roots[current_version] = newNode();
+
+    while (q--) {
+        int op;
+        cin >> op;
+
+        if (op == 1) {  // 修改
+            int x, val;
+            cin >> x >> val;
+            current_version++;
+            roots[current_version] = roots[current_version - 1];
+            update(roots[current_version], x, val);
+        } else {  // 查询
+            int version, x;
+            cin >> version >> x;
+            cout << query(roots[version], x) << endl;
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class PersistentBIT:
+    def __init__(self, n):
+        self.n = n
+        self.tree = [0]
+        self.lChild = [0]
+        self.rChild = [0]
+        self.roots = [0]
+        self.node_cnt = 0
+
+    @staticmethod
+    def lowbit(x):
+        return x & (-x)
+
+    def new_node(self):
+        """创建新节点"""
+        self.node_cnt += 1
+        self.tree.append(0)
+        self.lChild.append(0)
+        self.rChild.append(0)
+        return self.node_cnt
+
+    def clone_node(self, node):
+        """克隆节点"""
+        self.node_cnt += 1
+        self.tree.append(self.tree[node])
+        self.lChild.append(self.lChild[node])
+        self.rChild.append(self.rChild[node])
+        return self.node_cnt
+
+    def update(self, root, x, val):
+        """单点修改"""
+        while x <= self.n:
+            new_node = self.clone_node(root)
+            self.tree[new_node] += val
+            root = new_node
+            x += self.lowbit(x)
+        return root
+
+    def query(self, root, x):
+        """前缀查询"""
+        s = 0
+        while x > 0:
+            s += self.tree[root]
+            root = self.lChild[root]
+            x -= self.lowbit(x)
+        return s
+
+# 测试
+n = int(input())
+pbit = PersistentBIT(n)
+
+q = int(input())
+current_version = 0
+pbit.roots[current_version] = pbit.new_node()
+
+for _ in range(q):
+    parts = input().split()
+    op = int(parts[0])
+
+    if op == 1:  # 修改
+        x, val = int(parts[1]), int(parts[2])
+        current_version += 1
+        pbit.roots.append(pbit.update(pbit.roots[current_version - 1], x, val))
+    else:  # 查询
+        version, x = int(parts[1]), int(parts[2])
+        print(pbit.query(pbit.roots[version], x))
+```
+
+典型应用
+--------
+1. 可持久化前缀和
+2. 历史版本查询
+3. 离线处理带时间戳的查询
+
+注意事项
+--------
+1. 节点数量：n * log(n)
+2. 使用引用传递修改根节点
+3. 查询时注意版本号
+4. 与主席树相比常数更小
+
+时间复杂度总结
+--------------
+- 修改：O(log n)
+- 查询：O(log n)
+- 空间复杂度：O(n log n)
+
+可持久化树状数组实现相对复杂，但常数小，在某些场景下比主席树更优。

@@ -1,0 +1,859 @@
+深度优先搜索（Depth First Search, DFS）
+=====================================
+
+算法概述
+--------
+深度优先搜索是一种用于遍历或搜索树或图的算法。该算法会尽可能深地搜索树的分支，当节点v的所在边都己被探寻过，搜索将回溯到发现节点v的那条边的起始节点。
+这一过程一直进行到已发现从源节点可达的所有节点为止。如果还存在未被发现的节点，则选择其中一个作为源节点并重复以上过程。
+
+核心思想
+--------
+1. 沿着树的深度遍历树的节点，尽可能深地搜索树的分支
+2. 当节点v的所有边都己被探寻过，将回溯到发现节点v的那条边的起始节点
+3. 可以使用递归或栈来实现
+4. 时间复杂度：O(V + E)，V是顶点数，E是边数
+5. 空间复杂度：O(V)
+
+基础模板：递归实现
+------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+bool visited[MAXN];
+
+// 递归DFS
+void dfs(int u) {
+    visited[u] = true;
+    cout << u << " ";  // 访问节点
+
+    for (int v : adj[u]) {
+        if (!visited[v]) {
+            dfs(v);
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);  // 无向图
+    }
+
+    // 从节点1开始DFS
+    dfs(1);
+    cout << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)  # 无向图
+
+    visited = [False] * (n + 1)
+
+    # 递归DFS
+    def dfs(u):
+        visited[u] = True
+        print(u, end=' ')
+        for v in adj[u]:
+            if not visited[v]:
+                dfs(v)
+
+    # 从节点1开始DFS
+    dfs(1)
+    print()
+
+solve()
+```
+
+基础模板：非递归实现（栈）
+-------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+bool visited[MAXN];
+
+// 非递归DFS（使用栈）
+void dfs_stack(int start) {
+    stack<int> stk;
+    stk.push(start);
+
+    while (!stk.empty()) {
+        int u = stk.top();
+        stk.pop();
+
+        if (visited[u]) continue;
+        visited[u] = true;
+        cout << u << " ";
+
+        // 逆序入栈，保证访问顺序与递归一致
+        for (int i = adj[u].size() - 1; i >= 0; i--) {
+            int v = adj[u][i];
+            if (!visited[v]) {
+                stk.push(v);
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    dfs_stack(1);
+    cout << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    visited = [False] * (n + 1)
+
+    # 非递归DFS（使用栈）
+    def dfs_stack(start):
+        stack = [start]
+        while stack:
+            u = stack.pop()
+            if visited[u]:
+                continue
+            visited[u] = True
+            print(u, end=' ')
+            # 逆序入栈
+            for v in reversed(adj[u]):
+                if not visited[v]:
+                    stack.append(v)
+
+    dfs_stack(1)
+    print()
+
+solve()
+```
+
+应用一：连通性判断
+-----------------
+判断图中两个节点是否连通，或者找出图的所有连通分量。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+bool visited[MAXN];
+int component[MAXN];  // component[i]表示节点i所属的连通分量编号
+int comp_cnt = 0;
+
+void dfs(int u, int comp_id) {
+    visited[u] = true;
+    component[u] = comp_id;
+
+    for (int v : adj[u]) {
+        if (!visited[v]) {
+            dfs(v, comp_id);
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    // 找出所有连通分量
+    for (int i = 1; i <= n; i++) {
+        if (!visited[i]) {
+            dfs(i, ++comp_cnt);
+        }
+    }
+
+    cout << "连通分量数量: " << comp_cnt << '\n';
+
+    // 查询两个节点是否连通
+    int q;
+    cin >> q;
+    while (q--) {
+        int u, v;
+        cin >> u >> v;
+        if (component[u] == component[v]) {
+            cout << "连通\n";
+        } else {
+            cout << "不连通\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    visited = [False] * (n + 1)
+    component = [0] * (n + 1)
+    comp_cnt = 0
+
+    def dfs(u, comp_id):
+        visited[u] = True
+        component[u] = comp_id
+        for v in adj[u]:
+            if not visited[v]:
+                dfs(v, comp_id)
+
+    # 找出所有连通分量
+    for i in range(1, n + 1):
+        if not visited[i]:
+            comp_cnt += 1
+            dfs(i, comp_cnt)
+
+    print(f"连通分量数量: {comp_cnt}")
+
+    # 查询两个节点是否连通
+    q = int(input())
+    for _ in range(q):
+        u, v = map(int, input().split())
+        if component[u] == component[v]:
+            print("连通")
+        else:
+            print("不连通")
+
+solve()
+```
+
+应用二：拓扑排序
+---------------
+在有向无环图(DAG)中，拓扑排序是一种线性排序，使得对于每一条有向边(u,v)，节点u在排序中都出现在节点v之前。
+
+C++版本（Kahn算法+BFS）：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+int in_degree[MAXN];  // 入度
+vector<int> topo_order;  // 拓扑排序结果
+
+void topological_sort() {
+    queue<int> q;
+
+    // 将入度为0的节点加入队列
+    for (int i = 1; i <= n; i++) {
+        if (in_degree[i] == 0) {
+            q.push(i);
+        }
+    }
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        topo_order.push_back(u);
+
+        for (int v : adj[u]) {
+            in_degree[v]--;
+            if (in_degree[v] == 0) {
+                q.push(v);
+            }
+        }
+    }
+
+    // 如果拓扑排序后的节点数小于n，说明有环
+    if (topo_order.size() < n) {
+        cout << "图中存在环，无法进行拓扑排序\n";
+    } else {
+        for (int node : topo_order) {
+            cout << node << " ";
+        }
+        cout << '\n';
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        in_degree[v]++;
+    }
+
+    topological_sort();
+
+    return 0;
+}
+```
+
+Python版本（Kahn算法+BFS）：
+```python
+import sys
+from collections import deque, defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    in_degree = [0] * (n + 1)
+
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        in_degree[v] += 1
+
+    def topological_sort():
+        q = deque()
+        topo_order = []
+
+        # 将入度为0的节点加入队列
+        for i in range(1, n + 1):
+            if in_degree[i] == 0:
+                q.append(i)
+
+        while q:
+            u = q.popleft()
+            topo_order.append(u)
+
+            for v in adj[u]:
+                in_degree[v] -= 1
+                if in_degree[v] == 0:
+                    q.append(v)
+
+        # 如果拓扑排序后的节点数小于n，说明有环
+        if len(topo_order) < n:
+            print("图中存在环，无法进行拓扑排序")
+        else:
+            print(' '.join(map(str, topo_order)))
+
+    topological_sort()
+
+solve()
+```
+
+应用三：DFS求拓扑排序
+---------------------
+使用DFS也可以实现拓扑排序，通过记录节点的完成时间（post-order）。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+bool visited[MAXN];
+vector<int> topo_order;
+
+void dfs(int u) {
+    visited[u] = true;
+
+    for (int v : adj[u]) {
+        if (!visited[v]) {
+            dfs(v);
+        }
+    }
+
+    // 递归返回时加入结果，实现逆后序
+    topo_order.push_back(u);
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+    }
+
+    for (int i = 1; i <= n; i++) {
+        if (!visited[i]) {
+            dfs(i);
+        }
+    }
+
+    // 逆序输出
+    reverse(topo_order.begin(), topo_order.end());
+
+    for (int node : topo_order) {
+        cout << node << " ";
+    }
+    cout << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+
+    visited = [False] * (n + 1)
+    topo_order = []
+
+    def dfs(u):
+        visited[u] = True
+        for v in adj[u]:
+            if not visited[v]:
+                dfs(v)
+        # 递归返回时加入结果
+        topo_order.append(u)
+
+    for i in range(1, n + 1):
+        if not visited[i]:
+            dfs(i)
+
+    # 逆序输出
+    topo_order.reverse()
+    print(' '.join(map(str, topo_order)))
+
+solve()
+```
+
+应用四：检测环
+-------------
+
+无向图检测环：
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+bool visited[MAXN];
+
+// parent表示u的父节点
+bool dfs_cycle(int u, int parent) {
+    visited[u] = true;
+
+    for (int v : adj[u]) {
+        if (!visited[v]) {
+            if (dfs_cycle(v, u)) {
+                return true;
+            }
+        } else if (v != parent) {
+            // 访问过且不是父节点，说明有环
+            return true;
+        }
+    }
+
+    return false;
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    bool has_cycle = false;
+    for (int i = 1; i <= n; i++) {
+        if (!visited[i]) {
+            if (dfs_cycle(i, -1)) {
+                has_cycle = true;
+                break;
+            }
+        }
+    }
+
+    if (has_cycle) {
+        cout << "图中存在环\n";
+    } else {
+        cout << "图中不存在环\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    visited = [False] * (n + 1)
+
+    def dfs_cycle(u, parent):
+        visited[u] = True
+        for v in adj[u]:
+            if not visited[v]:
+                if dfs_cycle(v, u):
+                    return True
+            elif v != parent:
+                # 访问过且不是父节点，说明有环
+                return True
+        return False
+
+    has_cycle = False
+    for i in range(1, n + 1):
+        if not visited[i]:
+            if dfs_cycle(i, -1):
+                has_cycle = True
+                break
+
+    print("图中存在环" if has_cycle else "图中不存在环")
+
+solve()
+```
+
+有向图检测环：
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+int state[MAXN];  // 0:未访问, 1:访问中, 2:已访问
+
+bool dfs_cycle(int u) {
+    state[u] = 1;  // 标记为访问中
+
+    for (int v : adj[u]) {
+        if (state[v] == 0) {
+            if (dfs_cycle(v)) {
+                return true;
+            }
+        } else if (state[v] == 1) {
+            // 遇到访问中的节点，说明有环
+            return true;
+        }
+    }
+
+    state[u] = 2;  // 标记为已访问
+    return false;
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+    }
+
+    bool has_cycle = false;
+    for (int i = 1; i <= n; i++) {
+        if (state[i] == 0) {
+            if (dfs_cycle(i)) {
+                has_cycle = true;
+                break;
+            }
+        }
+    }
+
+    if (has_cycle) {
+        cout << "图中存在环\n";
+    } else {
+        cout << "图中不存在环\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+
+    state = [0] * (n + 1)  # 0:未访问, 1:访问中, 2:已访问
+
+    def dfs_cycle(u):
+        state[u] = 1  # 标记为访问中
+        for v in adj[u]:
+            if state[v] == 0:
+                if dfs_cycle(v):
+                    return True
+            elif state[v] == 1:
+                # 遇到访问中的节点，说明有环
+                return True
+        state[u] = 2  # 标记为已访问
+        return False
+
+    has_cycle = False
+    for i in range(1, n + 1):
+        if state[i] == 0:
+            if dfs_cycle(i):
+                has_cycle = True
+                break
+
+    print("图中存在环" if has_cycle else "图中不存在环")
+
+solve()
+```
+
+应用五：求强连通分量（Kosaraju算法）
+---------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];      // 原图
+vector<int> radj[MAXN];     // 反图
+bool visited[MAXN];
+vector<int> order;          // 完成时间顺序
+int scc[MAXN];              // scc[i]表示节点i所属的强连通分量编号
+int scc_cnt = 0;
+
+// 第一次DFS，记录完成时间
+void dfs1(int u) {
+    visited[u] = true;
+    for (int v : adj[u]) {
+        if (!visited[v]) {
+            dfs1(v);
+        }
+    }
+    order.push_back(u);  // 递归返回时加入
+}
+
+// 第二次DFS，在反图上遍历
+void dfs2(int u, int comp_id) {
+    visited[u] = true;
+    scc[u] = comp_id;
+    for (int v : radj[u]) {
+        if (!visited[v]) {
+            dfs2(v, comp_id);
+        }
+    }
+}
+
+void kosaraju() {
+    // 第一次DFS
+    for (int i = 1; i <= n; i++) {
+        if (!visited[i]) {
+            dfs1(i);
+        }
+    }
+
+    // 重置visited数组
+    fill(visited, visited + MAXN, false);
+
+    // 按完成时间逆序，在反图上进行第二次DFS
+    for (int i = order.size() - 1; i >= 0; i--) {
+        int u = order[i];
+        if (!visited[u]) {
+            dfs2(u, ++scc_cnt);
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        radj[v].push_back(u);
+    }
+
+    kosaraju();
+
+    cout << "强连通分量数量: " << scc_cnt << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    radj = defaultdict(list)
+
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        radj[v].append(u)
+
+    visited = [False] * (n + 1)
+    order = []
+
+    # 第一次DFS，记录完成时间
+    def dfs1(u):
+        visited[u] = True
+        for v in adj[u]:
+            if not visited[v]:
+                dfs1(v)
+        order.append(u)
+
+    for i in range(1, n + 1):
+        if not visited[i]:
+            dfs1(i)
+
+    # 重置visited数组
+    visited = [False] * (n + 1)
+    scc = [0] * (n + 1)
+    scc_cnt = 0
+
+    # 第二次DFS，在反图上遍历
+    def dfs2(u, comp_id):
+        visited[u] = True
+        scc[u] = comp_id
+        for v in radj[u]:
+            if not visited[v]:
+                dfs2(v, comp_id)
+
+    # 按完成时间逆序
+    for u in reversed(order):
+        if not visited[u]:
+            scc_cnt += 1
+            dfs2(u, scc_cnt)
+
+    print(f"强连通分量数量: {scc_cnt}")
+
+solve()
+```
+
+典型例题
+--------
+1. 连通块问题（洛谷P3916）：统计图的连通分量数量
+2. 迷宫问题（POJ3984）：DFS寻找迷宫路径
+3. 拓扑排序模板（洛谷P3644）：课程选修顺序
+4. 强连通分量（洛谷P2341）：校园网络
+5. 割点和桥（洛谷P3388）：无向图的割点判断
+
+注意事项
+--------
+1. 递归实现的DFS可能导致栈溢出，对于深度很大的图应使用非递归实现
+2. Python中的递归深度有限制（默认约1000），需要用sys.setrecursionlimit()调整
+3. 访问标记数组visited是必须的，防止重复访问导致死循环
+4. 有向图和无向图的DFS实现略有不同，注意父节点的处理
+5. 拓扑排序只适用于有向无环图(DAG)
+6. 检测环时，有向图需要使用三色标记法（0/1/2状态）
+7. DFS的遍历顺序取决于邻接表的存储顺序
+8. 对于稠密图，邻接矩阵可能更合适；对于稀疏图，邻接表更高效
+
+时间复杂度总结
+--------------
+- 邻接表：O(V + E)
+- 邻接矩阵：O(V²)
+- 空间复杂度：O(V)
+
+DFS是图论中最基础也最重要的算法之一，掌握好DFS对解决各类图论问题至关重要。

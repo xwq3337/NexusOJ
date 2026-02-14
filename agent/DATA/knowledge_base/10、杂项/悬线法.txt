@@ -1,0 +1,527 @@
+悬线法（Hanging Line Method）
+=============================
+
+算法概述
+--------
+悬线法是一种用于在矩阵中求解最大子矩阵问题的高效算法。
+特别适合处理求最大全1/全0子矩阵、最大矩形等经典问题。
+
+核心思想
+--------
+1. 对于每个点(i, j)，向上延伸找到最长的连续相同值的线段（悬线）
+2. 计算该悬线能向左右扩展的最大宽度
+3. 对于每个点，面积 = 悬线长度 × 可扩展宽度
+4. 取所有点中的最大值
+
+基础应用：最大全1子矩阵
+-----------------------
+给定01矩阵，求只包含1的最大子矩阵的面积。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 2005;
+
+int n, m;
+int a[MAXN][MAXN];
+int up[MAXN][MAXN];    // up[i][j]: (i,j)向上最多能延伸多少个1
+int left_[MAXN][MAXN]; // left[i][j]: (i,j)向左最多能扩展到哪
+int right_[MAXN][MAXN];// right[i][j]: (i,j)向右最多能扩展到哪
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            cin >> a[i][j];
+        }
+    }
+
+    // 初始化
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            left_[i][j] = right_[i][j] = j;
+            up[i][j] = 1;
+        }
+    }
+
+    // 处理up和left
+    for (int i = 1; i <= n; i++) {
+        for (int j = 2; j <= m; j++) {
+            if (a[i][j] == a[i][j-1] && a[i][j] == 1) {
+                left_[i][j] = left_[i][j-1];
+            }
+        }
+        for (int j = m - 1; j >= 1; j--) {
+            if (a[i][j] == a[i][j+1] && a[i][j] == 1) {
+                right_[i][j] = right_[i][j+1];
+            }
+        }
+    }
+
+    // 悬线法
+    int max_area = 0;
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (i > 1 && a[i][j] == a[i-1][j] && a[i][j] == 1) {
+                up[i][j] = up[i-1][j] + 1;
+                left_[i][j] = max(left_[i][j], left_[i-1][j]);
+                right_[i][j] = min(right_[i][j], right_[i-1][j]);
+            }
+            int area = up[i][j] * (right_[i][j] - left_[i][j] + 1);
+            max_area = max(max_area, area);
+        }
+    }
+
+    cout << max_area << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def max_rectangle(matrix):
+    if not matrix or not matrix[0]:
+        return 0
+
+    n = len(matrix)
+    m = len(matrix[0])
+
+    up = [[1] * m for _ in range(n)]
+    left_ = [[j for j in range(m)] for _ in range(n)]
+    right_ = [[j for j in range(m)] for _ in range(n)]
+
+    # 处理left
+    for i in range(n):
+        for j in range(1, m):
+            if matrix[i][j] == matrix[i][j-1] == 1:
+                left_[i][j] = left_[i][j-1]
+
+    # 处理right
+    for i in range(n):
+        for j in range(m - 2, -1, -1):
+            if matrix[i][j] == matrix[i][j+1] == 1:
+                right_[i][j] = right_[i][j+1]
+
+    # 悬线法
+    max_area = 0
+    for i in range(n):
+        for j in range(m):
+            if i > 0 and matrix[i][j] == matrix[i-1][j] == 1:
+                up[i][j] = up[i-1][j] + 1
+                left_[i][j] = max(left_[i][j], left_[i-1][j])
+                right_[i][j] = min(right_[i][j], right_[i-1][j])
+            area = up[i][j] * (right_[i][j] - left_[i][j] + 1)
+            max_area = max(max_area, area)
+
+    return max_area
+
+def main():
+    import sys
+    input = sys.stdin.readline
+
+    n, m = map(int, input().split())
+    matrix = []
+    for _ in range(n):
+        row = list(map(int, input().split()))
+        matrix.append(row)
+
+    print(max_rectangle(matrix))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用一：最大矩形面积
+-----------------------
+给定由非负整数组成的矩阵，求只包含相同元素的最大矩形面积。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 2005;
+
+int n, m;
+int a[MAXN][MAXN];
+int height[MAXN][MAXN];
+int left_[MAXN];
+int right_[MAXN];
+int stack_[MAXN];
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            cin >> a[i][j];
+        }
+    }
+
+    int max_area = 0;
+
+    for (int i = 1; i <= n; i++) {
+        // 计算height
+        for (int j = 1; j <= m; j++) {
+            if (a[i][j] >= a[i-1][j]) {
+                height[i][j] = height[i-1][j] + 1;
+            } else {
+                height[i][j] = 1;
+            }
+        }
+
+        // 单调栈求左右边界
+        int top = 0;
+        for (int j = 1; j <= m; j++) {
+            while (top > 0 && height[i][stack_[top]] >= height[i][j]) {
+                top--;
+            }
+            left_[j] = stack_[top] + 1;
+            stack_[++top] = j;
+        }
+
+        top = 0;
+        stack_[0] = m + 1;
+        for (int j = m; j >= 1; j--) {
+            while (top > 0 && height[i][stack_[top]] >= height[i][j]) {
+                top--;
+            }
+            right_[j] = stack_[top] - 1;
+            stack_[++top] = j;
+        }
+
+        // 计算面积
+        for (int j = 1; j <= m; j++) {
+            int area = height[i][j] * (right_[j] - left_[j] + 1);
+            max_area = max(max_area, area);
+        }
+    }
+
+    cout << max_area << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def max_rectangle_area(matrix):
+    if not matrix or not matrix[0]:
+        return 0
+
+    n = len(matrix)
+    m = len(matrix[0])
+
+    height = [[0] * m for _ in range(n)]
+    max_area = 0
+
+    for i in range(n):
+        for j in range(m):
+            if i == 0 or matrix[i][j] < matrix[i-1][j]:
+                height[i][j] = 1
+            else:
+                height[i][j] = height[i-1][j] + 1
+
+        # 单调栈
+        stack = []
+        left = [0] * m
+        for j in range(m):
+            while stack and height[i][stack[-1]] >= height[i][j]:
+                stack.pop()
+            left[j] = stack[-1] + 1 if stack else 0
+            stack.append(j)
+
+        stack = []
+        right = [0] * m
+        for j in range(m - 1, -1, -1):
+            while stack and height[i][stack[-1]] >= height[i][j]:
+                stack.pop()
+            right[j] = stack[-1] - 1 if stack else m - 1
+            stack.append(j)
+
+        for j in range(m):
+            area = height[i][j] * (right[j] - left[j] + 1)
+            max_area = max(max_area, area)
+
+    return max_area
+
+def main():
+    import sys
+    input = sys.stdin.readline
+
+    n, m = map(int, input().split())
+    matrix = []
+    for _ in range(n):
+        row = list(map(int, input().split()))
+        matrix.append(row)
+
+    print(max_rectangle_area(matrix))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用二：最大正方形
+---------------------
+给定01矩阵，求只包含1的最大正方形的边长。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 2005;
+
+int n, m;
+int a[MAXN][MAXN];
+int up[MAXN][MAXN];
+int left_[MAXN][MAXN];
+int dp[MAXN][MAXN];
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            cin >> a[i][j];
+        }
+    }
+
+    int max_side = 0;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (a[i][j] == 1) {
+                up[i][j] = up[i-1][j] + 1;
+                left_[i][j] = left_[i][j-1] + 1;
+
+                if (i > 1 && j > 1) {
+                    dp[i][j] = min(min(up[i][j], left_[i][j]), dp[i-1][j-1] + 1);
+                } else {
+                    dp[i][j] = 1;
+                }
+
+                max_side = max(max_side, dp[i][j]);
+            }
+        }
+    }
+
+    cout << max_side << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def max_square(matrix):
+    if not matrix or not matrix[0]:
+        return 0
+
+    n = len(matrix)
+    m = len(matrix[0])
+
+    up = [[0] * m for _ in range(n)]
+    left_ = [[0] * m for _ in range(n)]
+    dp = [[0] * m for _ in range(n)]
+
+    max_side = 0
+
+    for i in range(n):
+        for j in range(m):
+            if matrix[i][j] == 1:
+                up[i][j] = up[i-1][j] + 1 if i > 0 else 1
+                left_[i][j] = left_[i][j-1] + 1 if j > 0 else 1
+
+                if i > 0 and j > 0:
+                    dp[i][j] = min(min(up[i][j], left_[i][j]), dp[i-1][j-1] + 1)
+                else:
+                    dp[i][j] = 1
+
+                max_side = max(max_side, dp[i][j])
+
+    return max_side
+
+def main():
+    import sys
+    input = sys.stdin.readline
+
+    n, m = map(int, input().split())
+    matrix = []
+    for _ in range(n):
+        row = list(map(int, input().split()))
+        matrix.append(row)
+
+    print(max_square(matrix))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用三：象棋中的最大矩形
+--------------------------
+给定一个棋盘，求最大的矩形区域使得其中的棋子满足某种条件。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 2005;
+
+int n, m;
+char a[MAXN][MAXN];
+int up[MAXN][MAXN];
+int left_[MAXN][MAXN];
+int right_[MAXN][MAXN];
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            cin >> a[i][j];
+        }
+    }
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            left_[i][j] = right_[i][j] = j;
+            up[i][j] = 1;
+        }
+    }
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 2; j <= m; j++) {
+            if (a[i][j] == a[i][j-1]) {
+                left_[i][j] = left_[i][j-1];
+            }
+        }
+        for (int j = m - 1; j >= 1; j--) {
+            if (a[i][j] == a[i][j+1]) {
+                right_[i][j] = right_[i][j+1];
+            }
+        }
+    }
+
+    int max_area = 0;
+    pair<int, int> best_pos;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            if (i > 1 && a[i][j] == a[i-1][j]) {
+                up[i][j] = up[i-1][j] + 1;
+                left_[i][j] = max(left_[i][j], left_[i-1][j]);
+                right_[i][j] = min(right_[i][j], right_[i-1][j]);
+            }
+            int area = up[i][j] * (right_[i][j] - left_[i][j] + 1);
+            if (area > max_area) {
+                max_area = area;
+                best_pos = {i, j};
+            }
+        }
+    }
+
+    cout << max_area << '\n';
+    cout << best_pos.first << " " << best_pos.second << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def max_rectangle_chess(board):
+    if not board or not board[0]:
+        return 0, (0, 0)
+
+    n = len(board)
+    m = len(board[0])
+
+    up = [[1] * m for _ in range(n)]
+    left_ = [[j for j in range(m)] for _ in range(n)]
+    right_ = [[j for j in range(m)] for _ in range(n)]
+
+    for i in range(n):
+        for j in range(1, m):
+            if board[i][j] == board[i][j-1]:
+                left_[i][j] = left_[i][j-1]
+
+    for i in range(n):
+        for j in range(m - 2, -1, -1):
+            if board[i][j] == board[i][j+1]:
+                right_[i][j] = right_[i][j+1]
+
+    max_area = 0
+    best_pos = (0, 0)
+
+    for i in range(n):
+        for j in range(m):
+            if i > 0 and board[i][j] == board[i-1][j]:
+                up[i][j] = up[i-1][j] + 1
+                left_[i][j] = max(left_[i][j], left_[i-1][j])
+                right_[i][j] = min(right_[i][j], right_[i-1][j])
+            area = up[i][j] * (right_[i][j] - left_[i][j] + 1)
+            if area > max_area:
+                max_area = area
+                best_pos = (i, j)
+
+    return max_area, best_pos
+
+def main():
+    import sys
+    input = sys.stdin.readline
+
+    n, m = map(int, input().split())
+    board = []
+    for _ in range(n):
+        row = list(input().strip())
+        board.append(row)
+
+    area, pos = max_rectangle_chess(board)
+    print(area)
+    print(pos[0] + 1, pos[1] + 1)
+
+if __name__ == "__main__":
+    main()
+```
+
+算法原理详解
+------------
+1. up[i][j]：从(i,j)向上延伸的最大长度（悬线长度）
+2. left[i][j]：从(i,j)向左能扩展到的最左位置
+3. right[i][j]：从(i,j)向右能扩展到的最右位置
+4. 对于每个点，矩形面积 = up[i][j] × (right[i][j] - left[i][j] + 1)
+
+优化技巧
+--------
+1. 使用单调栈优化左右边界的计算
+2. 逐行扫描，避免重复计算
+3. 空间优化：可以只用O(m)的空间
+
+应用场景
+--------
+1. 最大全1/全0子矩阵
+2. 最大矩形面积
+3. 最大正方形
+4. 柱状图中的最大矩形
+5. 城市规划问题
+
+注意事项
+--------
+1. 边界条件的处理
+2. 悬线法要求子矩阵内的元素值相同
+3. 时间复杂度O(n×m)，空间复杂度O(n×m)
+4. 可以通过单调栈优化到O(n×m)时间，O(m)空间
+
+时间复杂度总结
+--------------
+- 基础版本：O(n × m)
+- 单调栈优化：O(n × m)
+- 空间复杂度：O(n × m) 或 O(m)（优化后）
+
+悬线法是解决矩阵类问题的经典算法，思想简洁但功能强大，在竞赛和实际问题中都有广泛应用。

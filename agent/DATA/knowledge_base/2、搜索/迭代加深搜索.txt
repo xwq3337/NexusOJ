@@ -1,0 +1,840 @@
+迭代加深搜索（Iterative Deepening Search, IDS）
+==============================================
+
+算法概述
+--------
+迭代加深搜索是一种结合了DFS的空间效率和BFS的完备性的图搜索算法。
+它通过逐步增加深度限制来进行DFS搜索，既避免了DFS可能陷入无限路径的问题，
+又保持了BFS能找到最短解的特性。特别适用于解的深度未知或搜索树较深的情况。
+
+核心思想
+--------
+1. 从深度限制k=0开始
+2. 对每个k进行深度有限的DFS搜索
+3. 如果找到解，返回结果
+4. 如果没有找到解，增加深度限制k=k+1
+5. 重复步骤2-4直到找到解或搜索完整个空间
+
+6. 时间复杂度：O(b^d)，其中b是分支因子，d是解的深度
+7. 空间复杂度：O(bd)，远优于BFS的O(b^d)
+
+基础模板：基本IDS实现
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+bool found;
+int target;
+
+// 深度受限的DFS
+bool dfs_limited(int u, int depth, int max_depth, int parent) {
+    if (depth == max_depth) {
+        return u == target;
+    }
+
+    for (int v : adj[u]) {
+        if (v != parent) {
+            if (dfs_limited(v, depth + 1, max_depth, u)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+// 迭代加深搜索
+void iterative_deepening(int start, int end) {
+    target = end;
+
+    for (int max_depth = 0; max_depth < n; max_depth++) {
+        if (dfs_limited(start, 0, max_depth, -1)) {
+            cout << "找到目标，深度: " << max_depth << '\n';
+            return;
+        }
+    }
+
+    cout << "未找到目标\n";
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    iterative_deepening(start, end);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    def dfs_limited(u, depth, max_depth, parent):
+        if depth == max_depth:
+            return u == target
+
+        for v in adj[u]:
+            if v != parent:
+                if dfs_limited(v, depth + 1, max_depth, u):
+                    return True
+        return False
+
+    def iterative_deepening(start, end):
+        nonlocal target
+        target = end
+
+        for max_depth in range(n):
+            if dfs_limited(start, 0, max_depth, -1):
+                print(f"找到目标，深度: {max_depth}")
+                return
+
+        print("未找到目标")
+
+    start, end = map(int, input().split())
+    iterative_deepening(start, end)
+
+solve()
+```
+
+应用一：IDS求最短路径
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+vector<int> path;
+bool visited[MAXN];
+
+// 深度受限的DFS，记录路径
+bool dfs_limited_path(int u, int depth, int max_depth, int end) {
+    path.push_back(u);
+
+    if (u == end) {
+        return true;
+    }
+
+    if (depth == max_depth) {
+        path.pop_back();
+        return false;
+    }
+
+    for (int v : adj[u]) {
+        if (!visited[v]) {
+            visited[v] = true;
+            if (dfs_limited_path(v, depth + 1, max_depth, end)) {
+                return true;
+            }
+            visited[v] = false;
+        }
+    }
+
+    path.pop_back();
+    return false;
+}
+
+// 迭代加深搜索最短路径
+void ids_shortest_path(int start, int end) {
+    for (int max_depth = 0; max_depth < n; max_depth++) {
+        path.clear();
+        fill(visited, visited + MAXN, false);
+        visited[start] = true;
+
+        if (dfs_limited_path(start, 0, max_depth, end)) {
+            cout << "最短路径长度: " << max_depth << '\n';
+            cout << "路径: ";
+            for (int node : path) {
+                cout << node << " ";
+            }
+            cout << '\n';
+            return;
+        }
+    }
+
+    cout << "无法到达终点\n";
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    ids_shortest_path(start, end);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    def dfs_limited_path(u, depth, max_depth, end, path, visited):
+        path.append(u)
+
+        if u == end:
+            return True
+
+        if depth == max_depth:
+            path.pop()
+            return False
+
+        for v in adj[u]:
+            if not visited[v]:
+                visited[v] = True
+                if dfs_limited_path(v, depth + 1, max_depth, end, path, visited):
+                    return True
+                visited[v] = False
+
+        path.pop()
+        return False
+
+    def ids_shortest_path(start, end):
+        for max_depth in range(n):
+            path = []
+            visited = [False] * (n + 1)
+            visited[start] = True
+
+            if dfs_limited_path(start, 0, max_depth, end, path, visited):
+                print(f"最短路径长度: {max_depth}")
+                print(f"路径: {' '.join(map(str, path))}")
+                return
+
+        print("无法到达终点")
+
+    start, end = map(int, input().split())
+    ids_shortest_path(start, end)
+
+solve()
+```
+
+应用二：八数码问题（IDS）
+----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const string TARGET = "123456780";
+
+bool dfs_eight_puzzle(string state, int depth, int max_depth, string last_move) {
+    if (state == TARGET) {
+        return true;
+    }
+
+    if (depth == max_depth) {
+        return false;
+    }
+
+    int pos = state.find('0');
+    int x = pos / 3, y = pos % 3;
+
+    // 四个方向：上、下、左、右
+    int dx[4] = {-1, 1, 0, 0};
+    int dy[4] = {0, 0, -1, 1};
+    string moves[4] = {"up", "down", "left", "right"};
+    string opposite[4] = {"down", "up", "right", "left"};
+
+    for (int i = 0; i < 4; i++) {
+        if (last_move == opposite[i]) continue;  // 避免直接返回
+
+        int nx = x + dx[i];
+        int ny = y + dy[i];
+
+        if (nx >= 0 && nx < 3 && ny >= 0 && ny < 3) {
+            int npos = nx * 3 + ny;
+            string next = state;
+            swap(next[pos], next[npos]);
+
+            if (dfs_eight_puzzle(next, depth + 1, max_depth, moves[i])) {
+                cout << "Move: " << moves[i] << " (depth: " << depth << ")\n";
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+void ids_eight_puzzle(string start) {
+    if (start == TARGET) {
+        cout << "已经是目标状态\n";
+        return;
+    }
+
+    for (int max_depth = 0; max_depth <= 31; max_depth++) {  // 八数码最多31步
+        cout << "Trying depth: " << max_depth << '\n';
+        if (dfs_eight_puzzle(start, 0, max_depth, "")) {
+            cout << "最少移动次数: " << max_depth << '\n';
+            return;
+        }
+    }
+
+    cout << "无法到达目标状态\n";
+}
+
+int main() {
+    string start;
+    cout << "输入初始状态: ";
+    cin >> start;
+
+    ids_eight_puzzle(start);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def dfs_eight_puzzle(state, depth, max_depth, last_move):
+    TARGET = "123456780"
+
+    if state == TARGET:
+        return True
+
+    if depth == max_depth:
+        return False
+
+    pos = state.find('0')
+    x, y = pos // 3, pos % 3
+
+    # 四个方向
+    dx = [-1, 1, 0, 0]
+    dy = [0, 0, -1, 1]
+    moves = ["up", "down", "left", "right"]
+    opposite = ["down", "up", "right", "left"]
+
+    for i in range(4):
+        if last_move == opposite[i]:
+            continue
+
+        nx, ny = x + dx[i], y + dy[i]
+        if 0 <= nx < 3 and 0 <= ny < 3:
+            npos = nx * 3 + ny
+            next_state = list(state)
+            next_state[pos], next_state[npos] = next_state[npos], next_state[pos]
+            next_state = ''.join(next_state)
+
+            if dfs_eight_puzzle(next_state, depth + 1, max_depth, moves[i]):
+                print(f"Move: {moves[i]} (depth: {depth})")
+                return True
+
+    return False
+
+def ids_eight_puzzle(start):
+    TARGET = "123456780"
+
+    if start == TARGET:
+        print("已经是目标状态")
+        return
+
+    for max_depth in range(32):  # 八数码最多31步
+        print(f"Trying depth: {max_depth}")
+        if dfs_eight_puzzle(start, 0, max_depth, ""):
+            print(f"最少移动次数: {max_depth}")
+            return
+
+    print("无法到达目标状态")
+
+def main():
+    start = input("输入初始状态: ")
+    ids_eight_puzzle(start)
+
+if __name__ == "__main__":
+    main()
+```
+
+应用三：IDS在树上的应用
+---------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+vector<int> adj[MAXN];
+int target;
+vector<int> path;
+
+// 深度受限的DFS
+bool dfs_limited_tree(int u, int parent, int depth, int max_depth) {
+    path.push_back(u);
+
+    if (u == target) {
+        return true;
+    }
+
+    if (depth == max_depth) {
+        path.pop_back();
+        return false;
+    }
+
+    for (int v : adj[u]) {
+        if (v != parent) {
+            if (dfs_limited_tree(v, u, depth + 1, max_depth)) {
+                return true;
+            }
+        }
+    }
+
+    path.pop_back();
+    return false;
+}
+
+// 在树上进行IDS
+void ids_on_tree(int root, int t, int n) {
+    target = t;
+
+    for (int max_depth = 0; max_depth < n; max_depth++) {
+        path.clear();
+        if (dfs_limited_tree(root, -1, 0, max_depth)) {
+            cout << "找到目标，深度: " << max_depth << '\n';
+            cout << "路径: ";
+            for (int node : path) {
+                cout << node << " ";
+            }
+            cout << '\n';
+            return;
+        }
+    }
+
+    cout << "未找到目标\n";
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    for (int i = 0; i < n - 1; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    int root, target;
+    cin >> root >> target;
+
+    ids_on_tree(root, target, n);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n = int(input())
+
+    adj = defaultdict(list)
+    for _ in range(n - 1):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    def dfs_limited_tree(u, parent, depth, max_depth, path):
+        path.append(u)
+
+        if u == target:
+            return True
+
+        if depth == max_depth:
+            path.pop()
+            return False
+
+        for v in adj[u]:
+            if v != parent:
+                if dfs_limited_tree(v, u, depth + 1, max_depth, path):
+                    return True
+
+        path.pop()
+        return False
+
+    def ids_on_tree(root, t):
+        nonlocal target
+        target = t
+
+        for max_depth in range(n):
+            path = []
+            if dfs_limited_tree(root, -1, 0, max_depth, path):
+                print(f"找到目标，深度: {max_depth}")
+                print(f"路径: {' '.join(map(str, path))}")
+                return
+
+        print("未找到目标")
+
+    root, target = map(int, input().split())
+    ids_on_tree(root, target)
+
+solve()
+```
+
+应用四：IDS求路径和
+-----------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];  // adj[u] = {(v, w), ...}
+int target;
+int min_sum = INT_MAX;
+
+// 深度受限的DFS，计算路径和
+bool dfs_limited_sum(int u, int depth, int max_depth, int sum, int parent) {
+    if (u == target) {
+        min_sum = min(min_sum, sum);
+        return true;
+    }
+
+    if (depth == max_depth) {
+        return false;
+    }
+
+    for (auto& [v, w] : adj[u]) {
+        if (v != parent) {
+            if (dfs_limited_sum(v, depth + 1, max_depth, sum + w, u)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+// IDS求最小路径和
+void ids_min_path_sum(int start, int end) {
+    target = end;
+
+    for (int max_depth = 0; max_depth < n; max_depth++) {
+        min_sum = INT_MAX;
+        if (dfs_limited_sum(start, 0, max_depth, 0, -1)) {
+            cout << "找到目标，深度: " << max_depth << '\n';
+            cout << "最小路径和: " << min_sum << '\n';
+            return;
+        }
+    }
+
+    cout << "无法到达终点\n";
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    ids_min_path_sum(start, end);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        adj[v].append((u, w))
+
+    def dfs_limited_sum(u, depth, max_depth, sum_val, parent):
+        nonlocal min_sum, target
+
+        if u == target:
+            min_sum = min(min_sum, sum_val)
+            return True
+
+        if depth == max_depth:
+            return False
+
+        for v, w in adj[u]:
+            if v != parent:
+                if dfs_limited_sum(v, depth + 1, max_depth, sum_val + w, u):
+                    return True
+
+        return False
+
+    def ids_min_path_sum(start, end):
+        nonlocal target, min_sum
+        target = end
+
+        for max_depth in range(n):
+            min_sum = float('inf')
+            if dfs_limited_sum(start, 0, max_depth, 0, -1):
+                print(f"找到目标，深度: {max_depth}")
+                print(f"最小路径和: {min_sum}")
+                return
+
+        print("无法到达终点")
+
+    start, end = map(int, input().split())
+    ids_min_path_sum(start, end)
+
+solve()
+```
+
+应用五：IDS与剪枝结合
+-------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int n;
+vector<int> values;
+
+// 启发式剪枝：估计剩余需要的深度
+int heuristic_estimate(int current_sum, int target) {
+    return abs(target - current_sum);
+}
+
+// 深度受限的DFS，带剪枝
+bool dfs_limited_pruned(int index, int current_sum, int target,
+                        int depth, int max_depth) {
+    if (current_sum == target) {
+        return true;
+    }
+
+    if (depth == max_depth) {
+        return false;
+    }
+
+    // 剪枝：如果即使加上所有剩余元素也无法达到目标
+    if (current_sum > target || index >= n) {
+        return false;
+    }
+
+    // 剪枝：估计剩余需要的深度
+    if (depth + heuristic_estimate(current_sum, target) > max_depth) {
+        return false;
+    }
+
+    // 选择当前元素
+    if (dfs_limited_pruned(index + 1, current_sum + values[index],
+                           target, depth + 1, max_depth)) {
+        return true;
+    }
+
+    // 不选择当前元素
+    if (dfs_limited_pruned(index + 1, current_sum,
+                           target, depth, max_depth)) {
+        return true;
+    }
+
+    return false;
+}
+
+// IDS求解子集和问题
+void ids_subset_sum(vector<int>& vals, int target) {
+    n = vals.size();
+    values = vals;
+
+    for (int max_depth = 0; max_depth <= n; max_depth++) {
+        if (dfs_limited_pruned(0, 0, target, 0, max_depth)) {
+            cout << "找到解，最少需要 " << max_depth << " 个元素\n";
+            return;
+        }
+    }
+
+    cout << "无法找到解\n";
+}
+
+int main() {
+    vector<int> values = {3, 34, 4, 12, 5, 2};
+    int target = 9;
+
+    ids_subset_sum(values, target);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def heuristic_estimate(current_sum, target):
+    """启发式剪枝：估计剩余需要的深度"""
+    return abs(target - current_sum)
+
+def dfs_limited_pruned(index, current_sum, target, depth, max_depth, values, n):
+    if current_sum == target:
+        return True
+
+    if depth == max_depth:
+        return False
+
+    # 剪枝
+    if current_sum > target or index >= n:
+        return False
+
+    # 剪枝：估计剩余需要的深度
+    if depth + heuristic_estimate(current_sum, target) > max_depth:
+        return False
+
+    # 选择当前元素
+    if dfs_limited_pruned(index + 1, current_sum + values[index],
+                         target, depth + 1, max_depth, values, n):
+        return True
+
+    # 不选择当前元素
+    if dfs_limited_pruned(index + 1, current_sum,
+                         target, depth, max_depth, values, n):
+        return True
+
+    return False
+
+def ids_subset_sum(values, target):
+    n = len(values)
+
+    for max_depth in range(n + 1):
+        if dfs_limited_pruned(0, 0, target, 0, max_depth, values, n):
+            print(f"找到解，最少需要 {max_depth} 个元素")
+            return
+
+    print("无法找到解")
+
+def main():
+    values = [3, 34, 4, 12, 5, 2]
+    target = 9
+    ids_subset_sum(values, target)
+
+if __name__ == "__main__":
+    main()
+```
+
+典型例题
+--------
+1. 八数码问题（经典IDS应用）：最少移动次数
+2. 子集和问题：IDS求解组合问题
+3. 路径查找问题：树或图中的最短路径
+4. 旋转魔方问题：状态空间搜索
+5. 推箱子游戏：最少步数求解
+
+注意事项
+--------
+1. IDS的优点：
+   - 结合了DFS的空间效率和BFS的完备性
+   - 保证找到最短解
+   - 空间复杂度低：O(bd)
+   - 适用于解的深度未知的情况
+
+2. IDS的缺点：
+   - 会重复访问节点，时间开销较大
+   - 对于深层解，效率可能不如BFS
+   - 每次增加深度都要重新搜索
+
+3. 优化技巧：
+   - 结合启发函数（IDA*）
+   - 使用剪枝策略
+   - 记忆化搜索缓存结果
+
+4. 适用场景：
+   - 搜索树较深
+   - 解的深度未知
+   - 内存受限
+   - 需要找到最短解
+
+IDS vs BFS vs DFS
+-----------------
+| 特性 | BFS | DFS | IDS |
+|------|-----|-----|-----|
+| 空间复杂度 | O(b^d) | O(bd) | O(bd) |
+| 时间复杂度 | O(b^d) | O(b^m) | O(b^d) |
+| 最短路径 | 是 | 否 | 是 |
+| 完备性 | 是 | 否（无限深度） | 是 |
+| 内存使用 | 高 | 低 | 低 |
+
+其中：
+- b = 分支因子
+- d = 解的深度
+- m = 最大深度
+
+时间复杂度分析
+--------------
+虽然IDS会重复访问节点，但总时间复杂度仍然是O(b^d)。
+
+原因：
+- 第d层节点被访问d次（每个深度限制一次）
+- 但最后一层的节点数b^d远大于前面所有层的节点数之和
+- 总时间 ≈ b^d + b^(d-1) + ... + b + 1 = O(b^d)
+
+IDS是解决深度搜索问题的有效算法，特别适合于解的深度未知且内存受限的情况。

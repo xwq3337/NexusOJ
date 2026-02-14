@@ -1,0 +1,312 @@
+字典树（Trie Tree）
+====================
+
+算法概述
+--------
+字典树(Trie)，又称前缀树，是一种树形数据结构，用于高效地存储和查找字符串。它利用字符串的公共前缀来节省存储空间。
+
+核心特点：
+1. 根节点不包含字符
+2. 每个节点包含若干子节点
+3. 从根到某节点的路径代表一个字符串
+4. 支持前缀查询
+
+核心思想
+--------
+1. 每个节点存储字符和子节点
+2. 查找时逐字符匹配
+3. 前缀共享减少存储
+4. 用标记表示单词结束
+
+基础模板
+--------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int trie[MAXN][26];
+int cnt[MAXN];
+int node_cnt = 0;
+
+void insert(string s) {
+    int node = 0;
+    for (char c : s) {
+        int idx = c - 'a';
+        if (!trie[node][idx]) {
+            trie[node][idx] = ++node_cnt;
+        }
+        node = trie[node][idx];
+    }
+    cnt[node]++;
+}
+
+int query(string s) {
+    int node = 0;
+    for (char c : s) {
+        int idx = c - 'a';
+        if (!trie[node][idx]) {
+            return 0;
+        }
+        node = trie[node][idx];
+    }
+    return cnt[node];
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    while (n--) {
+        string op, s;
+        cin >> op >> s;
+
+        if (op == "I") {
+            insert(s);
+        } else {
+            cout << query(s) << endl;
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class TrieNode:
+    def __init__(self):
+        self.children = {}
+        self.count = 0
+
+class Trie:
+    def __init__(self):
+        self.root = TrieNode()
+
+    def insert(self, word):
+        """插入单词"""
+        node = self.root
+        for c in word:
+            if c not in node.children:
+                node.children[c] = TrieNode()
+            node = node.children[c]
+        node.count += 1
+
+    def query(self, word):
+        """查询单词出现次数"""
+        node = self.root
+        for c in word:
+            if c not in node.children:
+                return 0
+            node = node.children[c]
+        return node.count
+
+    def starts_with(self, prefix):
+        """查询是否有该前缀"""
+        node = self.root
+        for c in prefix:
+            if c not in node.children:
+                return False
+            node = node.children[c]
+        return True
+
+# 测试
+trie = Trie()
+n = int(input())
+
+for _ in range(n):
+    parts = input().split()
+    op, s = parts[0], parts[1]
+
+    if op == 'I':
+        trie.insert(s)
+    else:
+        print(trie.query(s))
+```
+
+应用一：前缀统计
+------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1000005;
+
+int trie[MAXN][26];
+int cnt[MAXN];
+int node_cnt = 0;
+
+void insert(string s) {
+    int node = 0;
+    for (char c : s) {
+        int idx = c - 'a';
+        if (!trie[node][idx]) {
+            trie[node][idx] = ++node_cnt;
+        }
+        node = trie[node][idx];
+        cnt[node]++;  // 记录经过该节点的次数
+    }
+}
+
+int query(string s) {
+    int node = 0;
+    for (char c : s) {
+        int idx = c - 'a';
+        if (!trie[node][idx]) {
+            return 0;
+        }
+        node = trie[node][idx];
+    }
+    return cnt[node];
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    for (int i = 0; i < n; i++) {
+        string s;
+        cin >> s;
+        insert(s);
+    }
+
+    for (int i = 0; i < m; i++) {
+        string s;
+        cin >> s;
+        cout << query(s) << endl;
+    }
+
+    return 0;
+}
+```
+
+应用二：异或字典树（最大异或对）
+----------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXM = 100005 * 31;
+
+int trie[MAXM][2];
+int a[MAXM];
+int node_cnt = 0;
+
+void insert(int x) {
+    int node = 0;
+    for (int i = 30; i >= 0; i--) {
+        int bit = (x >> i) & 1;
+        if (!trie[node][bit]) {
+            trie[node][bit] = ++node_cnt;
+        }
+        node = trie[node][bit];
+    }
+}
+
+int query(int x) {
+    int node = 0;
+    int ans = 0;
+
+    for (int i = 30; i >= 0; i--) {
+        int bit = (x >> i) & 1;
+        if (trie[node][bit ^ 1]) {
+            ans |= (1 << i);
+            node = trie[node][bit ^ 1];
+        } else {
+            node = trie[node][bit];
+        }
+    }
+
+    return ans;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+        insert(a[i]);
+    }
+
+    int max_xor = 0;
+    for (int i = 0; i < n; i++) {
+        max_xor = max(max_xor, query(a[i]));
+    }
+
+    cout << max_xor << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class XORTrie:
+    def __init__(self):
+        self.trie = [[0, 0]]
+        self.node_cnt = 0
+
+    def insert(self, x):
+        """插入数字"""
+        node = 0
+        for i in range(30, -1, -1):
+            bit = (x >> i) & 1
+            if self.trie[node][bit] == 0:
+                self.trie.append([0, 0])
+                self.node_cnt += 1
+                self.trie[node][bit] = self.node_cnt
+            node = self.trie[node][bit]
+
+    def query(self, x):
+        """查询最大异或值"""
+        node = 0
+        ans = 0
+
+        for i in range(30, -1, -1):
+            bit = (x >> i) & 1
+            if self.trie[node][bit ^ 1]:
+                ans |= (1 << i)
+                node = self.trie[node][bit ^ 1]
+            else:
+                node = self.trie[node][bit]
+
+        return ans
+
+# 测试
+n = int(input())
+a = list(map(int, input().split()))
+
+xor_trie = XORTrie()
+for x in a:
+    xor_trie.insert(x)
+
+max_xor = 0
+for x in a:
+    max_xor = max(max_xor, xor_trie.query(x))
+
+print(max_xor)
+```
+
+典型例题
+--------
+1. Trie图（AC自动机基础）
+2. 最大异或对（LeetCode 421）
+3. 单词搜索II（LeetCode 212）
+4. 实现Trie（LeetCode 208）
+
+注意事项
+--------
+1. 节点数量要估算好
+2. 注意字符集大小
+3. 可以用数组或字典实现
+4. 释放内存比较麻烦
+
+时间复杂度：O(L)，L为字符串长度

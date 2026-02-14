@@ -1,0 +1,629 @@
+字符串哈希（String Hash）
+======================
+
+算法概述
+--------
+字符串哈希是将字符串映射为整数的技术，通过哈希函数将字符串转换为数字，使得字符串的比较、匹配等操作可以在O(1)时间内完成。它在字符串匹配、去重、统计等问题中有广泛应用。
+
+核心思想
+--------
+1. 将字符串看作一个进制数，每个字符对应一个数字
+2. 使用多项式哈希函数计算字符串的哈希值
+3. 通过模运算避免溢出
+4. 支持O(1)时间获取子串哈希值
+
+基础概念
+--------
+1. 哈希函数：将字符串映射到整数的函数
+2. 进制数base：通常取大于字符集的质数，如131, 137, 233
+3. 模数mod：通常取大质数，如10^9+7, 10^9+9, 2^64（使用unsigned long long自然溢出）
+4. 前缀哈希：pre[i]表示前i个字符的哈希值
+5. 幂数组：p[i]表示base^i % mod
+
+哈希函数计算公式
+----------------
+设字符串为s[1..n]，每个字符s[i]转换为数字val(s[i])（如s[i]-'a'+1）
+
+前缀哈希：
+pre[0] = 0
+pre[i] = (pre[i-1] * base + val(s[i])) % mod
+
+子串[l, r]的哈希值：
+hash(l, r) = (pre[r] - pre[l-1] * p[r-l+1] % mod + mod) % mod
+
+基础模板：单哈希
+---------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef unsigned long long ull;
+const ull base = 131;  // 进制
+const int MAXN = 100005;
+
+char s[MAXN];
+ull pre[MAXN];  // 前缀哈希
+ull p[MAXN];    // 幂数组
+
+void init() {
+    int n = strlen(s + 1);
+    p[0] = 1;
+    for (int i = 1; i <= n; i++) {
+        p[i] = p[i-1] * base;
+        pre[i] = pre[i-1] * base + s[i];
+    }
+}
+
+// 获取子串[l, r]的哈希值
+ull get_hash(int l, int r) {
+    return pre[r] - pre[l-1] * p[r-l+1];
+}
+
+int main() {
+    scanf("%s", s + 1);
+    init();
+
+    int n = strlen(s + 1);
+    int q;
+    scanf("%d", &q);
+
+    while (q--) {
+        int l1, r1, l2, r2;
+        scanf("%d%d%d%d", &l1, &r1, &l2, &r2);
+
+        if (get_hash(l1, r1) == get_hash(l2, r2)) {
+            printf("Equal\n");
+        } else {
+            printf("Different\n");
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    base = 131
+    mod = 2**64  # 使用自然溢出
+
+    s = input().strip()
+    n = len(s)
+
+    pre = [0] * (n + 1)
+    p = [1] * (n + 1)
+
+    for i in range(1, n + 1):
+        p[i] = (p[i-1] * base) % mod
+        pre[i] = (pre[i-1] * base + ord(s[i-1])) % mod
+
+    def get_hash(l, r):
+        # 转换为1-indexed
+        return (pre[r] - pre[l-1] * p[r-l+1]) % mod
+
+    q = int(input())
+    for _ in range(q):
+        l1, r1, l2, r2 = map(int, input().split())
+        if get_hash(l1, r1) == get_hash(l2, r2):
+            print("Equal")
+        else:
+            print("Different")
+
+solve()
+```
+
+双哈希（降低冲突概率）
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+const int base = 131;
+const int mod1 = 1000000007;
+const int mod2 = 1000000009;
+const int MAXN = 100005;
+
+char s[MAXN];
+ll pre1[MAXN], pre2[MAXN];
+ll p1[MAXN], p2[MAXN];
+
+void init() {
+    int n = strlen(s + 1);
+    p1[0] = p2[0] = 1;
+    for (int i = 1; i <= n; i++) {
+        p1[i] = p1[i-1] * base % mod1;
+        p2[i] = p2[i-1] * base % mod2;
+        pre1[i] = (pre1[i-1] * base + s[i]) % mod1;
+        pre2[i] = (pre2[i-1] * base + s[i]) % mod2;
+    }
+}
+
+// 返回pair作为双哈希
+pair<ll, ll> get_hash(int l, int r) {
+    ll h1 = ((pre1[r] - pre1[l-1] * p1[r-l+1] % mod1) % mod1 + mod1) % mod1;
+    ll h2 = ((pre2[r] - pre2[l-1] * p2[r-l+1] % mod2) % mod2 + mod2) % mod2;
+    return {h1, h2};
+}
+
+int main() {
+    scanf("%s", s + 1);
+    init();
+
+    int q;
+    scanf("%d", &q);
+
+    while (q--) {
+        int l1, r1, l2, r2;
+        scanf("%d%d%d%d", &l1, &r1, &l2, &r2);
+
+        if (get_hash(l1, r1) == get_hash(l2, r2)) {
+            printf("Equal\n");
+        } else {
+            printf("Different\n");
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    base = 131
+    mod1 = 1000000007
+    mod2 = 1000000009
+
+    s = input().strip()
+    n = len(s)
+
+    pre1 = [0] * (n + 1)
+    pre2 = [0] * (n + 1)
+    p1 = [1] * (n + 1)
+    p2 = [1] * (n + 1)
+
+    for i in range(1, n + 1):
+        p1[i] = (p1[i-1] * base) % mod1
+        p2[i] = (p2[i-1] * base) % mod2
+        pre1[i] = (pre1[i-1] * base + ord(s[i-1])) % mod1
+        pre2[i] = (pre2[i-1] * base + ord(s[i-1])) % mod2
+
+    def get_hash(l, r):
+        h1 = (pre1[r] - pre1[l-1] * p1[r-l+1]) % mod1
+        h2 = (pre2[r] - pre2[l-1] * p2[r-l+1]) % mod2
+        return (h1, h2)
+
+    q = int(input())
+    for _ in range(q):
+        l1, r1, l2, r2 = map(int, input().split())
+        if get_hash(l1, r1) == get_hash(l2, r2):
+            print("Equal")
+        else:
+            print("Different")
+
+solve()
+```
+
+应用一：Rabin-Karp字符串匹配
+----------------------------
+Rabin-Karp算法利用哈希值进行字符串匹配，适用于多模式匹配。
+
+算法思路：
+1. 计算模式串的哈希值
+2. 计算文本串每个长度等于模式串的子串哈希值
+3. 比较哈希值，相同则进一步验证
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef unsigned long long ull;
+const ull base = 131;
+const int MAXN = 1000005;
+
+char text[MAXN], pattern[MAXN];
+ull pre[MAXN], p[MAXN];
+
+void init_hash(char *s, ull *pre) {
+    int n = strlen(s + 1);
+    p[0] = 1;
+    for (int i = 1; i <= n; i++) {
+        p[i] = p[i-1] * base;
+        pre[i] = pre[i-1] * base + s[i];
+    }
+}
+
+ull get_hash(ull *pre, int l, int r) {
+    return pre[r] - pre[l-1] * p[r-l+1];
+}
+
+// 查找pattern在text中的所有出现位置
+vector<int> rabin_karp(char *text, char *pattern) {
+    int n = strlen(text + 1);
+    int m = strlen(pattern + 1);
+
+    init_hash(text, pre);
+    ull pattern_hash = 0;
+    for (int i = 1; i <= m; i++) {
+        pattern_hash = pattern_hash * base + pattern[i];
+    }
+
+    vector<int> positions;
+    for (int i = 1; i <= n - m + 1; i++) {
+        if (get_hash(pre, i, i + m - 1) == pattern_hash) {
+            positions.push_back(i);
+        }
+    }
+
+    return positions;
+}
+
+int main() {
+    scanf("%s%s", text + 1, pattern + 1);
+
+    vector<int> positions = rabin_karp(text, pattern);
+
+    printf("Found %d occurrences:\n", (int)positions.size());
+    for (int pos : positions) {
+        printf("%d\n", pos);
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    base = 131
+    mod = 2**64
+
+    text = input().strip()
+    pattern = input().strip()
+
+    n, m = len(text), len(pattern)
+
+    if m > n:
+        print(0)
+        return
+
+    pre = [0] * (n + 1)
+    p = [1] * (n + 1)
+
+    for i in range(1, n + 1):
+        p[i] = (p[i-1] * base) % mod
+        pre[i] = (pre[i-1] * base + ord(text[i-1])) % mod
+
+    def get_hash(l, r):
+        return (pre[r] - pre[l-1] * p[r-l+1]) % mod
+
+    # 计算模式串哈希
+    pattern_hash = 0
+    for ch in pattern:
+        pattern_hash = (pattern_hash * base + ord(ch)) % mod
+
+    positions = []
+    for i in range(1, n - m + 2):
+        if get_hash(i, i + m - 1) == pattern_hash:
+            positions.append(i)
+
+    print(f"Found {len(positions)} occurrences:")
+    for pos in positions:
+        print(pos)
+
+solve()
+```
+
+应用二：判断字符串是否重复
+--------------------------
+给定一个字符串，判断是否有长度为k的子串出现至少两次。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef unsigned long long ull;
+const ull base = 131;
+const int MAXN = 100005;
+
+char s[MAXN];
+ull pre[MAXN], p[MAXN];
+
+void init() {
+    int n = strlen(s + 1);
+    p[0] = 1;
+    for (int i = 1; i <= n; i++) {
+        p[i] = p[i-1] * base;
+        pre[i] = pre[i-1] * base + s[i];
+    }
+}
+
+ull get_hash(int l, int r) {
+    return pre[r] - pre[l-1] * p[r-l+1];
+}
+
+bool has_duplicate(int k, int n) {
+    unordered_set<ull> hashes;
+    for (int i = 1; i <= n - k + 1; i++) {
+        ull h = get_hash(i, i + k - 1);
+        if (hashes.count(h)) {
+            return true;
+        }
+        hashes.insert(h);
+    }
+    return false;
+}
+
+int main() {
+    scanf("%s", s + 1);
+    int n = strlen(s + 1);
+    init();
+
+    // 二分查找最长重复子串长度
+    int left = 1, right = n / 2;
+    int ans = 0;
+
+    while (left <= right) {
+        int mid = (left + right) / 2;
+        if (has_duplicate(mid, n)) {
+            ans = mid;
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+
+    printf("Longest repeated substring length: %d\n", ans);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    base = 131
+    mod = 2**64
+
+    s = input().strip()
+    n = len(s)
+
+    pre = [0] * (n + 1)
+    p = [1] * (n + 1)
+
+    for i in range(1, n + 1):
+        p[i] = (p[i-1] * base) % mod
+        pre[i] = (pre[i-1] * base + ord(s[i-1])) % mod
+
+    def get_hash(l, r):
+        return (pre[r] - pre[l-1] * p[r-l+1]) % mod
+
+    def has_duplicate(k):
+        hashes = set()
+        for i in range(1, n - k + 2):
+            h = get_hash(i, i + k - 1)
+            if h in hashes:
+                return True
+            hashes.add(h)
+        return False
+
+    # 二分查找最长重复子串长度
+    left, right = 1, n // 2
+    ans = 0
+
+    while left <= right:
+        mid = (left + right) // 2
+        if has_duplicate(mid):
+            ans = mid
+            left = mid + 1
+        else:
+            right = mid - 1
+
+    print(f"Longest repeated substring length: {ans}")
+
+solve()
+```
+
+应用三：最长公共子串
+------------------
+求两个字符串的最长公共子串。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef unsigned long long ull;
+const ull base = 131;
+const int MAXN = 100005;
+
+char s[MAXN], t[MAXN];
+ull pre_s[MAXN], pre_t[MAXN], p[MAXN];
+
+void init_s() {
+    int n = strlen(s + 1);
+    p[0] = 1;
+    for (int i = 1; i <= n; i++) {
+        p[i] = p[i-1] * base;
+        pre_s[i] = pre_s[i-1] * base + s[i];
+    }
+}
+
+void init_t() {
+    int m = strlen(t + 1);
+    for (int i = 1; i <= m; i++) {
+        pre_t[i] = pre_t[i-1] * base + t[i];
+    }
+}
+
+ull get_hash_s(int l, int r) {
+    return pre_s[r] - pre_s[l-1] * p[r-l+1];
+}
+
+ull get_hash_t(int l, int r) {
+    return pre_t[r] - pre_t[l-1] * p[r-l+1];
+}
+
+bool check(int len, int n, int m) {
+    unordered_set<ull> hashes;
+
+    // 收集s中所有长度为len的子串哈希
+    for (int i = 1; i <= n - len + 1; i++) {
+        hashes.insert(get_hash_s(i, i + len - 1));
+    }
+
+    // 检查t中是否有匹配
+    for (int i = 1; i <= m - len + 1; i++) {
+        if (hashes.count(get_hash_t(i, i + len - 1))) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+int main() {
+    scanf("%s%s", s + 1, t + 1);
+    int n = strlen(s + 1);
+    int m = strlen(t + 1);
+
+    init_s();
+    init_t();
+
+    int left = 0, right = min(n, m);
+    int ans = 0;
+
+    while (left <= right) {
+        int mid = (left + right) / 2;
+        if (check(mid, n, m)) {
+            ans = mid;
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+
+    printf("Longest common substring length: %d\n", ans);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    base = 131
+    mod = 2**64
+
+    s = input().strip()
+    t = input().strip()
+    n, m = len(s), len(t)
+
+    pre_s = [0] * (n + 1)
+    pre_t = [0] * (m + 1)
+    p = [1] * (max(n, m) + 1)
+
+    for i in range(1, n + 1):
+        p[i] = (p[i-1] * base) % mod
+        pre_s[i] = (pre_s[i-1] * base + ord(s[i-1])) % mod
+
+    for i in range(1, m + 1):
+        pre_t[i] = (pre_t[i-1] * base + ord(t[i-1])) % mod
+
+    def get_hash_s(l, r):
+        return (pre_s[r] - pre_s[l-1] * p[r-l+1]) % mod
+
+    def get_hash_t(l, r):
+        return (pre_t[r] - pre_t[l-1] * p[r-l+1]) % mod
+
+    def check(length):
+        hashes = set()
+        for i in range(1, n - length + 2):
+            hashes.add(get_hash_s(i, i + length - 1))
+        for i in range(1, m - length + 2):
+            if get_hash_t(i, i + length - 1) in hashes:
+                return True
+        return False
+
+    left, right = 0, min(n, m)
+    ans = 0
+
+    while left <= right:
+        mid = (left + right) // 2
+        if check(mid):
+            ans = mid
+            left = mid + 1
+        else:
+            right = mid - 1
+
+    print(f"Longest common substring length: {ans}")
+
+solve()
+```
+
+典型例题
+--------
+1. 字符串哈希模板（洛谷P3370）：字符串去重，统计不同字符串数量
+2. Rabin-Karp匹配（洛谷P4824）：多模式串匹配
+3. 最长重复子串（POJ 1743）：二分+哈希
+4. 最长公共子串（POJ 2774）：二分+哈希
+5. 前缀Hash查询（洛谷P4503）：快速判断子串是否相等
+
+注意事项
+--------
+1. 哈希冲突：
+   - 单哈希可能冲突，建议使用双哈希或大模数
+   - 可以使用unsigned long long自然溢出，相当于模2^64
+   - 对关键问题建议使用双哈希或三哈希
+
+2. base和mod的选择：
+   - base通常选择大于字符集的质数：131, 137, 233等
+   - mod通常选择大质数：10^9+7, 10^9+9, 998244353
+   - 双哈希时两个mod应该不同
+
+3. 字符映射：
+   - 小写字母：s[i] - 'a' + 1
+   - 大写字母：s[i] - 'A' + 1
+   - 所有字符：直接使用s[i]的ASCII值
+   - 注意不要映射为0，否则"ab"和"b"会冲突
+
+4. 前缀和数组：
+   - pre[0] = 0
+   - 字符串通常从下标1开始，方便处理
+   - 注意get_hash时的下标转换
+
+5. 负数处理：
+   - 取模运算可能出现负数
+   - 需要加上mod再取模确保为正数
+
+时间复杂度总结
+--------------
+- 预处理：O(n)
+- 单次查询：O(1)
+- 字符串匹配：O(n + m)，n为文本长度，m为模式长度
+- 空间复杂度：O(n)
+
+字符串哈希是处理字符串问题的利器，掌握好哈希函数的设计和冲突处理对解决各种字符串问题很有帮助。

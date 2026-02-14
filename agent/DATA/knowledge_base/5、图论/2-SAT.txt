@@ -1,0 +1,341 @@
+2-SAT问题
+==========
+
+算法概述
+--------
+2-SAT(Boolean Satisfiability)是一种特殊的布尔可满足性问题。每个子句包含恰好两个文字,求是否存在一组变量赋值使得所有子句都成立。2-SAT可以用强连通分量(SCC)高效解决。
+
+核心概念
+--------
+1. 变量:x1, x2, ..., xn,每个变量为真或假
+2. 文字:xi 或 ¬xi(非xi)
+3. 子句:两个文字的或运算,如(x1 ∨ ¬x2)
+4. 蕴含关系:a→b 表示a为假则b必须为真
+
+建图规则
+--------
+对于每个子句(a ∨ b):
+- ¬a → b (如果a为假,则b必须为真)
+- ¬b → a (如果b为假,则a必须为真)
+
+求解流程
+--------
+1. 对每个变量xi建立两个节点:2i-1表示xi,2i表示¬xi
+2. 根据子句建立有向边
+3. 用Tarjan算法求SCC
+4. 判断:如果xi和¬xi在同一SCC,则无解
+5. 构造解:按拓扑序的逆序贪心选择
+
+基础实现
+--------
+时间复杂度:O(n+m)
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 2000005;
+
+int n, m;
+vector<int> adj[MAXN];
+int dfn[MAXN], low[MAXN];
+int tot;
+stack<int> stk;
+bool in_stack[MAXN];
+int scc_cnt;
+int scc_id[MAXN];
+
+void tarjan(int u) {
+    dfn[u] = low[u] = ++tot;
+    stk.push(u);
+    in_stack[u] = true;
+
+    for (int v : adj[u]) {
+        if (!dfn[v]) {
+            tarjan(v);
+            low[u] = min(low[u], low[v]);
+        } else if (in_stack[v]) {
+            low[u] = min(low[u], dfn[v]);
+        }
+    }
+
+    if (dfn[u] == low[u]) {
+        scc_cnt++;
+        while (true) {
+            int v = stk.top();
+            stk.pop();
+            in_stack[v] = false;
+            scc_id[v] = scc_cnt;
+            if (v == u) break;
+        }
+    }
+}
+
+bool two_sat() {
+    for (int i = 2; i <= 2 * n + 1; i++) {
+        if (!dfn[i]) {
+            tarjan(i);
+        }
+    }
+
+    for (int i = 1; i <= n; i++) {
+        if (scc_id[2 * i - 1] == scc_id[2 * i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// 添加边: u -> v
+void add_implication(int u, int v) {
+    adj[u].push_back(v);
+}
+
+// 添加子句: (a ∨ b)
+// a和b是变量编号,正数表示原变量,负数表示非变量
+void add_clause(int a, int b) {
+    int u = (a > 0) ? 2 * a - 1 : 2 * (-a);
+    int na = (a > 0) ? 2 * a : 2 * (-a) - 1;
+    int v = (b > 0) ? 2 * b - 1 : 2 * (-b);
+    int nb = (b > 0) ? 2 * b : 2 * (-b) - 1;
+
+    add_implication(na, v);
+    add_implication(nb, u);
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int a, b;
+        cin >> a >> b;
+        add_clause(a, b);
+    }
+
+    if (two_sat()) {
+        cout << "SATISFIABLE\n";
+
+        // 构造解
+        vector<int> assignment(n + 1);
+        vector<pair<int, int>> order;
+        for (int i = 1; i <= n; i++) {
+            order.push_back({scc_id[2 * i - 1], i});
+        }
+
+        // 按scc_id从小到大排序
+        sort(order.begin(), order.end());
+
+        for (auto& p : order) {
+            int i = p.second;
+            // 如果xi的scc_id小于¬xi的scc_id,则xi为真
+            assignment[i] = (scc_id[2 * i - 1] < scc_id[2 * i]);
+        }
+
+        for (int i = 1; i <= n; i++) {
+            cout << assignment[i];
+            if (i < n) cout << " ";
+        }
+        cout << "\n";
+
+    } else {
+        cout << "UNSATISFIABLE\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+sys.setrecursionlimit(2000005)
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(2 * n + 2)]
+
+    def add_implication(u, v):
+        adj[u].append(v)
+
+    def add_clause(a, b):
+        if a > 0:
+            u, na = 2 * a - 1, 2 * a
+        else:
+            u, na = 2 * (-a), 2 * (-a) - 1
+        if b > 0:
+            v, nb = 2 * b - 1, 2 * b
+        else:
+            v, nb = 2 * (-b), 2 * (-b) - 1
+
+        add_implication(na, v)
+        add_implication(nb, u)
+
+    for _ in range(m):
+        a, b = map(int, input().split())
+        add_clause(a, b)
+
+    # Tarjan
+    dfn = [0] * (2 * n + 2)
+    low = [0] * (2 * n + 2)
+    tot = 0
+    stk = []
+    in_stack = [False] * (2 * n + 2)
+    scc_id = [0] * (2 * n + 2)
+    scc_cnt = 0
+
+    def tarjan(u):
+        nonlocal tot, scc_cnt
+        dfn[u] = low[u] = tot + 1
+        tot += 1
+        stk.append(u)
+        in_stack[u] = True
+
+        for v in adj[u]:
+            if dfn[v] == 0:
+                tarjan(v)
+                low[u] = min(low[u], low[v])
+            elif in_stack[v]:
+                low[u] = min(low[u], dfn[v])
+
+        if dfn[u] == low[u]:
+            scc_cnt += 1
+            while True:
+                v = stk.pop()
+                in_stack[v] = False
+                scc_id[v] = scc_cnt
+                if v == u:
+                    break
+
+    for i in range(2, 2 * n + 2):
+        if dfn[i] == 0:
+            tarjan(i)
+
+    # 判断是否有解
+    for i in range(1, n + 1):
+        if scc_id[2 * i - 1] == scc_id[2 * i]:
+            print("UNSATISFIABLE")
+            return
+
+    print("SATISFIABLE")
+
+    # 构造解
+    assignment = [0] * (n + 1)
+    for i in range(1, n + 1):
+        assignment[i] = 1 if scc_id[2 * i - 1] > scc_id[2 * i] else 0
+
+    print(" ".join(map(str, assignment[1:])))
+
+solve()
+```
+
+应用:排课问题
+------------
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 200005;
+
+int n, m;
+vector<int> adj[MAXN];
+int dfn[MAXN], low[MAXN];
+int tot;
+stack<int> stk;
+bool in_stack[MAXN];
+int scc_cnt;
+int scc_id[MAXN];
+
+void tarjan(int u) {
+    dfn[u] = low[u] = ++tot;
+    stk.push(u);
+    in_stack[u] = true;
+
+    for (int v : adj[u]) {
+        if (!dfn[v]) {
+            tarjan(v);
+            low[u] = min(low[u], low[v]);
+        } else if (in_stack[v]) {
+            low[u] = min(low[u], dfn[v]);
+        }
+    }
+
+    if (dfn[u] == low[u]) {
+        scc_cnt++;
+        while (true) {
+            int v = stk.top();
+            stk.pop();
+            in_stack[v] = false;
+            scc_id[v] = scc_cnt;
+            if (v == u) break;
+        }
+    }
+}
+
+int main() {
+    // n个人,m对冲突关系
+    // 安排上午和下午,冲突的人不能在同一时间
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int a, b;
+        cin >> a >> b;
+        // a在上午则b必须在下午
+        // a在下午则b必须在上午
+        // (a∧¬b) ∨ (¬a∧b)
+        // 等价于: a→¬b, b→¬a
+
+        int a_morning = 2 * a - 1, a_afternoon = 2 * a;
+        int b_morning = 2 * b - 1, b_afternoon = 2 * b;
+
+        adj[a_morning].push_back(b_afternoon);
+        adj[a_afternoon].push_back(b_morning);
+        adj[b_morning].push_back(a_afternoon);
+        adj[b_afternoon].push_back(a_morning);
+    }
+
+    for (int i = 2; i <= 2 * n + 1; i++) {
+        if (!dfn[i]) {
+            tarjan(i);
+        }
+    }
+
+    for (int i = 1; i <= n; i++) {
+        if (scc_id[2 * i - 1] == scc_id[2 * i]) {
+            cout << "No solution!\n";
+            return 0;
+        }
+    }
+
+    cout << "Solution:\n";
+    for (int i = 1; i <= n; i++) {
+        if (scc_id[2 * i - 1] > scc_id[2 * i]) {
+            cout << "Person " << i << ": Morning\n";
+        } else {
+            cout << "Person " << i << ": Afternoon\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 2-SAT问题(洛谷P4782): 2-SAT模板
+2. 骑士放置(洛谷P2423): 2-SAT应用
+3. 抓住那头牛(洛谷P2423): 2-SAT变体
+
+注意事项
+--------
+1. 变量编号从2开始,避免与0冲突
+2. 注意蕴含关系的方向
+3. Tarjan算法需要优化避免超时
+4. Python需要设置递归深度
+5. 构造解时按拓扑序逆序贪心

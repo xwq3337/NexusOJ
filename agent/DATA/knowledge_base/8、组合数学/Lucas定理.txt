@@ -1,0 +1,668 @@
+Lucas定理
+=========
+
+算法概述
+--------
+Lucas定理是数论中的重要定理，用于解决模数p较小时的大数组合数计算问题。
+它将大数组合数计算分解为多个小数组合数的乘积。
+
+定理内容
+--------
+对于质数p，非负整数m和n：
+C(n, m) mod p = C(n mod p, m mod p) * C(n/p, m/p) mod p
+
+递归形式：
+Lucas(n, m, p) = C(n mod p, m mod p, p) * Lucas(n/p, m/p, p) mod p
+
+终止条件：
+当m = 0时，返回1
+
+基础应用一：Lucas定理实现
+--------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXP = 100005;
+
+long long fact[MAXP];      // 阶乘
+long long invfact[MAXP];   // 阶乘逆元
+int p;                     // 模数（质数）
+
+// 快速幂
+long long qpow(long long a, long long b, long long mod) {
+    long long res = 1;
+    a %= mod;
+    while (b) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 初始化阶乘和逆元
+void init(int mod) {
+    fact[0] = 1;
+    for (int i = 1; i < mod; i++) {
+        fact[i] = fact[i-1] * i % mod;
+    }
+
+    invfact[mod-1] = qpow(fact[mod-1], mod - 2, mod);
+    for (int i = mod - 2; i >= 0; i--) {
+        invfact[i] = invfact[i+1] * (i + 1) % mod;
+    }
+}
+
+// 计算C(n, m) mod p，其中n, m < p
+long long C_small(long long n, long long m, int mod) {
+    if (m < 0 || m > n) return 0;
+    return fact[n] * invfact[m] % mod * invfact[n-m] % mod;
+}
+
+// Lucas定理主函数
+long long lucas(long long n, long long m, int mod) {
+    if (m == 0) return 1;
+    return C_small(n % mod, m % mod, mod) * lucas(n / mod, m / mod, mod) % mod;
+}
+
+int main() {
+    int T;
+    cin >> T;
+
+    while (T--) {
+        long long n, m;
+        cin >> n >> m >> p;
+
+        init(p);
+        cout << lucas(n, m, p) << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+
+def qpow(a, b, mod):
+    res = 1
+    a %= mod
+    while b:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def init(mod):
+    fact = [1] * mod
+    for i in range(1, mod):
+        fact[i] = fact[i-1] * i % mod
+
+    invfact = [1] * mod
+    invfact[mod-1] = qpow(fact[mod-1], mod - 2, mod)
+    for i in range(mod - 2, -1, -1):
+        invfact[i] = invfact[i+1] * (i + 1) % mod
+
+    return fact, invfact
+
+def C_small(n, m, mod, fact, invfact):
+    if m < 0 or m > n:
+        return 0
+    return fact[n] * invfact[m] % mod * invfact[n - m] % mod
+
+def lucas(n, m, mod, fact, invfact):
+    if m == 0:
+        return 1
+    return C_small(n % mod, m % mod, mod, fact, invfact) * \
+           lucas(n // mod, m // mod, mod, fact, invfact) % mod
+
+def main():
+    import sys
+    input = sys.stdin.readline
+    T = int(input())
+
+    for _ in range(T):
+        n, m, p = map(int, input().split())
+        fact, invfact = init(p)
+        print(lucas(n, m, p, fact, invfact))
+
+if __name__ == "__main__":
+    main()
+```
+
+基础应用二：非递归版本
+-----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXP = 100005;
+
+long long fact[MAXP];
+long long invfact[MAXP];
+
+long long qpow(long long a, long long b, long long mod) {
+    long long res = 1;
+    a %= mod;
+    while (b) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+void init(int mod) {
+    fact[0] = 1;
+    for (int i = 1; i < mod; i++) {
+        fact[i] = fact[i-1] * i % mod;
+    }
+
+    invfact[mod-1] = qpow(fact[mod-1], mod - 2, mod);
+    for (int i = mod - 2; i >= 0; i--) {
+        invfact[i] = invfact[i+1] * (i + 1) % mod;
+    }
+}
+
+long long C_small(long long n, long long m, int mod) {
+    if (m < 0 || m > n) return 0;
+    return fact[n] * invfact[m] % mod * invfact[n-m] % mod;
+}
+
+// Lucas定理非递归版本
+long long lucas(long long n, long long m, int mod) {
+    long long res = 1;
+    while (n > 0 || m > 0) {
+        long long ni = n % mod;
+        long long mi = m % mod;
+        res = res * C_small(ni, mi, mod) % mod;
+        n /= mod;
+        m /= mod;
+    }
+    return res;
+}
+
+int main() {
+    int T;
+    cin >> T;
+
+    while (T--) {
+        long long n, m;
+        int p;
+        cin >> n >> m >> p;
+
+        init(p);
+        cout << lucas(n, m, p) << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def qpow(a, b, mod):
+    res = 1
+    a %= mod
+    while b:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def init(mod):
+    fact = [1] * mod
+    for i in range(1, mod):
+        fact[i] = fact[i-1] * i % mod
+
+    invfact = [1] * mod
+    invfact[mod-1] = qpow(fact[mod-1], mod - 2, mod)
+    for i in range(mod - 2, -1, -1):
+        invfact[i] = invfact[i+1] * (i + 1) % mod
+
+    return fact, invfact
+
+def C_small(n, m, mod, fact, invfact):
+    if m < 0 or m > n:
+        return 0
+    return fact[n] * invfact[m] % mod * invfact[n - m] % mod
+
+def lucas(n, m, mod, fact, invfact):
+    res = 1
+    while n > 0 or m > 0:
+        ni = n % mod
+        mi = m % mod
+        res = res * C_small(ni, mi, mod, fact, invfact) % mod
+        n //= mod
+        m //= mod
+    return res
+
+def main():
+    import sys
+    input = sys.stdin.readline
+    T = int(input())
+
+    for _ in range(T):
+        n, m, p = map(int, input().split())
+        fact, invfact = init(p)
+        print(lucas(n, m, p, fact, invfact))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用一：大数组合数
+----------------------
+计算C(1000000000, 500000000) mod 1000003
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int P = 1000003;
+
+long long fact[P];
+long long invfact[P];
+
+long long qpow(long long a, long long b, long long mod) {
+    long long res = 1;
+    a %= mod;
+    while (b) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+void init() {
+    fact[0] = 1;
+    for (int i = 1; i < P; i++) {
+        fact[i] = fact[i-1] * i % P;
+    }
+
+    invfact[P-1] = qpow(fact[P-1], P - 2, P);
+    for (int i = P - 2; i >= 0; i--) {
+        invfact[i] = invfact[i+1] * (i + 1) % P;
+    }
+}
+
+long long C_small(long long n, long long m) {
+    if (m < 0 || m > n) return 0;
+    return fact[n] * invfact[m] % P * invfact[n-m] % P;
+}
+
+long long lucas(long long n, long long m) {
+    long long res = 1;
+    while (n > 0 || m > 0) {
+        long long ni = n % P;
+        long long mi = m % P;
+        res = res * C_small(ni, mi) % P;
+        n /= P;
+        m /= P;
+    }
+    return res;
+}
+
+int main() {
+    init();
+
+    long long n = 1000000000LL;
+    long long m = 500000000LL;
+
+    cout << lucas(n, m) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+P = 1000003
+
+def qpow(a, b, mod):
+    res = 1
+    a %= mod
+    while b:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def init():
+    fact = [1] * P
+    for i in range(1, P):
+        fact[i] = fact[i-1] * i % P
+
+    invfact = [1] * P
+    invfact[P-1] = qpow(fact[P-1], P - 2, P)
+    for i in range(P - 2, -1, -1):
+        invfact[i] = invfact[i+1] * (i + 1) % P
+
+    return fact, invfact
+
+def C_small(n, m, fact, invfact):
+    if m < 0 or m > n:
+        return 0
+    return fact[n] * invfact[m] % P * invfact[n - m] % P
+
+def lucas(n, m, fact, invfact):
+    res = 1
+    while n > 0 or m > 0:
+        ni = n % P
+        mi = m % P
+        res = res * C_small(ni, mi, fact, invfact) % P
+        n //= P
+        m //= P
+    return res
+
+def main():
+    fact, invfact = init()
+    n = 1000000000
+    m = 500000000
+    print(lucas(n, m, fact, invfact))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用二：路径计数
+--------------------
+在网格中从(0,0)走到(n,m)的路径数模p。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXP = 100005;
+
+long long fact[MAXP];
+long long invfact[MAXP];
+int p;
+
+long long qpow(long long a, long long b, long long mod) {
+    long long res = 1;
+    a %= mod;
+    while (b) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+void init(int mod) {
+    fact[0] = 1;
+    for (int i = 1; i < mod; i++) {
+        fact[i] = fact[i-1] * i % mod;
+    }
+
+    invfact[mod-1] = qpow(fact[mod-1], mod - 2, mod);
+    for (int i = mod - 2; i >= 0; i--) {
+        invfact[i] = invfact[i+1] * (i + 1) % mod;
+    }
+}
+
+long long C_small(long long n, long long m, int mod) {
+    if (m < 0 || m > n) return 0;
+    return fact[n] * invfact[m] % mod * invfact[n-m] % mod;
+}
+
+long long lucas(long long n, long long m, int mod) {
+    long long res = 1;
+    while (n > 0 || m > 0) {
+        long long ni = n % mod;
+        long long mi = m % mod;
+        res = res * C_small(ni, mi, mod) % mod;
+        n /= mod;
+        m /= mod;
+    }
+    return res;
+}
+
+int main() {
+    long long n, m;
+    cin >> n >> m >> p;
+
+    init(p);
+    cout << lucas(n + m, n, p) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def qpow(a, b, mod):
+    res = 1
+    a %= mod
+    while b:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def init(mod):
+    fact = [1] * mod
+    for i in range(1, mod):
+        fact[i] = fact[i-1] * i % mod
+
+    invfact = [1] * mod
+    invfact[mod-1] = qpow(fact[mod-1], mod - 2, mod)
+    for i in range(mod - 2, -1, -1):
+        invfact[i] = invfact[i+1] * (i + 1) % mod
+
+    return fact, invfact
+
+def C_small(n, m, mod, fact, invfact):
+    if m < 0 or m > n:
+        return 0
+    return fact[n] * invfact[m] % mod * invfact[n - m] % mod
+
+def lucas(n, m, mod, fact, invfact):
+    res = 1
+    while n > 0 or m > 0:
+        ni = n % mod
+        mi = m % mod
+        res = res * C_small(ni, mi, mod, fact, invfact) % mod
+        n //= mod
+        m //= mod
+    return res
+
+def main():
+    n, m, p = map(int, input().split())
+    fact, invfact = init(p)
+    print(lucas(n + m, n, p, fact, invfact))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用三：多重组合数
+----------------------
+计算C(n1+n2+...+nk, n1, n2, ..., nk) mod p
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXP = 100005;
+
+long long fact[MAXP];
+long long invfact[MAXP];
+int p;
+
+long long qpow(long long a, long long b, long long mod) {
+    long long res = 1;
+    a %= mod;
+    while (b) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+void init(int mod) {
+    fact[0] = 1;
+    for (int i = 1; i < mod; i++) {
+        fact[i] = fact[i-1] * i % mod;
+    }
+
+    invfact[mod-1] = qpow(fact[mod-1], mod - 2, mod);
+    for (int i = mod - 2; i >= 0; i--) {
+        invfact[i] = invfact[i+1] * (i + 1) % mod;
+    }
+}
+
+long long C_small(long long n, long long m, int mod) {
+    if (m < 0 || m > n) return 0;
+    return fact[n] * invfact[m] % mod * invfact[n-m] % mod;
+}
+
+long long lucas(long long n, long long m, int mod) {
+    long long res = 1;
+    while (n > 0 || m > 0) {
+        long long ni = n % mod;
+        long long mi = m % mod;
+        res = res * C_small(ni, mi, mod) % mod;
+        n /= mod;
+        m /= mod;
+    }
+    return res;
+}
+
+int main() {
+    int k;
+    cin >> k >> p;
+
+    init(p);
+
+    vector<long long> n(k);
+    long long total = 0;
+    for (int i = 0; i < k; i++) {
+        cin >> n[i];
+        total += n[i];
+    }
+
+    long long ans = 1;
+    long long sum = 0;
+    for (int i = 0; i < k; i++) {
+        sum += n[i];
+        ans = ans * lucas(sum, n[i], p) % p;
+    }
+
+    cout << ans << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def qpow(a, b, mod):
+    res = 1
+    a %= mod
+    while b:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def init(mod):
+    fact = [1] * mod
+    for i in range(1, mod):
+        fact[i] = fact[i-1] * i % mod
+
+    invfact = [1] * mod
+    invfact[mod-1] = qpow(fact[mod-1], mod - 2, mod)
+    for i in range(mod - 2, -1, -1):
+        invfact[i] = invfact[i+1] * (i + 1) % mod
+
+    return fact, invfact
+
+def C_small(n, m, mod, fact, invfact):
+    if m < 0 or m > n:
+        return 0
+    return fact[n] * invfact[m] % mod * invfact[n - m] % mod
+
+def lucas(n, m, mod, fact, invfact):
+    res = 1
+    while n > 0 or m > 0:
+        ni = n % mod
+        mi = m % mod
+        res = res * C_small(ni, mi, mod, fact, invfact) % mod
+        n //= mod
+        m //= mod
+    return res
+
+def main():
+    k, p = map(int, input().split())
+    fact, invfact = init(p)
+
+    n = list(map(int, input().split()))
+    total = sum(n)
+
+    ans = 1
+    sum_val = 0
+    for i in range(k):
+        sum_val += n[i]
+        ans = ans * lucas(sum_val, n[i], p, fact, invfact) % p
+
+    print(ans)
+
+if __name__ == "__main__":
+    main()
+```
+
+重要性质总结
+------------
+1. Lucas定理只适用于模数为质数的情况
+2. 将大数组合数分解为小数组合数的乘积
+3. 时间复杂度：O(p log_p n)，其中p是模数
+4. 需要预处理阶乘和逆元，预处理时间O(p)
+5. 递归深度为O(log_p n)
+
+适用场景
+--------
+1. n和m非常大（可达10^18）
+2. 模数p是小质数（一般p ≤ 10^5）
+3. 需要多次查询，模数固定
+
+注意事项
+--------
+1. Lucas定理要求模数p必须是质数
+2. 如果模数不是质数，需要使用扩展Lucas定理
+3. 预处理时注意数组大小要≥模数p
+4. 在递归版本中要注意递归深度
+5. 对于多组测试数据，可以只预处理一次
+6. 注意判断m > n的情况，此时答案为0
+
+时间复杂度总结
+--------------
+- 预处理：O(p)
+- 单次查询：O(log_p n)
+- 总复杂度：O(p + T * log_p n)，其中T是查询次数
+
+Lucas定理扩展
+-------------
+对于模数不是质数的情况，可以使用扩展Lucas定理：
+1. 将模数分解为质数幂的乘积
+2. 对每个质数幂使用CRT（中国剩余定理）
+3. 合并得到最终答案
+
+Lucas定理是解决大模数组合数问题的有力工具，在算法竞赛中有广泛应用。

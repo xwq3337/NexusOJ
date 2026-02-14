@@ -1,0 +1,797 @@
+奇偶回文树（回文树，Palindromic Tree / Eertree）
+=============================================
+
+算法概述
+--------
+奇偶回文树，又称回文树或Eertree，是一种专门用于处理回文串的数据结构。它可以在O(n)时间内构建（n为字符串长度），存储字符串的所有不同回文子串，支持高效地查询回文串数量、最长回文串、回文串出现次数等问题。
+
+核心思想
+--------
+1. 使用两个根节点：偶数长度回文根（节点0）和奇数长度回文根（节点1）
+2. 每个节点代表一个回文串，维护其长度、失败链接和转移
+3. 通过fail指针快速找到最长回文后缀
+4. 动态添加字符，维护所有回文串信息
+
+算法原理
+--------
+1. 节点定义：
+   - 节点0：偶数长度回文根，长度为-1（用于处理边界）
+   - 节点1：奇数长度回文根，长度为0
+   - 其他节点：代表具体的回文串
+
+2. 关键数组：
+   - len[i]：节点i代表的回文串长度
+   - fail[i]：节点i的失败链接，指向最长回文后缀
+   - next[i][c]：从节点i添加字符c后转移到的节点
+   - cnt[i]：节点i代表的回文串出现次数
+   - num[i]：节点i代表的回文串的回文后缀数量
+
+3. 添加字符过程：
+   - 找到以当前位置结尾的最长回文串
+   - 尝试扩展该回文串
+   - 如果新回文串不存在，创建新节点
+   - 更新失败链接
+
+4. fail指针：
+   - 类似AC自动机的fail指针
+   - 指向当前回文串的最长真回文后缀
+
+基础模板
+--------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int ALPHABET = 26;
+
+struct PalindromicTree {
+    int next[MAXN][ALPHABET];  // 转移
+    int fail[MAXN];             // 失败链接
+    int len[MAXN];              // 回文串长度
+    int cnt[MAXN];              // 出现次数
+    int num[MAXN];              // 回文后缀数量
+    int last;                   // 最后添加的节点
+    int size;                   // 节点数量
+    char s[MAXN];               // 字符串
+    int n;                      // 字符串长度
+
+    // 初始化
+    void init() {
+        // 节点0：偶数长度根
+        len[0] = -1;
+        fail[0] = 0;
+        memset(next[0], 0, sizeof(next[0]));
+
+        // 节点1：奇数长度根
+        len[1] = 0;
+        fail[1] = 0;
+        memset(next[1], 0, sizeof(next[1]));
+
+        size = 2;
+        last = 1;
+        n = 0;
+        s[0] = -1;  // 哨兵
+    }
+
+    // 获取失败节点
+    int get_fail(int u) {
+        while (s[n - len[u] - 1] != s[n]) {
+            u = fail[u];
+        }
+        return u;
+    }
+
+    // 添加字符
+    void add(char c) {
+        s[++n] = c;
+        int cur = get_fail(last);
+        int v = c - 'a';
+
+        if (!next[cur][v]) {
+            // 创建新节点
+            len[size] = len[cur] + 2;
+            memset(next[size], 0, sizeof(next[size]));
+            cnt[size] = 0;
+            num[size] = 0;
+
+            // 设置失败链接
+            if (len[size] == 1) {
+                fail[size] = 1;
+            } else {
+                fail[size] = next[get_fail(fail[cur])][v];
+            }
+
+            next[cur][v] = size;
+            size++;
+        }
+
+        last = next[cur][v];
+        cnt[last]++;
+        num[last] = num[fail[last]] + 1;
+    }
+
+    // 统计出现次数
+    void count() {
+        for (int i = size - 1; i >= 0; i--) {
+            cnt[fail[i]] += cnt[i];
+        }
+    }
+} pt;
+
+int main() {
+    pt.init();
+
+    char s[MAXN];
+    scanf("%s", s);
+
+    for (int i = 0; s[i]; i++) {
+        pt.add(s[i]);
+    }
+
+    pt.count();
+
+    printf("Palindromic Tree built successfully\n");
+    printf("Number of distinct palindromes: %d\n", pt.size - 2);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class PalindromicTree:
+    def __init__(self):
+        # 节点0：偶数长度根
+        self.next = [{}]  # 转移
+        self.fail = [0]   # 失败链接
+        self.length = [-1]  # 回文串长度
+        self.cnt = [0]    # 出现次数
+        self.num = [0]    # 回文后缀数量
+
+        # 节点1：奇数长度根
+        self.next.append({})
+        self.fail.append(0)
+        self.length.append(0)
+        self.cnt.append(0)
+        self.num.append(0)
+
+        self.last = 1  # 最后添加的节点
+        self.s = ['']  # 字符串（哨兵在位置0）
+
+    def get_fail(self, u):
+        """获取失败节点"""
+        n = len(self.s) - 1
+        while self.s[n - self.length[u] - 1] != self.s[-1]:
+            u = self.fail[u]
+        return u
+
+    def add(self, c):
+        """添加字符"""
+        self.s.append(c)
+        cur = self.get_fail(self.last)
+        v = ord(c) - ord('a')
+
+        if v not in self.next[cur]:
+            # 创建新节点
+            self.length.append(self.length[cur] + 2)
+            self.next.append({})
+            self.cnt.append(0)
+            self.num.append(0)
+
+            new_node = len(self.next) - 1
+
+            # 设置失败链接
+            if self.length[new_node] == 1:
+                self.fail.append(1)
+            else:
+                fail_cur = self.get_fail(self.fail[cur])
+                self.fail.append(self.next[fail_cur].get(v, 1))
+
+            self.next[cur][v] = new_node
+        else:
+            new_node = self.next[cur][v]
+
+        self.last = new_node
+        self.cnt[self.last] += 1
+        self.num[self.last] = self.num[self.fail[self.last]] + 1
+
+    def count(self):
+        """统计出现次数"""
+        # 按长度从大到小处理
+        nodes = sorted(range(len(self.next)), key=lambda x: -self.length[x])
+        for node in nodes:
+            if node >= 2:  # 跳过两个根节点
+                self.cnt[self.fail[node]] += self.cnt[node]
+
+def solve():
+    s = input().strip()
+    pt = PalindromicTree()
+
+    for ch in s:
+        pt.add(ch)
+
+    pt.count()
+
+    print(f"Palindromic Tree built successfully")
+    print(f"Number of distinct palindromes: {len(pt.next) - 2}")
+
+solve()
+```
+
+应用一：统计回文串数量
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int ALPHABET = 26;
+
+struct PalindromicTree {
+    int next[MAXN][ALPHABET];
+    int fail[MAXN];
+    int len[MAXN];
+    int cnt[MAXN];
+    int num[MAXN];
+    int last;
+    int size;
+    char s[MAXN];
+    int n;
+
+    void init() {
+        len[0] = -1;
+        fail[0] = 0;
+        memset(next[0], 0, sizeof(next[0]));
+
+        len[1] = 0;
+        fail[1] = 0;
+        memset(next[1], 0, sizeof(next[1]));
+
+        size = 2;
+        last = 1;
+        n = 0;
+        s[0] = -1;
+    }
+
+    int get_fail(int u) {
+        while (s[n - len[u] - 1] != s[n]) {
+            u = fail[u];
+        }
+        return u;
+    }
+
+    void add(char c) {
+        s[++n] = c;
+        int cur = get_fail(last);
+        int v = c - 'a';
+
+        if (!next[cur][v]) {
+            len[size] = len[cur] + 2;
+            memset(next[size], 0, sizeof(next[size]));
+            cnt[size] = 0;
+            num[size] = 0;
+
+            if (len[size] == 1) {
+                fail[size] = 1;
+            } else {
+                fail[size] = next[get_fail(fail[cur])][v];
+            }
+
+            next[cur][v] = size;
+            size++;
+        }
+
+        last = next[cur][v];
+        cnt[last]++;
+        num[last] = num[fail[last]] + 1;
+    }
+
+    void count() {
+        for (int i = size - 1; i >= 0; i--) {
+            cnt[fail[i]] += cnt[i];
+        }
+    }
+
+    // 统计所有回文串总数（包括重复）
+    long long count_all() {
+        long long ans = 0;
+        for (int i = 2; i < size; i++) {
+            ans += cnt[i];
+        }
+        return ans;
+    }
+
+    // 统计不同回文串数量
+    int count_distinct() {
+        return size - 2;
+    }
+} pt;
+
+int main() {
+    pt.init();
+
+    char s[MAXN];
+    scanf("%s", s);
+
+    for (int i = 0; s[i]; i++) {
+        pt.add(s[i]);
+    }
+
+    pt.count();
+
+    printf("Number of distinct palindromes: %d\n", pt.count_distinct());
+    printf("Total occurrences: %lld\n", pt.count_all());
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class PalindromicTree:
+    def __init__(self):
+        self.next = [{}]
+        self.fail = [0]
+        self.length = [-1]
+        self.cnt = [0]
+        self.num = [0]
+
+        self.next.append({})
+        self.fail.append(0)
+        self.length.append(0)
+        self.cnt.append(0)
+        self.num.append(0)
+
+        self.last = 1
+        self.s = ['']
+
+    def get_fail(self, u):
+        n = len(self.s) - 1
+        while self.s[n - self.length[u] - 1] != self.s[-1]:
+            u = self.fail[u]
+        return u
+
+    def add(self, c):
+        self.s.append(c)
+        cur = self.get_fail(self.last)
+        v = ord(c) - ord('a')
+
+        if v not in self.next[cur]:
+            self.length.append(self.length[cur] + 2)
+            self.next.append({})
+            self.cnt.append(0)
+            self.num.append(0)
+
+            new_node = len(self.next) - 1
+
+            if self.length[new_node] == 1:
+                self.fail.append(1)
+            else:
+                fail_cur = self.get_fail(self.fail[cur])
+                self.fail.append(self.next[fail_cur].get(v, 1))
+
+            self.next[cur][v] = new_node
+        else:
+            new_node = self.next[cur][v]
+
+        self.last = new_node
+        self.cnt[self.last] += 1
+        self.num[self.last] = self.num[self.fail[self.last]] + 1
+
+    def count(self):
+        nodes = sorted(range(len(self.next)), key=lambda x: -self.length[x])
+        for node in nodes:
+            if node >= 2:
+                self.cnt[self.fail[node]] += self.cnt[node]
+
+    def count_distinct(self):
+        """统计不同回文串数量"""
+        return len(self.next) - 2
+
+    def count_all(self):
+        """统计所有回文串出现总数"""
+        return sum(self.cnt[2:])
+
+def solve():
+    s = input().strip()
+    pt = PalindromicTree()
+
+    for ch in s:
+        pt.add(ch)
+
+    pt.count()
+
+    print(f"Number of distinct palindromes: {pt.count_distinct()}")
+    print(f"Total occurrences: {pt.count_all()}")
+
+solve()
+```
+
+应用二：查找最长回文串
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int ALPHABET = 26;
+
+struct PalindromicTree {
+    int next[MAXN][ALPHABET];
+    int fail[MAXN];
+    int len[MAXN];
+    int cnt[MAXN];
+    int num[MAXN];
+    int last;
+    int size;
+    char s[MAXN];
+    int n;
+
+    void init() {
+        len[0] = -1;
+        fail[0] = 0;
+        memset(next[0], 0, sizeof(next[0]));
+
+        len[1] = 0;
+        fail[1] = 0;
+        memset(next[1], 0, sizeof(next[1]));
+
+        size = 2;
+        last = 1;
+        n = 0;
+        s[0] = -1;
+    }
+
+    int get_fail(int u) {
+        while (s[n - len[u] - 1] != s[n]) {
+            u = fail[u];
+        }
+        return u;
+    }
+
+    void add(char c) {
+        s[++n] = c;
+        int cur = get_fail(last);
+        int v = c - 'a';
+
+        if (!next[cur][v]) {
+            len[size] = len[cur] + 2;
+            memset(next[size], 0, sizeof(next[size]));
+            cnt[size] = 0;
+            num[size] = 0;
+
+            if (len[size] == 1) {
+                fail[size] = 1;
+            } else {
+                fail[size] = next[get_fail(fail[cur])][v];
+            }
+
+            next[cur][v] = size;
+            size++;
+        }
+
+        last = next[cur][v];
+        cnt[last]++;
+        num[last] = num[fail[last]] + 1;
+    }
+
+    // 查找最长回文串
+    pair<int, int> find_longest() {
+        int max_len = 0;
+        int pos = 0;
+
+        for (int i = 2; i < size; i++) {
+            if (len[i] > max_len) {
+                max_len = len[i];
+                pos = i;
+            }
+        }
+
+        return {max_len, pos};
+    }
+} pt;
+
+int main() {
+    pt.init();
+
+    char s[MAXN];
+    scanf("%s", s);
+
+    for (int i = 0; s[i]; i++) {
+        pt.add(s[i]);
+    }
+
+    auto [max_len, pos] = pt.find_longest();
+
+    printf("Longest palindrome length: %d\n", max_len);
+
+    // 如果需要提取回文串，需要额外记录每个节点对应的回文串
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class PalindromicTree:
+    def __init__(self):
+        self.next = [{}]
+        self.fail = [0]
+        self.length = [-1]
+        self.cnt = [0]
+        self.num = [0]
+
+        self.next.append({})
+        self.fail.append(0)
+        self.length.append(0)
+        self.cnt.append(0)
+        self.num.append(0)
+
+        self.last = 1
+        self.s = ['']
+
+    def get_fail(self, u):
+        n = len(self.s) - 1
+        while self.s[n - self.length[u] - 1] != self.s[-1]:
+            u = self.fail[u]
+        return u
+
+    def add(self, c):
+        self.s.append(c)
+        cur = self.get_fail(self.last)
+        v = ord(c) - ord('a')
+
+        if v not in self.next[cur]:
+            self.length.append(self.length[cur] + 2)
+            self.next.append({})
+            self.cnt.append(0)
+            self.num.append(0)
+
+            new_node = len(self.next) - 1
+
+            if self.length[new_node] == 1:
+                self.fail.append(1)
+            else:
+                fail_cur = self.get_fail(self.fail[cur])
+                self.fail.append(self.next[fail_cur].get(v, 1))
+
+            self.next[cur][v] = new_node
+        else:
+            new_node = self.next[cur][v]
+
+        self.last = new_node
+        self.cnt[self.last] += 1
+        self.num[self.last] = self.num[self.fail[self.last]] + 1
+
+    def find_longest(self):
+        """查找最长回文串"""
+        max_len = 0
+        pos = 0
+
+        for i in range(2, len(self.next)):
+            if self.length[i] > max_len:
+                max_len = self.length[i]
+                pos = i
+
+        return max_len, pos
+
+def solve():
+    s = input().strip()
+    pt = PalindromicTree()
+
+    for ch in s:
+        pt.add(ch)
+
+    max_len, pos = pt.find_longest()
+    print(f"Longest palindrome length: {max_len}")
+
+solve()
+```
+
+应用三：统计每个位置结尾的回文串数量
+--------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int ALPHABET = 26;
+
+struct PalindromicTree {
+    int next[MAXN][ALPHABET];
+    int fail[MAXN];
+    int len[MAXN];
+    int cnt[MAXN];
+    int num[MAXN];
+    int last;
+    int size;
+    char s[MAXN];
+    int n;
+
+    void init() {
+        len[0] = -1;
+        fail[0] = 0;
+        memset(next[0], 0, sizeof(next[0]));
+
+        len[1] = 0;
+        fail[1] = 0;
+        memset(next[1], 0, sizeof(next[1]));
+
+        size = 2;
+        last = 1;
+        n = 0;
+        s[0] = -1;
+    }
+
+    int get_fail(int u) {
+        while (s[n - len[u] - 1] != s[n]) {
+            u = fail[u];
+        }
+        return u;
+    }
+
+    int add(char c) {
+        s[++n] = c;
+        int cur = get_fail(last);
+        int v = c - 'a';
+
+        if (!next[cur][v]) {
+            len[size] = len[cur] + 2;
+            memset(next[size], 0, sizeof(next[size]));
+            cnt[size] = 0;
+            num[size] = 0;
+
+            if (len[size] == 1) {
+                fail[size] = 1;
+            } else {
+                fail[size] = next[get_fail(fail[cur])][v];
+            }
+
+            next[cur][v] = size;
+            size++;
+        }
+
+        last = next[cur][v];
+        cnt[last]++;
+        num[last] = num[fail[last]] + 1;
+
+        // 返回以当前位置结尾的回文串数量
+        return num[last];
+    }
+} pt;
+
+int main() {
+    pt.init();
+
+    char s[MAXN];
+    scanf("%s", s);
+
+    printf("Number of palindromes ending at each position:\n");
+    for (int i = 0; s[i]; i++) {
+        int count = pt.add(s[i]);
+        printf("Position %d: %d\n", i + 1, count);
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class PalindromicTree:
+    def __init__(self):
+        self.next = [{}]
+        self.fail = [0]
+        self.length = [-1]
+        self.cnt = [0]
+        self.num = [0]
+
+        self.next.append({})
+        self.fail.append(0)
+        self.length.append(0)
+        self.cnt.append(0)
+        self.num.append(0)
+
+        self.last = 1
+        self.s = ['']
+
+    def get_fail(self, u):
+        n = len(self.s) - 1
+        while self.s[n - self.length[u] - 1] != self.s[-1]:
+            u = self.fail[u]
+        return u
+
+    def add(self, c):
+        self.s.append(c)
+        cur = self.get_fail(self.last)
+        v = ord(c) - ord('a')
+
+        if v not in self.next[cur]:
+            self.length.append(self.length[cur] + 2)
+            self.next.append({})
+            self.cnt.append(0)
+            self.num.append(0)
+
+            new_node = len(self.next) - 1
+
+            if self.length[new_node] == 1:
+                self.fail.append(1)
+            else:
+                fail_cur = self.get_fail(self.fail[cur])
+                self.fail.append(self.next[fail_cur].get(v, 1))
+
+            self.next[cur][v] = new_node
+        else:
+            new_node = self.next[cur][v]
+
+        self.last = new_node
+        self.cnt[self.last] += 1
+        self.num[self.last] = self.num[self.fail[self.last]] + 1
+
+        return self.num[self.last]
+
+def solve():
+    s = input().strip()
+    pt = PalindromicTree()
+
+    print("Number of palindromes ending at each position:")
+    for i, ch in enumerate(s):
+        count = pt.add(ch)
+        print(f"Position {i + 1}: {count}")
+
+solve()
+```
+
+典型例题
+--------
+1. 回文树模板（洛谷P5496）：构建回文树，统计回文串
+2. 最长回文子串（洛谷P4555）：查找最长回文子串
+3. 回文串计数（洛谷P3649）：统计所有回文子串
+4. 回文串出现次数（SPOJ NUMOFPAL）：统计每个回文串出现次数
+5. 双重回文串（洛谷P4287）：查找可以分成两个回文串的子串
+
+注意事项
+--------
+1. 两个根节点：
+   - 节点0：偶数长度回文根，len=-1
+   - 节点1：奇数长度回文根，len=0
+   - 哨兵字符：防止越界
+
+2. fail指针：
+   - 指向最长真回文后缀
+   - 用于快速跳转和统计
+   - 形成fail树
+
+3. num数组：
+   - 表示以当前节点结尾的回文串数量
+   - 可以通过fail指针累加得到
+   - num[u] = num[fail[u]] + 1
+
+4. cnt数组：
+   - 初始为1（每个节点至少出现一次）
+   - 需要按长度从大到小累加
+   - 表示每个回文串的出现次数
+
+5. 时间复杂度：
+   - 构建回文树：O(n)
+   - 统计回文串：O(n)
+   - 查询操作：O(1)
+
+时间复杂度总结
+--------------
+- 构建回文树：O(n)
+- 统计不同回文串：O(n)
+- 统计所有回文串：O(n)
+- 最长回文串查询：O(n)
+- 空间复杂度：O(n)
+
+回文树是处理回文串问题的专用数据结构，比马拉车算法更强大，能解决更多类型的回文串问题。

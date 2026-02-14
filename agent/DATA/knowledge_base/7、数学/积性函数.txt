@@ -1,0 +1,362 @@
+积性函数（Multiplicative Function）
+===================================
+
+基本概念
+--------
+积性函数是数论中的一类重要函数。
+对于函数f(n)，如果满足：
+- 当gcd(a, b) = 1时，f(ab) = f(a) × f(b)
+- 则称f(n)为积性函数
+
+如果对于所有a, b都有f(ab) = f(a) × f(b)，则称为完全积性函数。
+
+常见积性函数
+----------
+1. 单位函数 ε(n)：ε(1) = 1，ε(n) = 0（n > 1）
+2. 常数函数 1(n)：1(n) = 1
+3. 恒等函数 id(n)：id(n) = n
+4. 欧拉函数 φ(n)
+5. 莫比乌斯函数 μ(n)
+6. 约数个数函数 d(n)
+7. 约数和函数 σ(n)
+
+基础模板：判断积性函数
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 判断是否为积性函数（以欧拉函数为例）
+bool is_multiplicative_phi(int n) {
+    // 对于任意互质的a, b，检查φ(ab) = φ(a) × φ(b)
+    // 这里只是示例，实际应用中直接使用积性函数的性质
+
+    // 预处理欧拉函数
+    vector<int> phi(n + 1);
+    iota(phi.begin(), phi.end(), 0);
+
+    for (int i = 2; i <= n; i++) {
+        if (phi[i] == i) {
+            for (int j = i; j <= n; j += i) {
+                phi[j] = phi[j] / i * (i - 1);
+            }
+        }
+    }
+
+    // 验证积性
+    for (int a = 2; a <= n; a++) {
+        for (int b = 2; b <= n; b++) {
+            if (__gcd(a, b) == 1) {
+                if (phi[a * b] != phi[a] * phi[b]) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    cout << "欧拉函数是积性函数：" << is_multiplicative_phi(n) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import math
+from typing import List
+
+def is_multiplicative_phi(n: int) -> bool:
+    """判断欧拉函数是否为积性函数"""
+    # 预处理欧拉函数
+    phi = list(range(n + 1))
+
+    for i in range(2, n + 1):
+        if phi[i] == i:
+            for j in range(i, n + 1, i):
+                phi[j] = phi[j] // i * (i - 1)
+
+    # 验证积性
+    for a in range(2, n + 1):
+        for b in range(2, n + 1):
+            if math.gcd(a, b) == 1:
+                if phi[a * b] != phi[a] * phi[b]:
+                    return False
+    return True
+
+def solve():
+    n = int(input())
+    result = is_multiplicative_phi(n)
+    print(f"欧拉函数是积性函数：{result}")
+
+solve()
+```
+
+应用一：约数个数函数d(n)
+-----------------------
+d(n)表示n的正约数个数。
+
+对于n = p1^k1 × p2^k2 × ... × pk^kk，有：
+d(n) = (k1 + 1) × (k2 + 1) × ... × (kk + 1)
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 约数个数函数
+ll divisor_count(ll n) {
+    ll res = 1;
+
+    for (ll i = 2; i * i <= n; i++) {
+        if (n % i == 0) {
+            ll cnt = 0;
+            while (n % i == 0) {
+                n /= i;
+                cnt++;
+            }
+            res *= (cnt + 1);
+        }
+    }
+
+    if (n > 1) {
+        res *= 2;
+    }
+
+    return res;
+}
+
+// 预处理约数个数
+void precompute_divisor_count(int n, vector<int>& d) {
+    for (int i = 1; i <= n; i++) {
+        for (int j = i; j <= n; j += i) {
+            d[j]++;
+        }
+    }
+}
+
+int main() {
+    ll n;
+    cin >> n;
+
+    cout << "d(" << n << ") = " << divisor_count(n) << '\n';
+
+    // 预处理版本
+    int m;
+    cin >> m;
+    vector<int> d(m + 1, 0);
+    precompute_divisor_count(m, d);
+
+    for (int i = 1; i <= m; i++) {
+        cout << "d(" << i << ") = " << d[i] << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def divisor_count(n: int) -> int:
+    """约数个数函数"""
+    res = 1
+
+    i = 2
+    while i * i <= n:
+        if n % i == 0:
+            cnt = 0
+            while n % i == 0:
+                n //= i
+                cnt += 1
+            res *= (cnt + 1)
+        i += 1
+
+    if n > 1:
+        res *= 2
+
+    return res
+
+def precompute_divisor_count(n: int):
+    """预处理约数个数"""
+    d = [0] * (n + 1)
+    for i in range(1, n + 1):
+        for j in range(i, n + 1, i):
+            d[j] += 1
+    return d
+
+def solve():
+    n = int(input())
+    print(f"d({n}) = {divisor_count(n)}")
+
+    m = int(input())
+    d = precompute_divisor_count(m)
+    for i in range(1, m + 1):
+        print(f"d({i}) = {d[i]}")
+
+solve()
+```
+
+应用二：约数和函数σ(n)
+--------------------
+σ(n)表示n的所有正约数之和。
+
+对于n = p1^k1 × p2^k2 × ... × pk^kk，有：
+σ(n) = (p1^(k1+1) - 1)/(p1 - 1) × ... × (pk^(kk+1) - 1)/(pk - 1)
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 约数和函数
+ll divisor_sum(ll n) {
+    ll res = 1;
+
+    for (ll i = 2; i * i <= n; i++) {
+        if (n % i == 0) {
+            ll cnt = 0;
+            ll power = 1;
+            while (n % i == 0) {
+                n /= i;
+                cnt++;
+                power *= i;
+            }
+            // σ(p^k) = (p^(k+1) - 1) / (p - 1)
+            res *= (power * i - 1) / (i - 1);
+        }
+    }
+
+    if (n > 1) {
+        res *= (n * n - 1) / (n - 1);
+    }
+
+    return res;
+}
+
+int main() {
+    ll n;
+    cin >> n;
+
+    cout << "σ(" << n << ") = " << divisor_sum(n) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def divisor_sum(n: int) -> int:
+    """约数和函数"""
+    res = 1
+
+    i = 2
+    while i * i <= n:
+        if n % i == 0:
+            cnt = 0
+            power = 1
+            while n % i == 0:
+                n //= i
+                cnt += 1
+                power *= i
+            res *= (power * i - 1) // (i - 1)
+        i += 1
+
+    if n > 1:
+        res *= (n * n - 1) // (n - 1)
+
+    return res
+
+def solve():
+    n = int(input())
+    print(f"σ({n}) = {divisor_sum(n)}")
+
+solve()
+```
+
+应用三：狄利克雷卷积
+-----------------
+两个积性函数的狄利克雷卷积仍然是积性函数。
+
+(f * g)(n) = Σf(d) × g(n/d)，d|n
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+const int MAXN = 100005;
+
+// 狄利克雷卷积
+void dirichlet_convolution(int f[], int g[], int h[], int n) {
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; i * j <= n; j++) {
+            h[i * j] += f[i] * g[j];
+        }
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<int> f(n + 1), g(n + 1), h(n + 1, 0);
+
+    // 示例：f = 1(n), g = 1(n)
+    for (int i = 1; i <= n; i++) {
+        f[i] = g[i] = 1;
+    }
+
+    dirichlet_convolution(f.data(), g.data(), h.data(), n);
+
+    // 结果应该是约数个数函数d(n)
+    for (int i = 1; i <= n; i++) {
+        cout << "d(" << i << ") = " << h[i] << '\n';
+    }
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 约数个数和（洛谷P2424）：积性函数应用
+2. 约数和（洛谷P2424）：σ函数
+3. YY的GCD（洛谷P2257）：莫比乌斯反演
+
+注意事项
+--------
+1. 积性函数性质：
+   - f(1) = 1
+   - 可以通过质因数分解计算
+
+2. 应用技巧：
+   - 利用积性简化计算
+   - 结合狄利克雷卷积
+
+3. 常见错误：
+   - 忘记检查互质条件
+   - 质因数分解不完整
+
+时间复杂度总结
+--------------
+- 单值计算：O(√n)
+- 预处理：O(n log n)
+
+积性函数是数论的重要工具，
+掌握它对解决很多数论问题都有帮助。

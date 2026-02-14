@@ -1,0 +1,749 @@
+珂朵莉树（Old Driver Tree / ODT）
+================================
+
+算法概述
+--------
+珂朵莉树（ODT，Old Driver Tree），又称颜色段均摊树，是一种基于随机的数据结构。
+它专门用于处理区间赋值操作，通过维护连续的相同值区间来优化操作。
+
+核心思想：
+1. 维护区间的集合，每个区间表示连续的相同值
+2. 区间赋值时直接替换整个区间
+3. 利用随机数据的特点，均摊复杂度优秀
+
+适用场景：
+- 大量区间赋值操作
+- 数据具有随机性
+- 需要快速统计区间信息
+
+珂朵莉树的名字来源于动漫角色"珂朵莉"，是一个充满诗意的名字。
+
+核心思想
+--------
+1. 区间表示：用 std::set 维护区间，每个区间存储 {l, r, val}
+2. split操作：在位置pos处断开区间，返回[pos, r]的迭代器
+3. assign操作：区间赋值，删除[l, r]内所有区间，插入新区间
+4. 查询操作：遍历相关区间统计信息
+
+关键操作：
+- split(pos): 将包含pos的区间断开
+- assign(l, r, val): 将[l, r]赋值为val
+- 查询操作通常需要遍历区间
+
+核心：利用随机数据，区间赋值操作会快速减少区间数量，保持总操作数在O(n log n)级别。
+
+基础模板
+--------
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+struct Node {
+    int l, r;
+    mutable int val;  // mutable允许在const对象中修改
+
+    Node(int l, int r = 0, int val = 0) : l(l), r(r), val(val) {}
+
+    bool operator<(const Node& o) const {
+        return l < o.l;
+    }
+};
+
+set<Node> tree;
+
+// 在pos位置切分，返回[pos, r]的迭代器
+auto split(int pos) {
+    auto it = tree.lower_bound(Node(pos));
+    if (it != tree.end() && it->l == pos) {
+        return it;
+    }
+
+    it--;
+    int l = it->l, r = it->r, val = it->val;
+
+    tree.erase(it);
+    tree.insert(Node(l, pos - 1, val));
+    return tree.insert(Node(pos, r, val)).first;
+}
+
+// 区间赋值
+void assign(int l, int r, int val) {
+    auto itr = split(r + 1);
+    auto itl = split(l);
+
+    tree.erase(itl, itr);
+    tree.insert(Node(l, r, val));
+}
+
+// 区间加
+void add(int l, int r, int val) {
+    auto itr = split(r + 1);
+    auto itl = split(l);
+
+    for (auto it = itl; it != itr; it++) {
+        it->val += val;
+    }
+}
+
+// 区间第k小（需要暴力统计）
+int kth(int l, int r, int k) {
+    auto itr = split(r + 1);
+    auto itl = split(l);
+
+    vector<pair<int, int>> vec;  // {val, len}
+
+    for (auto it = itl; it != itr; it++) {
+        vec.push_back({it->val, it->r - it->l + 1});
+    }
+
+    sort(vec.begin(), vec.end());
+
+    for (auto [val, len] : vec) {
+        k -= len;
+        if (k <= 0) return val;
+    }
+
+    return -1;
+}
+
+// 区间幂次和
+int power_sum(int l, int r, int x, int mod) {
+    auto itr = split(r + 1);
+    auto itl = split(l);
+
+    int ans = 0;
+
+    for (auto it = itl; it != itr; it++) {
+        ans = (ans + (long long)pow(it->val, x) * (it->r - it->l + 1)) % mod;
+    }
+
+    return ans;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    int n, m;
+    cin >> n >> m;
+
+    // 初始化：每个位置一个区间
+    for (int i = 1; i <= n; i++) {
+        int val;
+        cin >> val;
+        tree.insert(Node(i, i, val));
+    }
+
+    // 为了确保最后一个区间能被访问到
+    tree.insert(Node(n + 1, n + 1, 0));
+
+    while (m--) {
+        int op, l, r, x;
+        cin >> op >> l >> r >> x;
+
+        if (op == 1) {
+            // 区间赋值
+            assign(l, r, x);
+        } else if (op == 2) {
+            // 区间加
+            add(l, r, x);
+        } else if (op == 3) {
+            // 区间第k小
+            cout << kth(l, r, x) << '\n';
+        } else if (op == 4) {
+            // 区间幂次和
+            int mod;
+            cin >> mod;
+            cout << power_sum(l, r, x, mod) << '\n';
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import bisect
+
+class Node:
+    def __init__(self, l, r=0, val=0):
+        self.l = l
+        self.r = r
+        self.val = val
+
+    def __lt__(self, other):
+        return self.l < other.l
+
+class ODT:
+    def __init__(self):
+        self.tree = []
+
+    def split(self, pos):
+        """在pos位置切分"""
+        idx = bisect.bisect_left(self.tree, Node(pos))
+
+        if idx < len(self.tree) and self.tree[idx].l == pos:
+            return idx
+
+        idx -= 1
+        node = self.tree[idx]
+        l, r, val = node.l, node.r, node.val
+
+        del self.tree[idx]
+        self.tree.insert(idx, Node(l, pos - 1, val))
+        self.tree.insert(idx + 1, Node(pos, r, val))
+
+        return idx + 1
+
+    def assign(self, l, r, val):
+        """区间赋值"""
+        r_idx = self.split(r + 1)
+        l_idx = self.split(l)
+
+        del self.tree[l_idx:r_idx]
+        bisect.insort(self.tree, Node(l, r, val))
+
+    def add(self, l, r, val):
+        """区间加"""
+        r_idx = self.split(r + 1)
+        l_idx = self.split(l)
+
+        for i in range(l_idx, r_idx):
+            self.tree[i].val += val
+
+    def kth(self, l, r, k):
+        """区间第k小"""
+        r_idx = self.split(r + 1)
+        l_idx = self.split(l)
+
+        vec = []
+        for i in range(l_idx, r_idx):
+            node = self.tree[i]
+            vec.append((node.val, node.r - node.l + 1))
+
+        vec.sort()
+
+        for val, length in vec:
+            k -= length
+            if k <= 0:
+                return val
+
+        return -1
+
+    def power_sum(self, l, r, x, mod):
+        """区间幂次和"""
+        r_idx = self.split(r + 1)
+        l_idx = self.split(l)
+
+        ans = 0
+        for i in range(l_idx, r_idx):
+            node = self.tree[i]
+            ans = (ans + pow(node.val, x, mod) * (node.r - node.l + 1)) % mod
+
+        return ans
+
+def solve():
+    import sys
+    input = sys.stdin.readline
+
+    n, m = map(int, input().split())
+    a = [0] + list(map(int, input().split()))
+
+    odt = ODT()
+    for i in range(1, n + 1):
+        bisect.insort(odt.tree, Node(i, i, a[i]))
+
+    # 哨兵
+    bisect.insort(odt.tree, Node(n + 1, n + 1, 0))
+
+    for _ in range(m):
+        parts = input().split()
+        op = int(parts[0])
+        l = int(parts[1])
+        r = int(parts[2])
+        x = int(parts[3])
+
+        if op == 1:
+            odt.assign(l, r, x)
+        elif op == 2:
+            odt.add(l, r, x)
+        elif op == 3:
+            print(odt.kth(l, r, x))
+        elif op == 4:
+            mod = int(parts[4])
+            print(odt.power_sum(l, r, x, mod))
+
+solve()
+```
+
+应用一：区间赋值+区间和查询
+--------------------------
+问题描述：支持区间赋值、区间加、区间求和。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+struct Node {
+    int l, r;
+    mutable long long val;
+
+    Node(int l, int r = 0, long long val = 0) : l(l), r(r), val(val) {}
+
+    bool operator<(const Node& o) const {
+        return l < o.l;
+    }
+};
+
+set<Node> tree;
+
+auto split(int pos) {
+    auto it = tree.lower_bound(Node(pos));
+    if (it != tree.end() && it->l == pos) {
+        return it;
+    }
+
+    it--;
+    int l = it->l, r = it->r;
+    long long val = it->val;
+
+    tree.erase(it);
+    tree.insert(Node(l, pos - 1, val));
+    return tree.insert(Node(pos, r, val)).first;
+}
+
+void assign(int l, int r, long long val) {
+    auto itr = split(r + 1);
+    auto itl = split(l);
+    tree.erase(itl, itr);
+    tree.insert(Node(l, r, val));
+}
+
+void add(int l, int r, long long val) {
+    auto itr = split(r + 1);
+    auto itl = split(l);
+
+    for (auto it = itl; it != itr; it++) {
+        it->val += val;
+    }
+}
+
+long long query_sum(int l, int r) {
+    auto itr = split(r + 1);
+    auto itl = split(l);
+
+    long long sum = 0;
+
+    for (auto it = itl; it != itr; it++) {
+        sum += it->val * (it->r - it->l + 1);
+    }
+
+    return sum;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    int n, m;
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        long long val;
+        cin >> val;
+        tree.insert(Node(i, i, val));
+    }
+
+    tree.insert(Node(n + 1, n + 1, 0));
+
+    while (m--) {
+        int op;
+        cin >> op;
+
+        if (op == 1) {
+            int l, r;
+            long long val;
+            cin >> l >> r >> val;
+            assign(l, r, val);
+        } else if (op == 2) {
+            int l, r;
+            long long val;
+            cin >> l >> r >> val;
+            add(l, r, val);
+        } else if (op == 3) {
+            int l, r;
+            cin >> l >> r;
+            cout << query_sum(l, r) << '\n';
+        }
+    }
+
+    return 0;
+}
+```
+
+应用二：染色问题
+----------------
+问题描述：初始全白色，每次将[l, r]染成颜色c，查询某段有多少种颜色。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+struct Node {
+    int l, r;
+    mutable int val;
+
+    Node(int l, int r = 0, int val = 0) : l(l), r(r), val(val) {}
+
+    bool operator<(const Node& o) const {
+        return l < o.l;
+    }
+};
+
+set<Node> tree;
+
+auto split(int pos) {
+    auto it = tree.lower_bound(Node(pos));
+    if (it != tree.end() && it->l == pos) {
+        return it;
+    }
+
+    it--;
+    int l = it->l, r = it->r;
+    int val = it->val;
+
+    tree.erase(it);
+    tree.insert(Node(l, pos - 1, val));
+    return tree.insert(Node(pos, r, val)).first;
+}
+
+void assign(int l, int r, int val) {
+    auto itr = split(r + 1);
+    auto itl = split(l);
+    tree.erase(itl, itr);
+    tree.insert(Node(l, r, val));
+}
+
+int query_count(int l, int r) {
+    auto itr = split(r + 1);
+    auto itl = split(l);
+
+    set<int> colors;
+
+    for (auto it = itl; it != itr; it++) {
+        colors.insert(it->val);
+    }
+
+    return colors.size();
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    int n, m;
+    cin >> n >> m;
+
+    // 初始化全为0（白色）
+    tree.insert(Node(1, n, 0));
+    tree.insert(Node(n + 1, n + 1, 0));
+
+    while (m--) {
+        int op, l, r, c;
+        cin >> op >> l >> r >> c;
+
+        if (op == 1) {
+            // 染色
+            assign(l, r, c);
+        } else {
+            // 查询颜色数量
+            cout << query_count(l, r) << '\n';
+        }
+    }
+
+    return 0;
+}
+```
+
+应用三：珂朵莉树维护线段树信息
+----------------------------
+珂朵莉树可以维护各种区间信息，只要支持区间赋值。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+struct Node {
+    int l, r;
+    mutable long long val;
+    mutable long long sum;   // 区间和
+    mutable long long maxv;  // 区间最大值
+
+    Node(int l, int r = 0, long long val = 0)
+        : l(l), r(r), val(val), sum(val), maxv(val) {}
+
+    void update() {
+        sum = val * (r - l + 1);
+        maxv = val;
+    }
+
+    bool operator<(const Node& o) const {
+        return l < o.l;
+    }
+};
+
+set<Node> tree;
+
+auto split(int pos) {
+    auto it = tree.lower_bound(Node(pos));
+    if (it != tree.end() && it->l == pos) {
+        return it;
+    }
+
+    it--;
+    Node node = *it;
+    tree.erase(it);
+    tree.insert(Node(node.l, pos - 1, node.val));
+    auto new_it = tree.insert(Node(pos, node.r, node.val)).first;
+    new_it->update();
+    return new_it;
+}
+
+void assign(int l, int r, long long val) {
+    auto itr = split(r + 1);
+    auto itl = split(l);
+    tree.erase(itl, itr);
+    auto it = tree.insert(Node(l, r, val)).first;
+    it->update();
+}
+
+void add(int l, int r, long long val) {
+    auto itr = split(r + 1);
+    auto itl = split(l);
+
+    for (auto it = itl; it != itr; it++) {
+        it->val += val;
+        it->update();
+    }
+}
+
+long long query_sum(int l, int r) {
+    auto itr = split(r + 1);
+    auto itl = split(l);
+
+    long long ans = 0;
+
+    for (auto it = itl; it != itr; it++) {
+        ans += it->sum;
+    }
+
+    return ans;
+}
+
+long long query_max(int l, int r) {
+    auto itr = split(r + 1);
+    auto itl = split(l);
+
+    long long ans = LLONG_MIN;
+
+    for (auto it = itl; it != itr; it++) {
+        ans = max(ans, it->maxv);
+    }
+
+    return ans;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    int n, m;
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        long long val;
+        cin >> val;
+        tree.insert(Node(i, i, val));
+    }
+
+    tree.insert(Node(n + 1, n + 1, 0));
+
+    while (m--) {
+        int op;
+        cin >> op;
+
+        if (op == 1) {
+            int l, r;
+            long long val;
+            cin >> l >> r >> val;
+            assign(l, r, val);
+        } else if (op == 2) {
+            int l, r;
+            long long val;
+            cin >> l >> r >> val;
+            add(l, r, val);
+        } else if (op == 3) {
+            int l, r;
+            cin >> l >> r;
+            cout << query_sum(l, r) << '\n';
+        } else if (op == 4) {
+            int l, r;
+            cin >> l >> r;
+            cout << query_max(l, r) << '\n';
+        }
+    }
+
+    return 0;
+}
+```
+
+应用四：珂朵莉树+离散化
+----------------------
+当数据范围很大但操作数较少时，可以离散化。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 200005;
+
+vector<int> coords;
+
+struct Node {
+    int l, r;
+    mutable int val;
+
+    Node(int l, int r = 0, int val = 0) : l(l), r(r), val(val) {}
+
+    bool operator<(const Node& o) const {
+        return l < o.l;
+    }
+};
+
+set<Node> tree;
+
+auto split(int pos) {
+    auto it = tree.lower_bound(Node(pos));
+    if (it != tree.end() && it->l == pos) {
+        return it;
+    }
+
+    it--;
+    int l = it->l, r = it->r;
+    int val = it->val;
+
+    tree.erase(it);
+    tree.insert(Node(l, pos - 1, val));
+    return tree.insert(Node(pos, r, val)).first;
+}
+
+void assign(int l, int r, int val) {
+    auto itr = split(r + 1);
+    auto itl = split(l);
+    tree.erase(itl, itr);
+    tree.insert(Node(l, r, val));
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    int n, m;
+    cin >> n >> m;
+
+    vector<tuple<int, int, int>> ops;
+
+    coords.push_back(1);
+    coords.push_back(n);
+
+    for (int i = 1; i <= m; i++) {
+        int l, r, val;
+        cin >> l >> r >> val;
+        ops.push_back({l, r, val});
+        coords.push_back(l);
+        coords.push_back(r);
+        coords.push_back(r + 1);
+    }
+
+    // 离散化
+    sort(coords.begin(), coords.end());
+    coords.erase(unique(coords.begin(), coords.end()), coords.end());
+
+    auto get_id = [&](int x) {
+        return lower_bound(coords.begin(), coords.end(), x) - coords.begin() + 1;
+    };
+
+    int sz = coords.size();
+
+    // 初始化
+    for (int i = 1; i < sz; i++) {
+        tree.insert(Node(i, i, 0));
+    }
+    tree.insert(Node(sz, sz, 0));
+
+    for (auto [l, r, val] : ops) {
+        int nl = get_id(l);
+        int nr = get_id(r);
+        assign(nl, nr, val);
+    }
+
+    // 输出最终状态
+    for (int i = 1; i < sz; i++) {
+        auto it = tree.lower_bound(Node(i));
+        int val = it->val;
+
+        int real_l = coords[i - 1];
+        int real_r = coords[i] - 1;
+
+        if (val != 0) {
+            cout << "[" << real_l << ", " << real_r << "] = " << val << '\n';
+        }
+    }
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 珂朵莉树模板（LOJ 6284）：区间操作模板题
+2. [NOI2017]游戏：区间赋值+查询
+3. [JSOI2008]球形空间产生器：珂朵莉树应用
+4. [HEOI2016] seq：珂朵莉树+维护
+5. [TJOI2018]教科书：珂朵莉树+异或
+
+注意事项
+--------
+1. 珂朵莉树依赖于数据的随机性
+2. 如果数据不是随机的，可能会被卡到O(n²)
+3. split操作是基础，必须正确实现
+4. 每次操作前需要split(r+1)再split(l)，顺序不能反
+5. 记得在数组末尾添加哨兵节点
+6. mutable关键字很重要，允许修改const对象
+7. 复杂度分析依赖于assign操作能快速减少区间数
+8. 对于非随机数据，考虑使用线段树等数据结构
+
+复杂度分析
+----------
+- split操作：O(log n)
+- assign操作：均摊O(log n)
+- 查询操作：O(k log n)，k是相关区间数
+- 总复杂度：O(m log n)，m是操作数
+
+珂朵莉树是一种"玄学"数据结构，在随机数据下表现优秀。
+在实际比赛中，如果确认数据具有随机性，珂朵莉树是一个简洁高效的选择。
+但如果数据可能被构造，建议使用线段树等更稳定的数据结构。

@@ -1,0 +1,529 @@
+Polya计数定理（Polya Counting Theorem）
+====================================
+
+算法概述
+--------
+Polya计数定理是组合数学中用于计算考虑对称性（如旋转、翻转）后的不同染色方案数的重要工具。
+它是Burnside引理的推广和具体应用。
+
+核心概念
+--------
+1. 置换群：一组置换的集合，满足群的定义
+2. 等价类：在群作用下可以互相转化的方案
+3. 不动点：在某个置换下保持不变的方案
+4. 循环：置换分解成的独立轮换
+
+Polya定理
+---------
+对于n个对象的染色问题，考虑置换群G，染色方案数为：
+Ans = (1/|G|) * Σ(fix(g)) for all g in G
+
+其中fix(g)表示在置换g下保持不变的染色方案数。
+
+对于m种颜色，fix(g) = m^c(g)，其中c(g)是置换g的循环数。
+
+基础应用：项链染色问题
+-----------------------
+用m种颜色给n颗珠子的项链染色，考虑旋转对称性，求不同方案数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 计算最大公约数
+int gcd(int a, int b) {
+    return b == 0 ? a : gcd(b, a % b);
+}
+
+// 项链计数（仅考虑旋转）
+long long necklace(int n, int m) {
+    long long ans = 0;
+    for (int i = 0; i < n; i++) {
+        // 旋转i格的循环数 = gcd(n, i)
+        int cycles = gcd(n, i);
+        ans += qpow(m, cycles);
+    }
+    return ans / n;
+}
+
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a;
+        a = a * a;
+        b >>= 1;
+    }
+    return res;
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    cout << necklace(n, m) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import math
+
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res *= a
+        a *= a
+        b >>= 1
+    return res
+
+def necklace(n, m):
+    ans = 0
+    for i in range(n):
+        cycles = math.gcd(n, i)
+        ans += qpow(m, cycles)
+    return ans // n
+
+def main():
+    n, m = map(int, input().split())
+    print(necklace(n, m))
+
+if __name__ == "__main__":
+    main()
+```
+
+进阶应用：手镯染色问题
+-----------------------
+用m种颜色给n颗珠子的手镯染色，考虑旋转和翻转对称性，求不同方案数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 计算最大公约数
+int gcd(int a, int b) {
+    return b == 0 ? a : gcd(b, a % b);
+}
+
+// 快速幂
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a;
+        a = a * a;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 手镯计数（考虑旋转和翻转）
+long long bracelet(int n, int m) {
+    long long ans = 0;
+
+    // 旋转：n种
+    for (int i = 0; i < n; i++) {
+        int cycles = gcd(n, i);
+        ans += qpow(m, cycles);
+    }
+
+    // 翻转：n种
+    if (n % 2 == 1) {
+        // 奇数个珠子：n种翻转，每种有(n+1)/2个循环
+        for (int i = 0; i < n; i++) {
+            ans += qpow(m, (n + 1) / 2);
+        }
+    } else {
+        // 偶数个珠子：n/2种翻转，n/2个循环 + n/2种翻转，n/2+1个循环
+        for (int i = 0; i < n / 2; i++) {
+            ans += qpow(m, n / 2);
+        }
+        for (int i = 0; i < n / 2; i++) {
+            ans += qpow(m, n / 2 + 1);
+        }
+    }
+
+    return ans / (2 * n);
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    cout << bracelet(n, m) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import math
+
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res *= a
+        a *= a
+        b >>= 1
+    return res
+
+def bracelet(n, m):
+    ans = 0
+
+    # 旋转
+    for i in range(n):
+        cycles = math.gcd(n, i)
+        ans += qpow(m, cycles)
+
+    # 翻转
+    if n % 2 == 1:
+        for i in range(n):
+            ans += qpow(m, (n + 1) // 2)
+    else:
+        for i in range(n // 2):
+            ans += qpow(m, n // 2)
+        for i in range(n // 2):
+            ans += qpow(m, n // 2 + 1)
+
+    return ans // (2 * n)
+
+def main():
+    n, m = map(int, input().split())
+    print(bracelet(n, m))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用一：正方形顶点染色
+--------------------------
+用m种颜色给正方形的4个顶点染色，考虑旋转和翻转对称性。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a;
+        a = a * a;
+        b >>= 1;
+    }
+    return res;
+}
+
+long long square_coloring(int m) {
+    long long ans = 0;
+
+    // 旋转0度：1个4循环
+    ans += qpow(m, 4);
+
+    // 旋转90度：1个4循环
+    ans += qpow(m, 1);
+
+    // 旋转180度：2个2循环
+    ans += qpow(m, 2);
+
+    // 旋转270度：1个4循环
+    ans += qpow(m, 1);
+
+    // 翻转：4种，每种2个2循环
+    for (int i = 0; i < 4; i++) {
+        ans += qpow(m, 2);
+    }
+
+    return ans / 8;
+}
+
+int main() {
+    int m;
+    cin >> m;
+    cout << square_coloring(m) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res *= a
+        a *= a
+        b >>= 1
+    return res
+
+def square_coloring(m):
+    ans = 0
+
+    # 旋转
+    ans += qpow(m, 4)  # 0度
+    ans += qpow(m, 1)  # 90度
+    ans += qpow(m, 2)  # 180度
+    ans += qpow(m, 1)  # 270度
+
+    # 翻转
+    for _ in range(4):
+        ans += qpow(m, 2)
+
+    return ans // 8
+
+def main():
+    m = int(input())
+    print(square_coloring(m))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用二：立方体面染色
+------------------------
+用m种颜色给立方体的6个面染色，考虑所有旋转对称性。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a;
+        a = a * a;
+        b >>= 1;
+    }
+    return res;
+}
+
+long long cube_coloring(int m) {
+    long long ans = 0;
+
+    // 恒等旋转：1种，6个1循环
+    ans += qpow(m, 6);
+
+    // 面旋转（90度和270度）：6种，每个2个3循环
+    for (int i = 0; i < 6; i++) {
+        ans += qpow(m, 2);
+    }
+
+    // 面旋转（180度）：3种，每个3个2循环
+    for (int i = 0; i < 3; i++) {
+        ans += qpow(m, 3);
+    }
+
+    // 体对角线旋转：8种，每个2个3循环
+    for (int i = 0; i < 8; i++) {
+        ans += qpow(m, 2);
+    }
+
+    // 对角线旋转（120度和240度）：6种，每个2个3循环
+    for (int i = 0; i < 6; i++) {
+        ans += qpow(m, 3);
+    }
+
+    return ans / 24;
+}
+
+int main() {
+    int m;
+    cin >> m;
+    cout << cube_coloring(m) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res *= a
+        a *= a
+        b >>= 1
+    return res
+
+def cube_coloring(m):
+    ans = 0
+
+    # 恒等旋转
+    ans += qpow(m, 6)
+
+    # 面旋转
+    for _ in range(6):
+        ans += qpow(m, 2)
+
+    # 面旋转180度
+    for _ in range(3):
+        ans += qpow(m, 3)
+
+    # 体对角线旋转
+    for _ in range(8):
+        ans += qpow(m, 2)
+
+    # 对角线旋转
+    for _ in range(6):
+        ans += qpow(m, 3)
+
+    return ans // 24
+
+def main():
+    m = int(input())
+    print(cube_coloring(m))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用三：带权Polya计数
+------------------------
+计算不同染色方案的生成函数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 105;
+
+int n, m;
+int color_weight[MAXN];
+
+// 计算gcd
+int gcd(int a, int b) {
+    return b == 0 ? a : gcd(b, a % b);
+}
+
+// 带权项链计数
+long long weighted_necklace() {
+    long long ans = 0;
+
+    for (int i = 0; i < n; i++) {
+        int cycles = gcd(n, i);
+        long long sum = 0;
+
+        // 对于每个循环，选择一种颜色
+        long long tmp = 0;
+        for (int j = 1; j <= m; j++) {
+            tmp += color_weight[j];
+        }
+        sum = qpow(tmp, cycles);
+
+        ans += sum;
+    }
+
+    return ans / n;
+}
+
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a;
+        a = a * a;
+        b >>= 1;
+    }
+    return res;
+}
+
+int main() {
+    cin >> n >> m;
+    for (int i = 1; i <= m; i++) {
+        cin >> color_weight[i];
+    }
+
+    cout << weighted_necklace() << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import math
+
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res *= a
+        a *= a
+        b >>= 1
+    return res
+
+def weighted_necklace(n, m, color_weight):
+    ans = 0
+
+    for i in range(n):
+        cycles = math.gcd(n, i)
+        tmp = sum(color_weight[1:])
+        ans += qpow(tmp, cycles)
+
+    return ans // n
+
+def main():
+    n, m = map(int, input().split())
+    color_weight = [0] + list(map(int, input().split()))
+    print(weighted_necklace(n, m, color_weight))
+
+if __name__ == "__main__":
+    main()
+```
+
+重要概念总结
+------------
+1. 置换群：一组满足群公理的置换
+2. 轮换（循环）：置换的基本组成单位
+3. 不动点：在置换下保持不变的方案
+4. 循环数：一个置换分解成的轮换个数
+
+常见对称群的循环结构
+--------------------
+1. 项链（旋转）：
+   - 旋转i格：gcd(n, i)个循环
+
+2. 手镯（旋转+翻转）：
+   - 旋转：gcd(n, i)个循环
+   - 翻转（n为奇数）：(n+1)/2个循环
+   - 翻转（n为偶数）：n/2或n/2+1个循环
+
+3. 正方形（D4群）：
+   - 旋转：4种（0°, 90°, 180°, 270°）
+   - 翻转：4种（4条对称轴）
+
+4. 正立方体：
+   - 24种旋转
+   - 包括恒等、面旋转、体对角线旋转等
+
+应用步骤
+--------
+1. 确定问题的对称群
+2. 枚举群中的所有置换
+3. 对每个置换，计算其循环数
+4. 计算每个置换的不动点数：m^循环数
+5. 求和后除以群的大小
+
+注意事项
+--------
+1. 正确识别对称群的所有元素
+2. 准确计算每个置换的循环结构
+3. 区分项链（只有旋转）和手镯（旋转+翻转）
+4. 对于翻转，需要根据n的奇偶性分类讨论
+5. 注意除法的精度问题，最后再除以群的大小
+6. 对于带权问题，需要使用生成函数
+
+时间复杂度总结
+--------------
+- 一般情况：O(n * |G|)，其中|G|是群的大小
+- 项链问题：O(n log n) （主要是gcd的计算）
+- 手镯问题：O(n)
+- 立方体等问题：O(1)
+
+Polya计数定理是解决对称性计数问题的强大工具，在组合数学和化学异构体计数等领域有广泛应用。

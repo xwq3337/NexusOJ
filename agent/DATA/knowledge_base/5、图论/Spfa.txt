@@ -1,0 +1,714 @@
+SPFA算法
+========
+
+算法概述
+--------
+SPFA(Shortest Path Faster Algorithm)是一种求解单源最短路问题的算法,是Bellman-Ford算法的优化版本。该算法使用队列来松弛操作,平均时间复杂度优秀,但在特殊构造的数据下会退化为O(nm)。
+
+核心思想
+--------
+1. 动态逼近:不断用已找到的最短距离去更新邻接点
+2. 队列优化:只有距离发生变化的节点才入队
+3. 负权处理:可以处理负权边和检测负权环
+4. SLF优化:使用双端队列,队首元素大于队尾时交换
+
+算法流程
+--------
+1. 初始化:起点距离为0,其他节点距离为无穷大
+2. 将起点加入队列
+3. 从队列取出节点u
+4. 遍历u的所有邻接边,尝试松弛
+5. 如果邻接点v的距离被更新,且v不在队列中,则v入队
+6. 重复步骤3-5,直到队列为空
+
+基础实现
+--------
+时间复杂度:平均O(m),最坏O(nm),空间复杂度:O(n+m)
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];  // adj[u]: {v, w}
+int dist[MAXN];
+bool in_queue[MAXN];  // 标记是否在队列中
+
+void spfa(int start) {
+    // 初始化
+    memset(dist, 0x3f, sizeof(dist));
+    memset(in_queue, false, sizeof(in_queue));
+    dist[start] = 0;
+
+    queue<int> q;
+    q.push(start);
+    in_queue[start] = true;
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        in_queue[u] = false;
+
+        // 松弛操作
+        for (auto& edge : adj[u]) {
+            int v = edge.first;
+            int w = edge.second;
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                if (!in_queue[v]) {
+                    q.push(v);
+                    in_queue[v] = true;
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    // 读入边
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        // adj[v].push_back({u, w});  // 无向图
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    spfa(start);
+
+    if (dist[end] >= INF / 2) {
+        cout << "No path from " << start << " to " << end << endl;
+    } else {
+        cout << "Shortest path: " << dist[end] << endl;
+    }
+
+    // 输出到所有点的最短距离
+    cout << "\nDistances from " << start << ":\n";
+    for (int i = 1; i <= n; i++) {
+        if (dist[i] >= INF / 2) {
+            cout << "To " << i << ": INF\n";
+        } else {
+            cout << "To " << i << ": " << dist[i] << "\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+
+    # 读入边
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        # adj[v].append((u, w))  # 无向图
+
+    start, end = map(int, input().split())
+
+    # SPFA
+    INF = float('inf')
+    dist = [INF] * (n + 1)
+    in_queue = [False] * (n + 1)
+    dist[start] = 0
+
+    q = deque([start])
+    in_queue[start] = True
+
+    while q:
+        u = q.popleft()
+        in_queue[u] = False
+
+        # 松弛操作
+        for v, w in adj[u]:
+            if dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                if not in_queue[v]:
+                    q.append(v)
+                    in_queue[v] = True
+
+    if dist[end] >= INF / 2:
+        print(f"No path from {start} to {end}")
+    else:
+        print(f"Shortest path: {dist[end]}")
+
+    # 输出到所有点的最短距离
+    print(f"\nDistances from {start}:")
+    for i in range(1, n + 1):
+        if dist[i] >= INF / 2:
+            print(f"To {i}: INF")
+        else:
+            print(f"To {i}: {dist[i]}")
+
+solve()
+```
+
+负权环检测
+--------
+记录每个点入队次数,超过n次则存在负权环。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];
+int dist[MAXN];
+bool in_queue[MAXN];
+int cnt[MAXN];  // 入队次数
+
+bool spfa(int start) {
+    memset(dist, 0x3f, sizeof(dist));
+    memset(in_queue, false, sizeof(in_queue));
+    memset(cnt, 0, sizeof(cnt));
+    dist[start] = 0;
+
+    queue<int> q;
+    q.push(start);
+    in_queue[start] = true;
+    cnt[start] = 1;
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        in_queue[u] = false;
+
+        for (auto& edge : adj[u]) {
+            int v = edge.first;
+            int w = edge.second;
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                if (!in_queue[v]) {
+                    q.push(v);
+                    in_queue[v] = true;
+                    cnt[v]++;
+                    if (cnt[v] > n) {
+                        return true;  // 存在负权环
+                    }
+                }
+            }
+        }
+    }
+    return false;  // 不存在负权环
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+    }
+
+    if (spfa(1)) {
+        cout << "Negative cycle detected!\n";
+    } else {
+        for (int i = 1; i <= n; i++) {
+            if (dist[i] >= INF / 2) {
+                cout << "INF\n";
+            } else {
+                cout << dist[i] << "\n";
+            }
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+
+    INF = float('inf')
+    dist = [INF] * (n + 1)
+    in_queue = [False] * (n + 1)
+    cnt = [0] * (n + 1)
+    dist[1] = 0
+
+    q = deque([1])
+    in_queue[1] = True
+    cnt[1] = 1
+
+    has_negative = False
+
+    while q and not has_negative:
+        u = q.popleft()
+        in_queue[u] = False
+
+        for v, w in adj[u]:
+            if dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                if not in_queue[v]:
+                    q.append(v)
+                    in_queue[v] = True
+                    cnt[v] += 1
+                    if cnt[v] > n:
+                        has_negative = True
+                        break
+
+    if has_negative:
+        print("Negative cycle detected!")
+    else:
+        for i in range(1, n + 1):
+            if dist[i] >= INF / 2:
+                print("INF")
+            else:
+                print(dist[i])
+
+solve()
+```
+
+SLF优化(Small Label First)
+--------------------------
+使用双端队列,新元素距离小于队首时加到队首。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];
+int dist[MAXN];
+bool in_queue[MAXN];
+
+void spfa_slf(int start) {
+    memset(dist, 0x3f, sizeof(dist));
+    memset(in_queue, false, sizeof(in_queue));
+    dist[start] = 0;
+
+    deque<int> dq;
+    dq.push_back(start);
+    in_queue[start] = true;
+
+    while (!dq.empty()) {
+        int u = dq.front();
+        dq.pop_front();
+        in_queue[u] = false;
+
+        for (auto& edge : adj[u]) {
+            int v = edge.first;
+            int w = edge.second;
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                if (!in_queue[v]) {
+                    // SLF优化:如果新元素小于队首,加到队首
+                    if (!dq.empty() && dist[v] < dist[dq.front()]) {
+                        dq.push_front(v);
+                    } else {
+                        dq.push_back(v);
+                    }
+                    in_queue[v] = true;
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    spfa_slf(start);
+
+    if (dist[end] >= INF / 2) {
+        cout << "No path\n";
+    } else {
+        cout << dist[end] << "\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+
+    start, end = map(int, input().split())
+
+    INF = float('inf')
+    dist = [INF] * (n + 1)
+    in_queue = [False] * (n + 1)
+    dist[start] = 0
+
+    dq = deque([start])
+    in_queue[start] = True
+
+    while dq:
+        u = dq.popleft()
+        in_queue[u] = False
+
+        for v, w in adj[u]:
+            if dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                if not in_queue[v]:
+                    # SLF优化
+                    if dq and dist[v] < dist[dq[0]]:
+                        dq.appendleft(v)
+                    else:
+                        dq.append(v)
+                    in_queue[v] = True
+
+    if dist[end] >= INF / 2:
+        print("No path")
+    else:
+        print(dist[end])
+
+solve()
+```
+
+链式前向星实现
+-------------
+使用链式前向星存储图的SPFA实现。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int MAXM = 200005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+int head[MAXN];
+struct Edge {
+    int to, weight, next;
+} edges[MAXM];
+int tot;
+
+int dist[MAXN];
+bool in_queue[MAXN];
+
+void add_edge(int u, int v, int w) {
+    edges[++tot].to = v;
+    edges[tot].weight = w;
+    edges[tot].next = head[u];
+    head[u] = tot;
+}
+
+void spfa(int start) {
+    memset(dist, 0x3f, sizeof(dist));
+    memset(in_queue, false, sizeof(in_queue));
+    dist[start] = 0;
+
+    queue<int> q;
+    q.push(start);
+    in_queue[start] = true;
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        in_queue[u] = false;
+
+        for (int i = head[u]; i; i = edges[i].next) {
+            int v = edges[i].to;
+            int w = edges[i].weight;
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                if (!in_queue[v]) {
+                    q.push(v);
+                    in_queue[v] = true;
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    memset(head, 0, sizeof(head));
+    tot = 0;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        add_edge(u, v, w);
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    spfa(start);
+
+    if (dist[end] >= INF / 2) {
+        cout << "No path\n";
+    } else {
+        cout << dist[end] << "\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    MAXM = m * 2 + 5
+
+    head = [0] * (n + 1)
+    edges = [(0, 0, 0) for _ in range(MAXM)]
+    tot = 0
+
+    def add_edge(u, v, w):
+        nonlocal tot
+        tot += 1
+        edges[tot] = (v, w, head[u])
+        head[u] = tot
+
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        add_edge(u, v, w)
+
+    start, end = map(int, input().split())
+
+    INF = float('inf')
+    dist = [INF] * (n + 1)
+    in_queue = [False] * (n + 1)
+    dist[start] = 0
+
+    q = deque([start])
+    in_queue[start] = True
+
+    while q:
+        u = q.popleft()
+        in_queue[u] = False
+
+        i = head[u]
+        while i:
+            v, w, _ = edges[i]
+            if dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                if not in_queue[v]:
+                    q.append(v)
+                    in_queue[v] = True
+            i = edges[i][2]
+
+    if dist[end] >= INF / 2:
+        print("No path")
+    else:
+        print(dist[end])
+
+solve()
+```
+
+最短路计数
+--------
+在求最短路的同时统计最短路数量。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int INF = 0x3f3f3f3f;
+const int MOD = 100003;
+
+int n, m;
+vector<int> adj[MAXN];
+int dist[MAXN];
+int cnt[MAXN];  // 最短路数量
+bool in_queue[MAXN];
+
+void spfa(int start) {
+    memset(dist, 0x3f, sizeof(dist));
+    memset(cnt, 0, sizeof(cnt));
+    memset(in_queue, false, sizeof(in_queue));
+    dist[start] = 0;
+    cnt[start] = 1;
+
+    queue<int> q;
+    q.push(start);
+    in_queue[start] = true;
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        in_queue[u] = false;
+
+        for (int v : adj[u]) {
+            if (dist[u] + 1 < dist[v]) {
+                dist[v] = dist[u] + 1;
+                cnt[v] = cnt[u];
+                if (!in_queue[v]) {
+                    q.push(v);
+                    in_queue[v] = true;
+                }
+            } else if (dist[u] + 1 == dist[v]) {
+                cnt[v] = (cnt[v] + cnt[u]) % MOD;
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    spfa(1);
+
+    for (int i = 1; i <= n; i++) {
+        cout << cnt[i] << "\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    MOD = 100003
+    adj = [[] for _ in range(n + 1)]
+
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    INF = float('inf')
+    dist = [INF] * (n + 1)
+    cnt = [0] * (n + 1)
+    in_queue = [False] * (n + 1)
+    dist[1] = 0
+    cnt[1] = 1
+
+    q = deque([1])
+    in_queue[1] = True
+
+    while q:
+        u = q.popleft()
+        in_queue[u] = False
+
+        for v in adj[u]:
+            if dist[u] + 1 < dist[v]:
+                dist[v] = dist[u] + 1
+                cnt[v] = cnt[u]
+                if not in_queue[v]:
+                    q.append(v)
+                    in_queue[v] = True
+            elif dist[u] + 1 == dist[v]:
+                cnt[v] = (cnt[v] + cnt[u]) % MOD
+
+    for i in range(1, n + 1):
+        print(cnt[i])
+
+solve()
+```
+
+典型例题
+--------
+1. 最短路(洛谷P3385): SPFA模板题,负权边
+2. 信使(洛谷P1629): 求所有点到起点的最短路
+3. 最短路计数(洛谷P1144): 统计最短路数量
+4. 负权环检测(洛谷P3385): 判断图中是否存在负权环
+5. 繁忙的都市(洛谷P2384): SPFA应用
+
+注意事项
+--------
+1. SPFA可以处理负权边,但不能处理负权环(会无限循环)
+2. 在网格图等特殊图上,SPFA容易被卡到O(nm)
+3. 如果题目保证没有负权边,优先使用Dijkstra
+4. 检测负权环时,一个点入队超过n次说明存在负权环
+5. 使用SLF优化可以显著提升效率,但不能保证避免最坏情况
+6. in_queue数组可以避免重复入队,提高效率
+
+算法对比
+--------
+Dijkstra:
+- 优点:稳定,时间复杂度O((n+m)log n)
+- 缺点:不能处理负权边
+
+SPFA:
+- 优点:可以处理负权边,平均速度快
+- 缺点:不稳定,特殊数据下会退化
+
+Bellman-Ford:
+- 优点:可以检测负权环
+- 缺点:时间复杂度O(nm),效率较低
+
+时间复杂度总结
+--------------
+- 平均时间复杂度:O(m)
+- 最坏时间复杂度:O(nm)
+- 空间复杂度:O(n+m)
+- 适用场景:存在负权边的图,需要检测负权环
+
+SPFA是一个非常实用的算法,在图中有负权边时是首选算法,但要注意被卡的风险。

@@ -1,0 +1,593 @@
+费马小定理（Fermat's Little Theorem）
+===================================
+
+定理概述
+--------
+费马小定理是数论中的重要定理，由法国数学家皮埃尔·德·费马提出。
+它是现代密码学的基础之一，在RSA加密、素性测试等领域有广泛应用。
+
+定理内容
+--------
+若p是质数，且a不是p的倍数（即gcd(a, p) = 1），则：
+    a^(p-1) ≡ 1 (mod p)
+
+推论（常用形式）：
+    a^p ≡ a (mod p)
+
+这个推论对任意整数a都成立。
+
+证明思路
+--------
+证明使用鸽巢原理：
+1. 考虑集合 {a, 2a, 3a, ..., (p-1)a}
+2. 这些数模p的结果恰好是 {1, 2, 3, ..., p-1} 的一个排列
+3. 因此：a × 2a × 3a × ... × (p-1)a ≡ 1 × 2 × 3 × ... × (p-1) (mod p)
+4. 即：a^(p-1) × (p-1)! ≡ (p-1)! (mod p)
+5. 因为(p-1)!与p互质，可以两边约去，得：a^(p-1) ≡ 1 (mod p)
+
+基础模板：验证费马小定理
+----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 快速幂
+ll pow_mod(ll a, ll b, ll mod) {
+    ll res = 1;
+    a %= mod;
+    while (b > 0) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 验证费马小定理
+bool verify_fermat(ll a, ll p) {
+    return pow_mod(a, p - 1, p) == 1;
+}
+
+int main() {
+    ll a, p;
+    cin >> a >> p;
+
+    if (verify_fermat(a, p)) {
+        cout << "费马小定理成立！" << '\n';
+        cout << a << "^" << (p - 1) << " mod " << p << " = 1" << '\n';
+    } else {
+        cout << "费马小定理不成立，" << p << "不是质数" << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def pow_mod(a: int, b: int, mod: int) -> int:
+    """快速幂"""
+    res = 1
+    a %= mod
+    while b > 0:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def verify_fermat(a: int, p: int) -> bool:
+    """验证费马小定理"""
+    return pow_mod(a, p - 1, p) == 1
+
+def solve():
+    a, p = map(int, input().split())
+    if verify_fermat(a, p):
+        print(f"费马小定理成立！")
+        print(f"{a}^{p-1} mod {p} = 1")
+    else:
+        print(f"费马小定理不成立，{p}不是质数")
+
+solve()
+```
+
+应用一：求逆元
+--------------
+费马小定理最重要的应用是求乘法逆元。
+
+如果p是质数，且a不是p的倍数，则：
+    a × a^(p-2) ≡ a^(p-1) ≡ 1 (mod p)
+因此：a^(p-2)就是a模p的逆元。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 快速幂
+ll pow_mod(ll a, ll b, ll mod) {
+    ll res = 1;
+    a %= mod;
+    while (b > 0) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 求逆元（费马小定理）
+ll inv(ll a, ll p) {
+    return pow_mod(a, p - 2, p);
+}
+
+int main() {
+    ll a, p;
+    cin >> a >> p;
+
+    ll inv_a = inv(a, p);
+    cout << a << "的逆元是：" << inv_a << '\n';
+    cout << "验证：" << a << " × " << inv_a << " mod " << p
+         << " = " << (a * inv_a % p) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def pow_mod(a: int, b: int, mod: int) -> int:
+    """快速幂"""
+    res = 1
+    a %= mod
+    while b > 0:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def inv(a: int, p: int) -> int:
+    """求逆元（费马小定理）"""
+    return pow_mod(a, p - 2, p)
+
+def solve():
+    a, p = map(int, input().split())
+    inv_a = inv(a, p)
+    print(f"{a}的逆元是：{inv_a}")
+    print(f"验证：{a} × {inv_a} mod {p} = {a * inv_a % p}")
+
+solve()
+```
+
+应用二：计算组合数
+------------------
+计算C(n, m) mod p，其中p是质数。
+
+C(n, m) = n! / (m! × (n-m)!)
+利用逆元：C(n, m) = n! × (m!)^(-1) × ((n-m)!)^(-1) mod p
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+const int MAXN = 1000005;
+ll mod;
+
+ll fact[MAXN];  // 阶乘数组
+ll inv_fact[MAXN];  // 逆元阶乘数组
+
+// 快速幂
+ll pow_mod(ll a, ll b) {
+    ll res = 1;
+    a %= mod;
+    while (b > 0) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 预处理阶乘和逆元阶乘
+void init(int n) {
+    fact[0] = 1;
+    for (int i = 1; i <= n; i++) {
+        fact[i] = fact[i-1] * i % mod;
+    }
+    inv_fact[n] = pow_mod(fact[n], mod - 2);  // 费马小定理
+    for (int i = n - 1; i >= 0; i--) {
+        inv_fact[i] = inv_fact[i + 1] * (i + 1) % mod;
+    }
+}
+
+// 计算组合数C(n, m)
+ll comb(ll n, ll m) {
+    if (m < 0 || m > n) return 0;
+    return fact[n] * inv_fact[m] % mod * inv_fact[n - m] % mod;
+}
+
+int main() {
+    ll n, m;
+    cin >> n >> m >> mod;
+    init(n);
+
+    cout << "C(" << n << ", " << m << ") mod " << mod << " = "
+         << comb(n, m) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def pow_mod(a: int, b: int, mod: int) -> int:
+    """快速幂"""
+    res = 1
+    a %= mod
+    while b > 0:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def init_comb(n: int, mod: int):
+    """预处理阶乘和逆元阶乘"""
+    fact = [1] * (n + 1)
+    for i in range(1, n + 1):
+        fact[i] = fact[i-1] * i % mod
+
+    inv_fact = [1] * (n + 1)
+    inv_fact[n] = pow_mod(fact[n], mod - 2, mod)  # 费马小定理
+    for i in range(n - 1, -1, -1):
+        inv_fact[i] = inv_fact[i + 1] * (i + 1) % mod
+
+    return fact, inv_fact
+
+def comb(n: int, m: int, fact, inv_fact, mod: int) -> int:
+    """计算组合数C(n, m)"""
+    if m < 0 or m > n:
+        return 0
+    return fact[n] * inv_fact[m] % mod * inv_fact[n - m] % mod
+
+def solve():
+    n, m, mod = map(int, input().split())
+    fact, inv_fact = init_comb(n, mod)
+    result = comb(n, m, fact, inv_fact, mod)
+    print(f"C({n}, {m}) mod {mod} = {result}")
+
+solve()
+```
+
+应用三：Miller-Rabin素性测试
+----------------------------
+费马小定理可以用于素性测试，但存在卡迈克尔数（伪素数）。
+因此需要结合二次探测定理，形成Miller-Rabin测试。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 快速幂
+ll pow_mod(ll a, ll b, ll mod) {
+    ll res = 1;
+    a %= mod;
+    while (b > 0) {
+        if (b & 1) res = __int128(res) * a % mod;
+        a = __int128(a) * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// Miller-Rabin测试
+bool miller_rabin(ll n) {
+    if (n < 2) return false;
+    if (n == 2) return true;
+    if (n % 2 == 0) return false;
+
+    // 将n-1分解为 d × 2^s
+    ll d = n - 1;
+    int s = 0;
+    while (d % 2 == 0) {
+        d /= 2;
+        s++;
+    }
+
+    // 测试几组基数
+    vector<ll> bases = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37};
+    for (ll a : bases) {
+        if (a >= n) continue;
+
+        ll x = pow_mod(a, d, n);
+        if (x == 1 || x == n - 1) continue;
+
+        bool composite = true;
+        for (int i = 0; i < s - 1; i++) {
+            x = __int128(x) * x % n;
+            if (x == n - 1) {
+                composite = false;
+                break;
+            }
+        }
+        if (composite) return false;
+    }
+    return true;
+}
+
+int main() {
+    ll n;
+    cin >> n;
+
+    if (miller_rabin(n)) {
+        cout << n << "是质数" << '\n';
+    } else {
+        cout << n << "不是质数" << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import random
+
+def pow_mod(a: int, b: int, mod: int) -> int:
+    """快速幂"""
+    res = 1
+    a %= mod
+    while b > 0:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def miller_rabin(n: int) -> bool:
+    """Miller-Rabin素性测试"""
+    if n < 2:
+        return False
+    if n == 2:
+        return True
+    if n % 2 == 0:
+        return False
+
+    # 将n-1分解为 d × 2^s
+    d = n - 1
+    s = 0
+    while d % 2 == 0:
+        d //= 2
+        s += 1
+
+    # 测试几组基数
+    bases = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37]
+    for a in bases:
+        if a >= n:
+            continue
+
+        x = pow_mod(a, d, n)
+        if x == 1 or x == n - 1:
+            continue
+
+        composite = True
+        for _ in range(s - 1):
+            x = x * x % n
+            if x == n - 1:
+                composite = False
+                break
+        if composite:
+            return False
+    return True
+
+def solve():
+    n = int(input())
+    if miller_rabin(n):
+        print(f"{n}是质数")
+    else:
+        print(f"{n}不是质数")
+
+solve()
+```
+
+应用四：快速计算a^b mod n（b很大）
+--------------------------------
+当指数b很大时，可以利用费马小定理降幂。
+
+如果b ≥ p-1，则：
+    a^b mod p = a^(b mod (p-1)) mod p
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 快速幂
+ll pow_mod(ll a, ll b, ll mod) {
+    ll res = 1;
+    a %= mod;
+    while (b > 0) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 使用费马小定理优化的快速幂
+ll pow_mod_fermat(ll a, string b_str, ll mod) {
+    // 先计算 b mod (mod-1)
+    ll b_mod = 0;
+    for (char c : b_str) {
+        b_mod = (b_mod * 10 + (c - '0')) % (mod - 1);
+    }
+    return pow_mod(a, b_mod, mod);
+}
+
+int main() {
+    ll a, mod;
+    string b_str;
+    cin >> a >> b_str >> mod;
+
+    cout << pow_mod_fermat(a, b_str, mod) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def pow_mod(a: int, b: int, mod: int) -> int:
+    """快速幂"""
+    res = 1
+    a %= mod
+    while b > 0:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def pow_mod_fermat(a: int, b_str: str, mod: int) -> int:
+    """使用费马小定理优化的快速幂"""
+    # 计算 b mod (mod-1)
+    b_mod = 0
+    for c in b_str:
+        b_mod = (b_mod * 10 + int(c)) % (mod - 1)
+    return pow_mod(a, b_mod, mod)
+
+def solve():
+    a = int(input())
+    b_str = input().strip()
+    mod = int(input())
+    print(pow_mod_fermat(a, b_str, mod))
+
+solve()
+```
+
+应用五：计算大数模质数
+----------------------
+对于非常大的数，可以利用费马小定理简化计算。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 快速幂
+ll pow_mod(ll a, ll b, ll mod) {
+    ll res = 1;
+    a %= mod;
+    while (b > 0) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 计算a的n次方模p，n可能很大
+ll big_pow_mod(ll a, ll n, ll p) {
+    if (p == 1) return 0;
+    // 使用费马小定理：a^n mod p = a^(n mod (p-1)) mod p
+    ll exp = n % (p - 1);
+    return pow_mod(a, exp, p);
+}
+
+int main() {
+    ll a, n, p;
+    cin >> a >> n >> p;
+
+    cout << big_pow_mod(a, n, p) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def pow_mod(a: int, b: int, mod: int) -> int:
+    """快速幂"""
+    res = 1
+    a %= mod
+    while b > 0:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def big_pow_mod(a: int, n: int, p: int) -> int:
+    """计算a的n次方模p，n可能很大"""
+    if p == 1:
+        return 0
+    # 使用费马小定理
+    exp = n % (p - 1)
+    return pow_mod(a, exp, p)
+
+def solve():
+    a, n, p = map(int, input().split())
+    print(big_pow_mod(a, n, p))
+
+solve()
+```
+
+典型例题
+--------
+1. 【模板】乘法逆元（洛谷P3811）：求逆元
+2. 【模板】组合数（洛谷P3807）：计算C(n, m) mod p
+3. 【模板】快速幂（洛谷P1226）：基本快速幂
+4. 越狱（洛谷P3756）：组合数与快速幂
+5. 序列求和（洛谷P2000）：利用费马小定理优化
+
+注意事项
+--------
+1. 适用条件：
+   - p必须是质数
+   - a不能是p的倍数
+   - 如果a是p的倍数，结果为0
+
+2. 与扩展欧几里得的区别：
+   - 费马小定理：仅适用于模数为质数的情况
+   - 扩展欧几里得：适用于任何互质情况
+
+3. 常见错误：
+   - 忘记检查p是否为质数
+   - 忘记处理a是p的倍数的情况
+   - 计算逆元时mod很大容易溢出
+
+4. 优化技巧：
+   - 预处理阶乘和逆元阶乘
+   - 使用快速幂时注意取模
+   - 多次求逆元时可以预处理
+
+5. 卡迈克尔数：
+   - 存在合数n，使得对所有与n互质的a，都有a^(n-1) ≡ 1 (mod n)
+   - 最小的卡迈克尔数是561 = 3 × 11 × 17
+   - 这就是为什么需要Miller-Rabin测试而不是单纯用费马小定理
+
+时间复杂度总结
+--------------
+- 求逆元：O(log p)
+- 计算组合数（预处理）：O(n)
+- 计算组合数（单次查询）：O(1)
+- Miller-Rabin测试：O(k log³ n)，k是测试的基数数量
+
+费马小定理是数论中连接质数与模运算的重要桥梁，
+它在密码学、组合数学等领域都有重要应用，是算法竞赛必备的知识点。

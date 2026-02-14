@@ -1,0 +1,692 @@
+快速傅立叶变换（Fast Fourier Transform, FFT）
+===========================================
+
+算法概述
+--------
+FFT是一种高效计算离散傅立叶变换（DFT）的算法。
+它将DFT的时间复杂度从O(n²)降低到O(n log n)。
+在算法竞赛中，FFT主要用于多项式乘法的高效计算。
+
+核心思想
+--------
+1. 分治：将多项式分成系数为奇数位和偶数位两部分
+2. 递归：分别计算两部分的DFT
+3. 合并：利用单位复根的性质合并结果
+
+数学基础
+--------
+单位复根：ω_n^k = e^(2πik/n)
+性质：
+1. ω_n^k = cos(2πk/n) + i·sin(2πk/n)
+2. (ω_n^k)² = ω_{n/2}^k
+3. ω_n^k = -ω_n^(k+n/2)
+4. ω_n^0 = 1
+
+基础应用：多项式乘法
+--------------------
+给定两个多项式A(x)和B(x)，求它们的乘积C(x) = A(x)·B(x)。
+
+朴素算法：O(n²)
+FFT算法：O(n log n)
+
+C++版本（递归实现）：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const double PI = acos(-1.0);
+
+struct Complex {
+    double real, imag;
+
+    Complex(double r = 0, double i = 0) : real(r), imag(i) {}
+
+    Complex operator+(const Complex& other) const {
+        return Complex(real + other.real, imag + other.imag);
+    }
+
+    Complex operator-(const Complex& other) const {
+        return Complex(real - other.real, imag - other.imag);
+    }
+
+    Complex operator*(const Complex& other) const {
+        return Complex(real * other.real - imag * other.imag,
+                       real * other.imag + imag * other.real);
+    }
+};
+
+// 递归FFT
+void fft(vector<Complex>& a, int n, int rev) {
+    if (n == 1) return;
+
+    vector<Complex> a0(n / 2), a1(n / 2);
+    for (int i = 0; i < n / 2; i++) {
+        a0[i] = a[i * 2];
+        a1[i] = a[i * 2 + 1];
+    }
+
+    fft(a0, n / 2, rev);
+    fft(a1, n / 2, rev);
+
+    Complex wn(cos(2 * PI / n), rev * sin(2 * PI / n));
+    Complex w(1, 0);
+
+    for (int i = 0; i < n / 2; i++) {
+        Complex t = w * a1[i];
+        a[i] = a0[i] + t;
+        a[i + n / 2] = a0[i] - t;
+        if (rev == -1) {
+            a[i].real /= 2;
+            a[i + n / 2].real /= 2;
+        }
+        w = w * wn;
+    }
+}
+
+// 多项式乘法
+vector<int> multiply(vector<int>& a, vector<int>& b) {
+    int n = 1;
+    while (n < a.size() + b.size()) {
+        n <<= 1;
+    }
+
+    vector<Complex> fa(n), fb(n);
+    for (int i = 0; i < a.size(); i++) {
+        fa[i] = Complex(a[i], 0);
+    }
+    for (int i = 0; i < b.size(); i++) {
+        fb[i] = Complex(b[i], 0);
+    }
+
+    fft(fa, n, 1);
+    fft(fb, n, 1);
+
+    for (int i = 0; i < n; i++) {
+        fa[i] = fa[i] * fb[i];
+    }
+
+    fft(fa, n, -1);
+
+    vector<int> result(a.size() + b.size() - 1);
+    for (int i = 0; i < result.size(); i++) {
+        result[i] = (int)(fa[i].real + 0.5);
+    }
+
+    return result;
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    vector<int> a(n + 1), b(m + 1);
+    for (int i = 0; i <= n; i++) {
+        cin >> a[i];
+    }
+    for (int i = 0; i <= m; i++) {
+        cin >> b[i];
+    }
+
+    vector<int> result = multiply(a, b);
+
+    for (int i = 0; i < result.size(); i++) {
+        cout << result[i] << " ";
+    }
+    cout << '\n';
+
+    return 0;
+}
+```
+
+Python版本（递归实现）：
+```python
+import math
+
+class Complex:
+    def __init__(self, real=0, imag=0):
+        self.real = real
+        self.imag = imag
+
+    def __add__(self, other):
+        return Complex(self.real + other.real, self.imag + other.imag)
+
+    def __sub__(self, other):
+        return Complex(self.real - other.real, self.imag - other.imag)
+
+    def __mul__(self, other):
+        return Complex(self.real * other.real - self.imag * other.imag,
+                      self.real * other.imag + self.imag * other.real)
+
+def fft(a, n, rev):
+    if n == 1:
+        return
+
+    a0 = [Complex(0, 0)] * (n // 2)
+    a1 = [Complex(0, 0)] * (n // 2)
+
+    for i in range(n // 2):
+        a0[i] = a[i * 2]
+        a1[i] = a[i * 2 + 1]
+
+    fft(a0, n // 2, rev)
+    fft(a1, n // 2, rev)
+
+    wn = Complex(math.cos(2 * math.pi / n), rev * math.sin(2 * math.pi / n))
+    w = Complex(1, 0)
+
+    for i in range(n // 2):
+        t = w * a1[i]
+        temp = a0[i] - t
+        a[i] = a0[i] + t
+        a[i + n // 2] = temp
+        if rev == -1:
+            a[i].real /= 2
+            a[i + n // 2].real /= 2
+        w = w * wn
+
+def multiply(a, b):
+    n = 1
+    while n < len(a) + len(b):
+        n <<= 1
+
+    fa = [Complex(0, 0)] * n
+    fb = [Complex(0, 0)] * n
+
+    for i in range(len(a)):
+        fa[i] = Complex(a[i], 0)
+    for i in range(len(b)):
+        fb[i] = Complex(b[i], 0)
+
+    fft(fa, n, 1)
+    fft(fb, n, 1)
+
+    for i in range(n):
+        fa[i] = fa[i] * fb[i]
+
+    fft(fa, n, -1)
+
+    result = []
+    for i in range(len(a) + len(b) - 1):
+        result.append(int(fa[i].real + 0.5))
+
+    return result
+
+def main():
+    n, m = map(int, input().split())
+    a = list(map(int, input().split()))
+    b = list(map(int, input().split()))
+
+    result = multiply(a, b)
+    print(*result)
+
+if __name__ == "__main__":
+    main()
+```
+
+优化版本：迭代FFT
+----------------
+使用位逆序置换优化。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const double PI = acos(-1.0);
+
+struct Complex {
+    double real, imag;
+
+    Complex(double r = 0, double i = 0) : real(r), imag(i) {}
+
+    Complex operator+(const Complex& other) const {
+        return Complex(real + other.real, imag + other.imag);
+    }
+
+    Complex operator-(const Complex& other) const {
+        return Complex(real - other.real, imag - other.imag);
+    }
+
+    Complex operator*(const Complex& other) const {
+        return Complex(real * other.real - imag * other.imag,
+                       real * other.imag + imag * other.real);
+    }
+};
+
+// 位逆序置换
+void bit_reverse(vector<Complex>& a, int n) {
+    for (int i = 0, j = 0; i < n; i++) {
+        if (i < j) swap(a[i], a[j]);
+        for (int k = n >> 1; (j ^= k) < k; k >>= 1);
+    }
+}
+
+// 迭代FFT
+void fft(vector<Complex>& a, int n, int rev) {
+    bit_reverse(a, n);
+
+    for (int len = 2; len <= n; len <<= 1) {
+        Complex wn(cos(2 * PI / len), rev * sin(2 * PI / len));
+
+        for (int i = 0; i < n; i += len) {
+            Complex w(1, 0);
+
+            for (int j = 0; j < len / 2; j++) {
+                Complex u = a[i + j];
+                Complex t = w * a[i + j + len / 2];
+                a[i + j] = u + t;
+                a[i + j + len / 2] = u - t;
+                w = w * wn;
+            }
+        }
+    }
+
+    if (rev == -1) {
+        for (int i = 0; i < n; i++) {
+            a[i].real /= n;
+        }
+    }
+}
+
+vector<int> multiply(vector<int>& a, vector<int>& b) {
+    int n = 1;
+    while (n < a.size() + b.size()) {
+        n <<= 1;
+    }
+
+    vector<Complex> fa(n), fb(n);
+    for (int i = 0; i < a.size(); i++) {
+        fa[i] = Complex(a[i], 0);
+    }
+    for (int i = 0; i < b.size(); i++) {
+        fb[i] = Complex(b[i], 0);
+    }
+
+    fft(fa, n, 1);
+    fft(fb, n, 1);
+
+    for (int i = 0; i < n; i++) {
+        fa[i] = fa[i] * fb[i];
+    }
+
+    fft(fa, n, -1);
+
+    vector<int> result(a.size() + b.size() - 1);
+    for (int i = 0; i < result.size(); i++) {
+        result[i] = (int)(fa[i].real + 0.5);
+    }
+
+    return result;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    int n, m;
+    cin >> n >> m;
+
+    vector<int> a(n + 1), b(m + 1);
+    for (int i = 0; i <= n; i++) {
+        cin >> a[i];
+    }
+    for (int i = 0; i <= m; i++) {
+        cin >> b[i];
+    }
+
+    vector<int> result = multiply(a, b);
+
+    for (int x : result) {
+        cout << x << " ";
+    }
+    cout << '\n';
+
+    return 0;
+}
+```
+
+Python版本（迭代）：
+```python
+import math
+
+class Complex:
+    def __init__(self, real=0, imag=0):
+        self.real = real
+        self.imag = imag
+
+    def __add__(self, other):
+        return Complex(self.real + other.real, self.imag + other.imag)
+
+    def __sub__(self, other):
+        return Complex(self.real - other.real, self.imag - other.imag)
+
+    def __mul__(self, other):
+        return Complex(self.real * other.real - self.imag * other.imag,
+                      self.real * other.imag + self.imag * other.real)
+
+def bit_reverse(a, n):
+    j = 0
+    for i in range(n):
+        if i < j:
+            a[i], a[j] = a[j], a[i]
+        k = n >> 1
+        while j & k:
+            j ^= k
+            k >>= 1
+        j ^= k
+
+def fft(a, n, rev):
+    bit_reverse(a, n)
+
+    length = 2
+    while length <= n:
+        wn = Complex(math.cos(2 * math.pi / length),
+                     rev * math.sin(2 * math.pi / length))
+
+        for i in range(0, n, length):
+            w = Complex(1, 0)
+
+            for j in range(length // 2):
+                u = a[i + j]
+                t = w * a[i + j + length // 2]
+                a[i + j] = u + t
+                a[i + j + length // 2] = u - t
+                w = w * wn
+
+        length <<= 1
+
+    if rev == -1:
+        for i in range(n):
+            a[i].real /= n
+
+def multiply(a, b):
+    n = 1
+    while n < len(a) + len(b):
+        n <<= 1
+
+    fa = [Complex(0, 0)] * n
+    fb = [Complex(0, 0)] * n
+
+    for i in range(len(a)):
+        fa[i] = Complex(a[i], 0)
+    for i in range(len(b)):
+        fb[i] = Complex(b[i], 0)
+
+    fft(fa, n, 1)
+    fft(fb, n, 1)
+
+    for i in range(n):
+        fa[i] = fa[i] * fb[i]
+
+    fft(fa, n, -1)
+
+    result = []
+    for i in range(len(a) + len(b) - 1):
+        result.append(int(fa[i].real + 0.5))
+
+    return result
+
+def main():
+    n, m = map(int, input().split())
+    a = list(map(int, input().split()))
+    b = list(map(int, input().split()))
+
+    result = multiply(a, b)
+    print(*result)
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用一：字符串匹配
+--------------------
+使用FFT实现通配符字符串匹配。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const double PI = acos(-1.0);
+
+struct Complex {
+    double real, imag;
+    Complex(double r = 0, double i = 0) : real(r), imag(i) {}
+    Complex operator+(const Complex& other) const {
+        return Complex(real + other.real, imag + other.imag);
+    }
+    Complex operator-(const Complex& other) const {
+        return Complex(real - other.real, imag - other.imag);
+    }
+    Complex operator*(const Complex& other) const {
+        return Complex(real * other.real - imag * other.imag,
+                       real * other.imag + imag * other.real);
+    }
+};
+
+void bit_reverse(vector<Complex>& a, int n) {
+    for (int i = 0, j = 0; i < n; i++) {
+        if (i < j) swap(a[i], a[j]);
+        for (int k = n >> 1; (j ^= k) < k; k >>= 1);
+    }
+}
+
+void fft(vector<Complex>& a, int n, int rev) {
+    bit_reverse(a, n);
+    for (int len = 2; len <= n; len <<= 1) {
+        Complex wn(cos(2 * PI / len), rev * sin(2 * PI / len));
+        for (int i = 0; i < n; i += len) {
+            Complex w(1, 0);
+            for (int j = 0; j < len / 2; j++) {
+                Complex u = a[i + j];
+                Complex t = w * a[i + j + len / 2];
+                a[i + j] = u + t;
+                a[i + j + len / 2] = u - t;
+                w = w * wn;
+            }
+        }
+    }
+    if (rev == -1) {
+        for (int i = 0; i < n; i++) {
+            a[i].real /= n;
+        }
+    }
+}
+
+vector<int> string_match(string text, string pattern) {
+    int n = text.length();
+    int m = pattern.length();
+
+    int N = 1;
+    while (N < n + m) N <<= 1;
+
+    vector<Complex> ta(N), pa(N);
+    for (int i = 0; i < n; i++) {
+        ta[i] = Complex(text[i] == '?' ? 0 : text[i] - 'a' + 1, 0);
+    }
+    for (int i = 0; i < m; i++) {
+        pa[i] = Complex(pattern[i] == '?' ? 0 : pattern[i] - 'a' + 1, 0);
+    }
+
+    reverse(pa.begin(), pa.begin() + m);
+
+    fft(ta, N, 1);
+    fft(pa, N, 1);
+
+    for (int i = 0; i < N; i++) {
+        ta[i] = ta[i] * pa[i];
+    }
+
+    fft(ta, N, -1);
+
+    vector<int> matches;
+    for (int i = m - 1; i < n; i++) {
+        if ((int)(ta[i].real + 0.5) == m) {
+            matches.push_back(i - m + 1);
+        }
+    }
+
+    return matches;
+}
+
+int main() {
+    string text, pattern;
+    cin >> text >> pattern;
+
+    vector<int> matches = string_match(text, pattern);
+
+    for (int pos : matches) {
+        cout << pos << '\n';
+    }
+
+    return 0;
+}
+```
+
+典型应用二：大数乘法
+------------------
+使用FFT实现高精度大数乘法。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const double PI = acos(-1.0);
+
+struct Complex {
+    double real, imag;
+    Complex(double r = 0, double i = 0) : real(r), imag(i) {}
+    Complex operator+(const Complex& other) const {
+        return Complex(real + other.real, imag + other.imag);
+    }
+    Complex operator-(const Complex& other) const {
+        return Complex(real - other.real, imag - other.imag);
+    }
+    Complex operator*(const Complex& other) const {
+        return Complex(real * other.real - imag * other.imag,
+                       real * other.imag + imag * other.real);
+    }
+};
+
+void fft(vector<Complex>& a, int n, int rev) {
+    for (int i = 0, j = 0; i < n; i++) {
+        if (i < j) swap(a[i], a[j]);
+        for (int k = n >> 1; (j ^= k) < k; k >>= 1);
+    }
+
+    for (int len = 2; len <= n; len <<= 1) {
+        Complex wn(cos(2 * PI / len), rev * sin(2 * PI / len));
+        for (int i = 0; i < n; i += len) {
+            Complex w(1, 0);
+            for (int j = 0; j < len / 2; j++) {
+                Complex u = a[i + j], t = w * a[i + j + len / 2];
+                a[i + j] = u + t;
+                a[i + j + len / 2] = u - t;
+                w = w * wn;
+            }
+        }
+    }
+
+    if (rev == -1) {
+        for (int i = 0; i < n; i++) {
+            a[i].real /= n;
+        }
+    }
+}
+
+string multiply(string a, string b) {
+    int n = a.length(), m = b.length();
+
+    vector<int> va(n), vb(m);
+    for (int i = 0; i < n; i++) {
+        va[i] = a[n - 1 - i] - '0';
+    }
+    for (int i = 0; i < m; i++) {
+        vb[i] = b[m - 1 - i] - '0';
+    }
+
+    int N = 1;
+    while (N < n + m) N <<= 1;
+
+    vector<Complex> fa(N), fb(N);
+    for (int i = 0; i < n; i++) {
+        fa[i] = Complex(va[i], 0);
+    }
+    for (int i = 0; i < m; i++) {
+        fb[i] = Complex(vb[i], 0);
+    }
+
+    fft(fa, N, 1);
+    fft(fb, N, 1);
+
+    for (int i = 0; i < N; i++) {
+        fa[i] = fa[i] * fb[i];
+    }
+
+    fft(fa, N, -1);
+
+    vector<int> result(n + m, 0);
+    for (int i = 0; i < n + m; i++) {
+        result[i] = (int)(fa[i].real + 0.5);
+    }
+
+    for (int i = 0; i < n + m - 1; i++) {
+        result[i + 1] += result[i] / 10;
+        result[i] %= 10;
+    }
+
+    while (result.size() > 1 && result.back() == 0) {
+        result.pop_back();
+    }
+
+    string ans = "";
+    for (int i = result.size() - 1; i >= 0; i--) {
+        ans += char(result[i] + '0');
+    }
+
+    return ans;
+}
+
+int main() {
+    string a, b;
+    cin >> a >> b;
+
+    cout << multiply(a, b) << '\n';
+
+    return 0;
+}
+```
+
+重要性质总结
+------------
+1. 线性性：FFT(a + b) = FFT(a) + FFT(b)
+2. 时域卷积对应频域乘积
+3. 对称性：FFT和IFFT互为逆变换
+4. 周期性：DFT具有周期性
+
+应用场景
+--------
+1. 多项式乘法
+2. 大数乘法
+3. 字符串匹配
+4. 卷积计算
+5. 信号处理
+6. 图像处理
+
+注意事项
+--------
+1. 精度问题：使用double可能有精度误差
+2. 长度必须是2的幂
+3. 记得IFFT时要除以n
+4. 复数运算比实数运算慢
+5. 某些问题可以使用NTT（数论变换）代替
+
+时间复杂度总结
+--------------
+- 递归FFT：O(n log n)
+- 迭代FFT：O(n log n)
+- 多项式乘法：O(n log n)
+- 空间复杂度：O(n)
+
+FFT是算法竞赛中的高级技巧，掌握FFT对于解决多项式、卷积类问题非常重要。

@@ -1,0 +1,188 @@
+可持久化可并堆（Persistent Mergeable Heap）
+====================
+
+算法概述
+--------
+可持久化可并堆是支持历史版本查询和合并的堆结构。常见的可并堆有左偏树（Leftist Tree）和斜堆。
+
+核心特点：
+1. 支持合并操作
+2. 可持久化，保留历史版本
+3. 时间复杂度O(log n)
+4. 常用左偏树实现
+
+核心思想
+--------
+1. 距离：节点到最近空叶子的距离
+2. 左偏性质：左子树距离 >= 右子树距离
+3. 合并时递归合并右子树
+4. 可持久化通过节点克隆实现
+
+基础模板：左偏树
+--------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+struct Node {
+    int val;
+    int dist;
+    int left, right;
+} tree[MAXN * 2];
+
+int roots[MAXN];
+int node_cnt = 0;
+
+int newNode(int val) {
+    node_cnt++;
+    tree[node_cnt].val = val;
+    tree[node_cnt].dist = 0;
+    tree[node_cnt].left = tree[node_cnt].right = 0;
+    return node_cnt;
+}
+
+int merge(int x, int y) {
+    if (!x || !y) return x | y;
+
+    if (tree[x].val > tree[y].val ||
+        (tree[x].val == tree[y].val && x > y)) {
+        swap(x, y);
+    }
+
+    int new_node = newNode(tree[x].val);
+    tree[new_node].dist = tree[x].dist;
+    tree[new_node].left = tree[x].left;
+    tree[new_node].right = merge(tree[x].right, y);
+
+    if (tree[tree[new_node].left].dist < tree[tree[new_node].right].dist) {
+        swap(tree[new_node].left, tree[new_node].right);
+    }
+
+    tree[new_node].dist = tree[tree[new_node].right].dist + 1;
+    return new_node;
+}
+
+int top(int root) {
+    return tree[root].val;
+}
+
+int pop(int root) {
+    return merge(tree[root].left, tree[root].right);
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    for (int i = 1; i <= n; i++) {
+        int x;
+        cin >> x;
+        roots[i] = newNode(x);
+    }
+
+    int q;
+    cin >> q;
+
+    while (q--) {
+        int op;
+        cin >> op;
+
+        if (op == 1) {  // 合并
+            int x, y;
+            cin >> x >> y;
+            roots[x] = merge(roots[x], roots[y]);
+            cout << top(roots[x]) << endl;
+        } else {  // 弹出
+            int x;
+            cin >> x;
+            cout << top(roots[x]) << endl;
+            roots[x] = pop(roots[x]);
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class LeftistTree:
+    def __init__(self, val=None):
+        self.val = val
+        self.dist = 0
+        self.left = None
+        self.right = None
+
+    def merge(x, y):
+        """合并两个左偏树"""
+        if not x or not y:
+            return x or y
+
+        if x.val > y.val or (x.val == y.val and id(x) > id(y)):
+            x, y = y, x
+
+        new_node = LeftistTree(x.val)
+        new_node.dist = x.dist
+        new_node.left = x.left
+        new_node.right = LeftistTree.merge(x.right, y)
+
+        if (not new_node.left or
+            (new_node.right and new_node.left.dist < new_node.right.dist)):
+            new_node.left, new_node.right = new_node.right, new_node.left
+
+        if new_node.right:
+            new_node.dist = new_node.right.dist + 1
+        else:
+            new_node.dist = 0
+
+        return new_node
+
+    def top(root):
+        """获取堆顶"""
+        return root.val if root else None
+
+    def pop(root):
+        """弹出堆顶"""
+        if not root:
+            return None
+        return LeftistTree.merge(root.left, root.right)
+
+# 测试
+n = int(input())
+roots = [None]
+
+for _ in range(n):
+    x = int(input())
+    roots.append(LeftistTree(x))
+
+q = int(input())
+for _ in range(q):
+    op = int(input())
+
+    if op == 1:  # 合并
+        x, y = map(int, input().split())
+        roots[x] = LeftistTree.merge(roots[x], roots[y])
+        print(LeftistTree.top(roots[x]))
+    else:  # 弹出
+        x = int(input())
+        print(LeftistTree.top(roots[x]))
+        roots[x] = LeftistTree.pop(roots[x])
+```
+
+典型应用
+--------
+1. 最小生成树（Kruskal优化）
+2. 任务调度
+3. 优先队列合并
+
+注意事项
+--------
+1. 维护距离信息
+2. 保持左偏性质
+3. 注意合并顺序
+
+时间复杂度：O(log n)

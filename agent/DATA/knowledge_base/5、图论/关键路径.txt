@@ -1,0 +1,317 @@
+关键路径
+========
+
+算法概述
+--------
+关键路径(Critical Path)是AOE网(Activity On Edge)中的概念,用于估算工程的完成时间。AOE网是一个带权的有向无环图,顶点表示事件,边表示活动,边的权值表示活动持续的时间。关键路径是从起点到终点的最长路径,决定了整个工程的最短完成时间。
+
+核心概念
+--------
+1. AOE网:边表示活动的网
+2. 事件(event):顶点,表示某些活动完成或开始
+3. 活动(activity):边,表示一项工作,有权值表示持续时间
+4. 关键路径:从源点到汇点的最长路径
+5. 关键活动:关键路径上的活动,延迟会影响整个工程
+
+算法原理
+--------
+求关键路径需要计算四个时间数组:
+1. etv(Earliest Time of Vertex):事件最早发生时间
+2. ltv(Latest Time of Vertex):事件最晚发生时间
+3. ete(Earliest Time of Edge):活动最早开始时间
+4. lte(Latest Time of Edge):活动最晚开始时间
+
+关键活动的判断:ete == lte
+
+算法流程
+--------
+1. 拓扑排序,计算etv数组
+2. 逆拓扑排序,计算ltv数组
+3. 计算每个活动的ete和lte
+4. ete == lte的活动就是关键活动
+5. 所有关键活动构成关键路径
+
+C++实现
+--------
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 105;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];  // adj[u]: {v, w}
+vector<pair<int, int>> radj[MAXN]; // 反向图
+int in_degree[MAXN];
+
+int etv[MAXN];  // 事件最早发生时间
+int ltv[MAXN];  // 事件最晚发生时间
+vector<int> topo;  // 拓扑序列
+
+struct Edge {
+    int u, v, w;
+} edges[MAXN];
+
+// 拓扑排序,计算etv
+void kahn() {
+    queue<int> q;
+    for (int i = 1; i <= n; i++) {
+        if (in_degree[i] == 0) {
+            q.push(i);
+            etv[i] = 0;  // 起点最早时间为0
+        }
+    }
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        topo.push_back(u);
+
+        for (auto& e : adj[u]) {
+            int v = e.first;
+            int w = e.second;
+            etv[v] = max(etv[v], etv[u] + w);
+            if (--in_degree[v] == 0) {
+                q.push(v);
+            }
+        }
+    }
+}
+
+// 逆拓扑排序,计算ltv
+void reverse_kahn() {
+    memset(ltv, 0x3f, sizeof(ltv));
+
+    // 汇点的最晚时间等于最早时间
+    int sink = topo.back();
+    ltv[sink] = etv[sink];
+
+    // 逆拓扑序
+    for (int i = n - 1; i >= 0; i--) {
+        int u = topo[i];
+        for (auto& e : adj[u]) {
+            int v = e.first;
+            int w = e.second;
+            ltv[u] = min(ltv[u], ltv[v] - w);
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    memset(in_degree, 0, sizeof(in_degree));
+    memset(etv, 0, sizeof(etv));
+
+    // 读入边
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        radj[v].push_back({u, w});
+        in_degree[v]++;
+        edges[i] = {u, v, w};
+    }
+
+    // 拓扑排序
+    kahn();
+
+    if (topo.size() != n) {
+        cout << "Cycle detected! No critical path.\n";
+        return 0;
+    }
+
+    // 逆拓扑排序
+    reverse_kahn();
+
+    // 计算关键路径
+    cout << "Critical activities:\n";
+    int total_time = etv[topo.back()];
+    cout << "Total time: " << total_time << "\n";
+
+    for (int i = 1; i <= m; i++) {
+        int u = edges[i].u;
+        int v = edges[i].v;
+        int w = edges[i].w;
+
+        int ete = etv[u];  // 活动最早开始时间
+        int lte = ltv[v] - w;  // 活动最晚开始时间
+
+        cout << "Activity " << u << " -> " << v << ": ";
+        cout << "ETE=" << ete << ", LTE=" << lte;
+
+        if (ete == lte) {
+            cout << " [CRITICAL]\n";
+        } else {
+            cout << "\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+Python实现
+----------
+```python
+import sys
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+    radj = [[] for _ in range(n + 1)]
+    in_degree = [0] * (n + 1)
+    edges = []
+
+    for i in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        radj[v].append((u, w))
+        in_degree[v] += 1
+        edges.append((u, v, w))
+
+    # 拓扑排序,计算etv
+    etv = [0] * (n + 1)
+    q = deque([i for i in range(1, n + 1) if in_degree[i] == 0])
+    topo = []
+
+    while q:
+        u = q.popleft()
+        topo.append(u)
+        for v, w in adj[u]:
+            etv[v] = max(etv[v], etv[u] + w)
+            in_degree[v] -= 1
+            if in_degree[v] == 0:
+                q.append(v)
+
+    if len(topo) != n:
+        print("Cycle detected!")
+        return
+
+    # 逆拓扑排序,计算ltv
+    INF = float('inf')
+    ltv = [INF] * (n + 1)
+    sink = topo[-1]
+    ltv[sink] = etv[sink]
+
+    for u in reversed(topo):
+        for v, w in adj[u]:
+            ltv[u] = min(ltv[u], ltv[v] - w)
+
+    # 输出关键路径
+    total_time = etv[topo[-1]]
+    print(f"Total time: {total_time}")
+    print("Critical activities:")
+
+    for u, v, w in edges:
+        ete = etv[u]
+        lte = ltv[v] - w
+        print(f"Activity {u} -> {v}: ETE={ete}, LTE={lte}", end="")
+        if ete == lte:
+            print(" [CRITICAL]")
+        else:
+            print()
+
+solve()
+```
+
+求关键路径
+---------
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 105;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];
+int in_degree[MAXN];
+int etv[MAXN], ltv[MAXN];
+vector<int> topo;
+
+void find_critical_path() {
+    queue<int> q;
+    for (int i = 1; i <= n; i++) {
+        if (in_degree[i] == 0) {
+            q.push(i);
+        }
+    }
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        topo.push_back(u);
+
+        for (auto& e : adj[u]) {
+            int v = e.first, w = e.second;
+            etv[v] = max(etv[v], etv[u] + w);
+            if (--in_degree[v] == 0) q.push(v);
+        }
+    }
+
+    // 汇点
+    int sink = topo.back();
+
+    // 逆拓扑序求ltv
+    for (int i = n - 1; i >= 0; i--) {
+        int u = topo[i];
+        if (i == n - 1) {
+            ltv[u] = etv[u];
+        } else {
+            ltv[u] = 1e9;
+            for (auto& e : adj[u]) {
+                int v = e.first, w = e.second;
+                ltv[u] = min(ltv[u], ltv[v] - w);
+            }
+        }
+    }
+
+    cout << "Critical Path:\n";
+    cout << "Total time: " << etv[sink] << "\n";
+
+    for (int u : topo) {
+        for (auto& e : adj[u]) {
+            int v = e.first, w = e.second;
+            int ete = etv[u];
+            int lte = ltv[v] - w;
+            if (ete == lte) {
+                cout << u << " -> " << v << " (time: " << w << ")\n";
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        in_degree[v]++;
+    }
+
+    find_critical_path();
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 关键路径(洛谷P1118): AOE网求关键路径
+2. 活动选择(洛谷P1137): 关键路径应用
+3. 工程进度(洛谷P1809): 关键路径变体
+
+注意事项
+--------
+1. AOE网必须是DAG
+2. 关键路径可能不唯一
+3. 关键活动的时间弹性为零
+4. 非关键活动有时间余量(slack = lte - ete)
+5. 加速关键活动可以缩短工程时间

@@ -1,0 +1,1166 @@
+双指针（Two Pointers）
+====================
+
+算法概述
+--------
+双指针是一种利用两个或多个指针在数据结构上移动的技巧，通过巧妙的指针移动策略，
+可以在O(n)时间复杂度内解决问题。双指针通常用于数组、链表、字符串等线性结构。
+
+核心思想
+--------
+1. 使用两个指针（或索引）遍历数据结构
+2. 根据问题的特点，控制指针的移动方式
+3. 通过指针的相对位置或移动来缩小问题规模
+4. 时间复杂度通常为O(n)，空间复杂度为O(1)
+
+双指针的分类
+-----------
+1. 对向双指针：一个从头开始，一个从尾开始，向中间移动
+2. 同向双指针：两个指针都从头开始，一快一慢或一前一后
+3. 滑动窗口：使用左右指针维护一个窗口
+4. 快慢指针：用于链表中，一个快一个慢
+
+对向双指针（两数之和）
+--------------------
+经典问题：在有序数组中找两个数，使它们的和等于目标值
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> twoSum(vector<int>& nums, int target) {
+    int left = 0, right = nums.size() - 1;
+
+    while (left < right) {
+        int sum = nums[left] + nums[right];
+        if (sum == target) {
+            return {left, right};
+        } else if (sum < target) {
+            left++;  // 和太小，左指针右移
+        } else {
+            right--; // 和太大，右指针左移
+        }
+    }
+
+    return {};  // 没找到
+}
+
+int main() {
+    vector<int> nums = {2, 7, 11, 15};
+    int target = 9;
+
+    vector<int> result = twoSum(nums, target);
+    if (!result.empty()) {
+        cout << "Indices: " << result[0] << ", " << result[1] << endl;
+        cout << "Values: " << nums[result[0]] << " + " << nums[result[1]] << " = " << target << endl;
+    } else {
+        cout << "No solution found" << endl;
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List, Tuple
+
+def two_sum(nums: List[int], target: int) -> Tuple[int, int]:
+    """在有序数组中找两个数，使它们的和等于目标值"""
+    left, right = 0, len(nums) - 1
+
+    while left < right:
+        current_sum = nums[left] + nums[right]
+        if current_sum == target:
+            return (left, right)
+        elif current_sum < target:
+            left += 1  # 和太小，左指针右移
+        else:
+            right -= 1  # 和太大，右指针左移
+
+    return (-1, -1)  # 没找到
+
+if __name__ == "__main__":
+    nums = [2, 7, 11, 15]
+    target = 9
+    result = two_sum(nums, target)
+    if result[0] != -1:
+        print(f"Indices: {result[0]}, {result[1]}")
+        print(f"Values: {nums[result[0]]} + {nums[result[1]]} = {target}")
+    else:
+        print("No solution found")
+```
+
+对向双指针（反转数组）
+--------------------
+问题：原地反转数组
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+void reverseArray(vector<int>& nums) {
+    int left = 0, right = nums.size() - 1;
+
+    while (left < right) {
+        swap(nums[left], nums[right]);
+        left++;
+        right--;
+    }
+}
+
+int main() {
+    vector<int> nums = {1, 2, 3, 4, 5};
+
+    cout << "Original: ";
+    for (int x : nums) cout << x << " ";
+    cout << endl;
+
+    reverseArray(nums);
+
+    cout << "Reversed: ";
+    for (int x : nums) cout << x << " ";
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List
+
+def reverse_array(nums: List[int]) -> None:
+    """原地反转数组"""
+    left, right = 0, len(nums) - 1
+
+    while left < right:
+        nums[left], nums[right] = nums[right], nums[left]
+        left += 1
+        right -= 1
+
+if __name__ == "__main__":
+    nums = [1, 2, 3, 4, 5]
+    print(f"Original: {nums}")
+
+    reverse_array(nums)
+
+    print(f"Reversed: {nums}")
+```
+
+对向双指针（回文串判断）
+-----------------------
+问题：判断字符串是否为回文串
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+bool isPalindrome(string s) {
+    int left = 0, right = s.length() - 1;
+
+    while (left < right) {
+        if (s[left] != s[right]) {
+            return false;
+        }
+        left++;
+        right--;
+    }
+
+    return true;
+}
+
+// 忽略大小写和非字母数字字符
+bool isPalindromeAdvanced(string s) {
+    int left = 0, right = s.length() - 1;
+
+    while (left < right) {
+        // 跳过非字母数字字符
+        while (left < right && !isalnum(s[left])) left++;
+        while (left < right && !isalnum(s[right])) right--;
+
+        // 转换为小写后比较
+        if (tolower(s[left]) != tolower(s[right])) {
+            return false;
+        }
+        left++;
+        right--;
+    }
+
+    return true;
+}
+
+int main() {
+    string s1 = "abcba";
+    string s2 = "A man, a plan, a canal: Panama";
+
+    cout << s1 << " is palindrome: " << isPalindrome(s1) << endl;
+    cout << s2 << " is palindrome: " << isPalindromeAdvanced(s2) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def is_palindrome(s: str) -> bool:
+    """判断字符串是否为回文串"""
+    left, right = 0, len(s) - 1
+
+    while left < right:
+        if s[left] != s[right]:
+            return False
+        left += 1
+        right -= 1
+
+    return True
+
+def is_palindrome_advanced(s: str) -> bool:
+    """忽略大小写和非字母数字字符"""
+    left, right = 0, len(s) - 1
+
+    while left < right:
+        # 跳过非字母数字字符
+        while left < right and not s[left].isalnum():
+            left += 1
+        while left < right and not s[right].isalnum():
+            right -= 1
+
+        # 转换为小写后比较
+        if s[left].lower() != s[right].lower():
+            return False
+
+        left += 1
+        right -= 1
+
+    return True
+
+if __name__ == "__main__":
+    s1 = "abcba"
+    s2 = "A man, a plan, a canal: Panama"
+
+    print(f"{s1} is palindrome: {is_palindrome(s1)}")
+    print(f"{s2} is palindrome: {is_palindrome_advanced(s2)}")
+```
+
+对向双指针（容器装水）
+--------------------
+问题：给定数组，每个元素代表高度，求两个柱子能装多少水
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int maxArea(vector<int>& height) {
+    int left = 0, right = height.size() - 1;
+    int max_water = 0;
+
+    while (left < right) {
+        int width = right - left;
+        int h = min(height[left], height[right]);
+        max_water = max(max_water, width * h);
+
+        // 移动较矮的指针
+        if (height[left] < height[right]) {
+            left++;
+        } else {
+            right--;
+        }
+    }
+
+    return max_water;
+}
+
+int main() {
+    vector<int> height = {1, 8, 6, 2, 5, 4, 8, 3, 7};
+
+    int result = maxArea(height);
+    cout << "Max area: " << result << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List
+
+def max_area(height: List[int]) -> int:
+    """容器装水问题"""
+    left, right = 0, len(height) - 1
+    max_water = 0
+
+    while left < right:
+        width = right - left
+        h = min(height[left], height[right])
+        max_water = max(max_water, width * h)
+
+        # 移动较矮的指针
+        if height[left] < height[right]:
+            left += 1
+        else:
+            right -= 1
+
+    return max_water
+
+if __name__ == "__main__":
+    height = [1, 8, 6, 2, 5, 4, 8, 3, 7]
+    result = max_area(height)
+    print(f"Max area: {result}")
+```
+
+同向双指针（移除元素）
+--------------------
+问题：原地移除数组中所有值为val的元素
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int removeElement(vector<int>& nums, int val) {
+    int slow = 0;  // 慢指针：指向下一个要放置的位置
+
+    for (int fast = 0; fast < nums.size(); fast++) {
+        if (nums[fast] != val) {
+            nums[slow] = nums[fast];
+            slow++;
+        }
+    }
+
+    return slow;  // 返回新数组的长度
+}
+
+int main() {
+    vector<int> nums = {3, 2, 2, 3};
+    int val = 3;
+
+    int new_len = removeElement(nums, val);
+
+    cout << "New length: " << new_len << endl;
+    cout << "New array: ";
+    for (int i = 0; i < new_len; i++) {
+        cout << nums[i] << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List
+
+def remove_element(nums: List[int], val: int) -> int:
+    """原地移除数组中所有值为val的元素"""
+    slow = 0  # 慢指针：指向下一个要放置的位置
+
+    for fast in range(len(nums)):
+        if nums[fast] != val:
+            nums[slow] = nums[fast]
+            slow += 1
+
+    return slow  # 返回新数组的长度
+
+if __name__ == "__main__":
+    nums = [3, 2, 2, 3]
+    val = 3
+
+    new_len = remove_element(nums, val)
+
+    print(f"New length: {new_len}")
+    print(f"New array: {nums[:new_len]}")
+```
+
+同向双指针（删除有序数组重复项）
+----------------------------
+问题：删除有序数组中的重复项，使每个元素只出现一次
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int removeDuplicates(vector<int>& nums) {
+    if (nums.empty()) return 0;
+
+    int slow = 1;  // 慢指针：指向下一个要放置的位置
+
+    for (int fast = 1; fast < nums.size(); fast++) {
+        if (nums[fast] != nums[fast - 1]) {
+            nums[slow] = nums[fast];
+            slow++;
+        }
+    }
+
+    return slow;
+}
+
+int main() {
+    vector<int> nums = {1, 1, 2, 2, 2, 3, 4, 4};
+
+    int new_len = removeDuplicates(nums);
+
+    cout << "New length: " << new_len << endl;
+    cout << "New array: ";
+    for (int i = 0; i < new_len; i++) {
+        cout << nums[i] << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List
+
+def remove_duplicates(nums: List[int]) -> int:
+    """删除有序数组中的重复项"""
+    if not nums:
+        return 0
+
+    slow = 1  # 慢指针：指向下一个要放置的位置
+
+    for fast in range(1, len(nums)):
+        if nums[fast] != nums[fast - 1]:
+            nums[slow] = nums[fast]
+            slow += 1
+
+    return slow
+
+if __name__ == "__main__":
+    nums = [1, 1, 2, 2, 2, 3, 4, 4]
+
+    new_len = remove_duplicates(nums)
+
+    print(f"New length: {new_len}")
+    print(f"New array: {nums[:new_len]}")
+```
+
+滑动窗口（最小覆盖子串）
+----------------------
+问题：在字符串S中找到包含字符串T所有字符的最小子串
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+string minWindow(string s, string t) {
+    if (s.empty() || t.empty() || s.length() < t.length()) {
+        return "";
+    }
+
+    // 统计t中每个字符的出现次数
+    unordered_map<char, int> target;
+    for (char c : t) {
+        target[c]++;
+    }
+
+    int left = 0, right = 0;
+    int min_len = INT_MAX;
+    int min_left = 0;
+    int count = t.length();  // 还需要匹配的字符数
+
+    while (right < s.length()) {
+        // 扩展右边界
+        if (target[s[right]] > 0) {
+            count--;
+        }
+        target[s[right]]--;
+        right++;
+
+        // 当所有字符都匹配时，收缩左边界
+        while (count == 0) {
+            if (right - left < min_len) {
+                min_len = right - left;
+                min_left = left;
+            }
+
+            target[s[left]]++;
+            if (target[s[left]] > 0) {
+                count++;
+            }
+            left++;
+        }
+    }
+
+    return min_len == INT_MAX ? "" : s.substr(min_left, min_len);
+}
+
+int main() {
+    string s = "ADOBECODEBANC";
+    string t = "ABC";
+
+    string result = minWindow(s, t);
+    cout << "Minimum window: " << result << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from collections import defaultdict
+
+def min_window(s: str, t: str) -> str:
+    """在字符串S中找到包含字符串T所有字符的最小子串"""
+    if not s or not t or len(s) < len(t):
+        return ""
+
+    # 统计t中每个字符的出现次数
+    target = defaultdict(int)
+    for c in t:
+        target[c] += 1
+
+    left = 0
+    min_len = float('inf')
+    min_left = 0
+    count = len(t)  # 还需要匹配的字符数
+
+    for right in range(len(s)):
+        # 扩展右边界
+        if target[s[right]] > 0:
+            count -= 1
+        target[s[right]] -= 1
+
+        # 当所有字符都匹配时，收缩左边界
+        while count == 0:
+            if right - left + 1 < min_len:
+                min_len = right - left + 1
+                min_left = left
+
+            target[s[left]] += 1
+            if target[s[left]] > 0:
+                count += 1
+            left += 1
+
+    return "" if min_len == float('inf') else s[min_left:min_left + min_len]
+
+if __name__ == "__main__":
+    s = "ADOBECODEBANC"
+    t = "ABC"
+    result = min_window(s, t)
+    print(f"Minimum window: {result}")
+```
+
+滑动窗口（最长无重复子串）
+------------------------
+问题：找到字符串中最长的不含重复字符的子串
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int lengthOfLongestSubstring(string s) {
+    unordered_map<char, int> last_pos;  // 记录每个字符最后出现的位置
+    int left = 0;  // 窗口左边界
+    int max_len = 0;
+
+    for (int right = 0; right < s.length(); right++) {
+        char c = s[right];
+
+        // 如果字符在窗口内出现过，移动左边界
+        if (last_pos.find(c) != last_pos.end() && last_pos[c] >= left) {
+            left = last_pos[c] + 1;
+        }
+
+        last_pos[c] = right;
+        max_len = max(max_len, right - left + 1);
+    }
+
+    return max_len;
+}
+
+int main() {
+    string s = "abcabcbb";
+
+    int result = lengthOfLongestSubstring(s);
+    cout << "Length of longest substring: " << result << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def length_of_longest_substring(s: str) -> int:
+    """找到字符串中最长的不含重复字符的子串"""
+    last_pos = {}  # 记录每个字符最后出现的位置
+    left = 0  # 窗口左边界
+    max_len = 0
+
+    for right, c in enumerate(s):
+        # 如果字符在窗口内出现过，移动左边界
+        if c in last_pos and last_pos[c] >= left:
+            left = last_pos[c] + 1
+
+        last_pos[c] = right
+        max_len = max(max_len, right - left + 1)
+
+    return max_len
+
+if __name__ == "__main__":
+    s = "abcabcbb"
+    result = length_of_longest_substring(s)
+    print(f"Length of longest substring: {result}")
+```
+
+滑动窗口（固定窗口大小）
+----------------------
+问题：给定数组，找出大小为k的窗口中的最大值
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> maxSlidingWindow(vector<int>& nums, int k) {
+    vector<int> result;
+    deque<int> dq;  // 双端队列，存储索引
+
+    for (int i = 0; i < nums.size(); i++) {
+        // 移除窗口外的元素
+        while (!dq.empty() && dq.front() < i - k + 1) {
+            dq.pop_front();
+        }
+
+        // 移除比当前元素小的元素
+        while (!dq.empty() && nums[dq.back()] < nums[i]) {
+            dq.pop_back();
+        }
+
+        dq.push_back(i);
+
+        // 记录窗口最大值
+        if (i >= k - 1) {
+            result.push_back(nums[dq.front()]);
+        }
+    }
+
+    return result;
+}
+
+int main() {
+    vector<int> nums = {1, 3, -1, -3, 5, 3, 6, 7};
+    int k = 3;
+
+    vector<int> result = maxSlidingWindow(nums, k);
+
+    cout << "Max sliding window: ";
+    for (int x : result) {
+        cout << x << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List
+from collections import deque
+
+def max_sliding_window(nums: List[int], k: int) -> List[int]:
+    """找出大小为k的窗口中的最大值"""
+    result = []
+    dq = deque()  # 双端队列，存储索引
+
+    for i, num in enumerate(nums):
+        # 移除窗口外的元素
+        while dq and dq[0] < i - k + 1:
+            dq.popleft()
+
+        # 移除比当前元素小的元素
+        while dq and nums[dq[-1]] < num:
+            dq.pop()
+
+        dq.append(i)
+
+        # 记录窗口最大值
+        if i >= k - 1:
+            result.append(nums[dq[0]])
+
+    return result
+
+if __name__ == "__main__":
+    nums = [1, 3, -1, -3, 5, 3, 6, 7]
+    k = 3
+    result = max_sliding_window(nums, k)
+    print(f"Max sliding window: {result}")
+```
+
+快慢指针（链表是否有环）
+----------------------
+问题：判断链表是否有环
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val;
+    ListNode *next;
+    ListNode(int x) : val(x), next(nullptr) {}
+};
+
+bool hasCycle(ListNode *head) {
+    if (!head || !head->next) return false;
+
+    ListNode *slow = head;
+    ListNode *fast = head;
+
+    while (fast && fast->next) {
+        slow = slow->next;      // 慢指针走一步
+        fast = fast->next->next; // 快指针走两步
+
+        if (slow == fast) {
+            return true;  // 相遇说明有环
+        }
+    }
+
+    return false;  // 快指针到达末尾，无环
+}
+
+int main() {
+    // 创建链表：1 -> 2 -> 3 -> 4 -> 2 (环)
+    ListNode *head = new ListNode(1);
+    head->next = new ListNode(2);
+    head->next->next = new ListNode(3);
+    head->next->next->next = new ListNode(4);
+    head->next->next->next->next = head->next;  // 创建环
+
+    bool has_cycle = hasCycle(head);
+    cout << "Has cycle: " << (has_cycle ? "Yes" : "No") << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class ListNode:
+    def __init__(self, x):
+        self.val = x
+        self.next = None
+
+def has_cycle(head: ListNode) -> bool:
+    """判断链表是否有环"""
+    if not head or not head.next:
+        return False
+
+    slow = head
+    fast = head
+
+    while fast and fast.next:
+        slow = slow.next  # 慢指针走一步
+        fast = fast.next.next  # 快指针走两步
+
+        if slow == fast:
+            return True  # 相遇说明有环
+
+    return False  # 快指针到达末尾，无环
+
+if __name__ == "__main__":
+    # 创建链表：1 -> 2 -> 3 -> 4 -> 2 (环)
+    head = ListNode(1)
+    head.next = ListNode(2)
+    head.next.next = ListNode(3)
+    head.next.next.next = ListNode(4)
+    head.next.next.next.next = head.next  # 创建环
+
+    has_cycle_flag = has_cycle(head)
+    print(f"Has cycle: {'Yes' if has_cycle_flag else 'No'}")
+```
+
+快慢指针（找链表中点）
+--------------------
+问题：找到链表的中间节点
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val;
+    ListNode *next;
+    ListNode(int x) : val(x), next(nullptr) {}
+};
+
+ListNode* findMiddle(ListNode* head) {
+    if (!head) return nullptr;
+
+    ListNode* slow = head;
+    ListNode* fast = head;
+
+    while (fast->next && fast->next->next) {
+        slow = slow->next;      // 慢指针走一步
+        fast = fast->next->next; // 快指针走两步
+    }
+
+    return slow;  // 返回中间节点
+}
+
+int main() {
+    // 创建链表：1 -> 2 -> 3 -> 4 -> 5
+    ListNode* head = new ListNode(1);
+    head->next = new ListNode(2);
+    head->next->next = new ListNode(3);
+    head->next->next->next = new ListNode(4);
+    head->next->next->next->next = new ListNode(5);
+
+    ListNode* middle = findMiddle(head);
+    if (middle) {
+        cout << "Middle node: " << middle->val << endl;
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class ListNode:
+    def __init__(self, x):
+        self.val = x
+        self.next = None
+
+def find_middle(head: ListNode) -> ListNode:
+    """找到链表的中间节点"""
+    if not head:
+        return None
+
+    slow = head
+    fast = head
+
+    while fast.next and fast.next.next:
+        slow = slow.next  # 慢指针走一步
+        fast = fast.next.next  # 快指针走两步
+
+    return slow  # 返回中间节点
+
+if __name__ == "__main__":
+    # 创建链表：1 -> 2 -> 3 -> 4 -> 5
+    head = ListNode(1)
+    head.next = ListNode(2)
+    head.next.next = ListNode(3)
+    head.next.next.next = ListNode(4)
+    head.next.next.next.next = ListNode(5)
+
+    middle = find_middle(head)
+    if middle:
+        print(f"Middle node: {middle.val}")
+```
+
+快慢指针（链表排序）
+------------------
+问题：使用归并排序对链表进行排序
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val;
+    ListNode *next;
+    ListNode(int x) : val(x), next(nullptr) {}
+};
+
+// 找到链表中点
+ListNode* findMiddle(ListNode* head) {
+    ListNode* slow = head;
+    ListNode* fast = head->next;
+
+    while (fast && fast->next) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+
+    return slow;
+}
+
+// 合并两个有序链表
+ListNode* merge(ListNode* l1, ListNode* l2) {
+    ListNode dummy(0);
+    ListNode* tail = &dummy;
+
+    while (l1 && l2) {
+        if (l1->val < l2->val) {
+            tail->next = l1;
+            l1 = l1->next;
+        } else {
+            tail->next = l2;
+            l2 = l2->next;
+        }
+        tail = tail->next;
+    }
+
+    tail->next = l1 ? l1 : l2;
+    return dummy.next;
+}
+
+// 归并排序链表
+ListNode* sortList(ListNode* head) {
+    if (!head || !head->next) return head;
+
+    // 找中点，断开链表
+    ListNode* mid = findMiddle(head);
+    ListNode* right = mid->next;
+    mid->next = nullptr;
+
+    // 递归排序左右两半
+    ListNode* left = sortList(head);
+    ListNode* sorted_right = sortList(right);
+
+    // 合并
+    return merge(left, sorted_right);
+}
+
+void printList(ListNode* head) {
+    while (head) {
+        cout << head->val << " ";
+        head = head->next;
+    }
+    cout << endl;
+}
+
+int main() {
+    // 创建链表：4 -> 2 -> 1 -> 3
+    ListNode* head = new ListNode(4);
+    head->next = new ListNode(2);
+    head->next->next = new ListNode(1);
+    head->next->next->next = new ListNode(3);
+
+    cout << "Original: ";
+    printList(head);
+
+    head = sortList(head);
+
+    cout << "Sorted: ";
+    printList(head);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class ListNode:
+    def __init__(self, x):
+        self.val = x
+        self.next = None
+
+def find_middle(head):
+    """找到链表中点"""
+    slow = head
+    fast = head.next
+
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+
+    return slow
+
+def merge(l1, l2):
+    """合并两个有序链表"""
+    dummy = ListNode(0)
+    tail = dummy
+
+    while l1 and l2:
+        if l1.val < l2.val:
+            tail.next = l1
+            l1 = l1.next
+        else:
+            tail.next = l2
+            l2 = l2.next
+        tail = tail.next
+
+    tail.next = l1 if l1 else l2
+    return dummy.next
+
+def sort_list(head):
+    """归并排序链表"""
+    if not head or not head.next:
+        return head
+
+    # 找中点，断开链表
+    mid = find_middle(head)
+    right = mid.next
+    mid.next = None
+
+    # 递归排序左右两半
+    left = sort_list(head)
+    sorted_right = sort_list(right)
+
+    # 合并
+    return merge(left, sorted_right)
+
+def print_list(head):
+    """打印链表"""
+    while head:
+        print(head.val, end=" ")
+        head = head.next
+    print()
+
+if __name__ == "__main__":
+    # 创建链表：4 -> 2 -> 1 -> 3
+    head = ListNode(4)
+    head.next = ListNode(2)
+    head.next.next = ListNode(1)
+    head.next.next.next = ListNode(3)
+
+    print("Original:", end=" ")
+    print_list(head)
+
+    head = sort_list(head)
+
+    print("Sorted:", end=" ")
+    print_list(head)
+```
+
+三指针（颜色分类）
+----------------
+问题：将包含0、1、2的数组原地排序
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+void sortColors(vector<int>& nums) {
+    int left = 0;        // 指向0的右边界
+    int mid = 0;         // 当前遍历位置
+    int right = nums.size() - 1;  // 指向2的左边界
+
+    while (mid <= right) {
+        if (nums[mid] == 0) {
+            swap(nums[left], nums[mid]);
+            left++;
+            mid++;
+        } else if (nums[mid] == 1) {
+            mid++;
+        } else {  // nums[mid] == 2
+            swap(nums[mid], nums[right]);
+            right--;
+        }
+    }
+}
+
+int main() {
+    vector<int> nums = {2, 0, 2, 1, 1, 0};
+
+    cout << "Original: ";
+    for (int x : nums) cout << x << " ";
+    cout << endl;
+
+    sortColors(nums);
+
+    cout << "Sorted: ";
+    for (int x : nums) cout << x << " ";
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List
+
+def sort_colors(nums: List[int]) -> None:
+    """将包含0、1、2的数组原地排序"""
+    left = 0  # 指向0的右边界
+    mid = 0  # 当前遍历位置
+    right = len(nums) - 1  # 指向2的左边界
+
+    while mid <= right:
+        if nums[mid] == 0:
+            nums[left], nums[mid] = nums[mid], nums[left]
+            left += 1
+            mid += 1
+        elif nums[mid] == 1:
+            mid += 1
+        else:  # nums[mid] == 2
+            nums[mid], nums[right] = nums[right], nums[mid]
+            right -= 1
+
+if __name__ == "__main__":
+    nums = [2, 0, 2, 1, 1, 0]
+    print(f"Original: {nums}")
+
+    sort_colors(nums)
+
+    print(f"Sorted: {nums}")
+```
+
+典型例题
+--------
+1. 两数之和II（LeetCode 167）：在有序数组中找两个数
+2. 盛最多水的容器（LeetCode 11）：对向双指针
+3. 移除元素（LeetCode 27）：同向双指针
+4. 删除有序数组重复项（LeetCode 26）：同向双指针
+5. 最小覆盖子串（LeetCode 76）：滑动窗口
+6. 无重复字符的最长子串（LeetCode 3）：滑动窗口
+7. 滑动窗口最大值（LeetCode 239）：滑动窗口+单调队列
+8. 链表检测环（LeetCode 141）：快慢指针
+9. 链表找环入口（LeetCode 142）：快慢指针
+10. 颜色分类（LeetCode 75）：三指针
+11. 接雨水（LeetCode 42）：双指针
+12. 回文链表（LeetCode 234）：快慢指针+反转
+
+注意事项
+--------
+1. 指针移动条件：
+   - 对向双指针：根据比较结果决定移动哪个指针
+   - 同向双指针：快指针遍历，慢指针记录位置
+   - 快慢指针：注意快指针的边界检查
+
+2. 边界处理：
+   - 空数组或单元素数组
+   - 指针越界问题
+   - 循环条件的正确性
+
+3. 滑动窗口：
+   - 确定窗口的扩张和收缩条件
+   - 注意窗口大小的计算
+   - 可能需要额外的数据结构（哈希表、队列等）
+
+4. 快慢指针：
+   - 快指针每次移动两步时，要注意fast->next的检查
+   - 找中点时，根据需要决定是返回中间还是偏左的节点
+
+5. 时间复杂度：
+   - 大多数双指针问题都是O(n)
+   - 注意不要在循环中有嵌套循环
+
+6. 空间复杂度：
+   - 双指针通常只需要O(1)额外空间
+   - 如果使用哈希表等辅助结构，空间复杂度会增加
+
+7. 常见错误：
+   - 指针更新顺序错误
+   - 循环条件不正确（如<= vs <）
+   - 忘记处理边界情况
+   - 指针越界
+
+时间复杂度总结
+--------------
+- 对向双指针：O(n)
+- 同向双指针：O(n)
+- 滑动窗口：O(n)（每个元素最多被访问两次）
+- 快慢指针：O(n)
+- 空间复杂度：通常为O(1)，如果使用辅助结构则为O(n)
+
+双指针技巧是算法竞赛和面试中的重要技巧，掌握好双指针对于解决数组、链表、字符串等问题非常有帮助。

@@ -1,0 +1,715 @@
+单调队列（Monotonic Queue）
+====================
+
+算法概述
+--------
+单调队列是一种特殊的队列，队列内的元素保持单调性（单调递增或单调递减）。它常用于解决滑动窗口的最值问题。
+
+核心特点：
+1. 队列内元素保持单调性
+2. 可以在O(n)时间复杂度内解决滑动窗口最值问题
+3. 队头永远是当前窗口的最值
+4. 双端队列(deque)实现
+
+核心思想
+--------
+1. 维护一个双端队列，存储下标
+2. 队列内元素按值单调排列
+3. 新元素入队时，从队尾删除破坏单调性的元素
+4. 队头元素超出窗口范围时出队
+
+基础模板：滑动窗口最大值
+----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> maxSlidingWindow(vector<int>& nums, int k) {
+    deque<int> dq;  // 存储下标，保持递减
+    vector<int> result;
+
+    for (int i = 0; i < nums.size(); i++) {
+        // 移除超出窗口的元素
+        while (!dq.empty() && dq.front() <= i - k) {
+            dq.pop_front();
+        }
+
+        // 保持队列递减（单调递减队列）
+        while (!dq.empty() && nums[dq.back()] < nums[i]) {
+            dq.pop_back();
+        }
+
+        dq.push_back(i);
+
+        // 记录窗口最大值
+        if (i >= k - 1) {
+            result.push_back(nums[dq.front()]);
+        }
+    }
+
+    return result;
+}
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+
+    vector<int> nums(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nums[i];
+    }
+
+    vector<int> result = maxSlidingWindow(nums, k);
+
+    cout << "滑动窗口最大值: ";
+    for (int x : result) {
+        cout << x << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from collections import deque
+
+def max_sliding_window(nums, k):
+    """滑动窗口最大值"""
+    dq = deque()  # 存储下标，保持递减
+    result = []
+
+    for i in range(len(nums)):
+        # 移除超出窗口的元素
+        while dq and dq[0] <= i - k:
+            dq.popleft()
+
+        # 保持队列递减
+        while dq and nums[dq[-1]] < nums[i]:
+            dq.pop()
+
+        dq.append(i)
+
+        # 记录窗口最大值
+        if i >= k - 1:
+            result.append(nums[dq[0]])
+
+    return result
+
+# 测试
+n, k = map(int, input().split())
+nums = list(map(int, input().split()))
+
+result = max_sliding_window(nums, k)
+print("滑动窗口最大值:", *result)
+```
+
+应用一：滑动窗口最小值
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> minSlidingWindow(vector<int>& nums, int k) {
+    deque<int> dq;  // 存储下标，保持递增
+    vector<int> result;
+
+    for (int i = 0; i < nums.size(); i++) {
+        // 移除超出窗口的元素
+        while (!dq.empty() && dq.front() <= i - k) {
+            dq.pop_front();
+        }
+
+        // 保持队列递增（单调递增队列）
+        while (!dq.empty() && nums[dq.back()] > nums[i]) {
+            dq.pop_back();
+        }
+
+        dq.push_back(i);
+
+        // 记录窗口最小值
+        if (i >= k - 1) {
+            result.push_back(nums[dq.front()]);
+        }
+    }
+
+    return result;
+}
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+
+    vector<int> nums(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nums[i];
+    }
+
+    vector<int> result = minSlidingWindow(nums, k);
+
+    cout << "滑动窗口最小值: ";
+    for (int x : result) {
+        cout << x << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from collections import deque
+
+def min_sliding_window(nums, k):
+    """滑动窗口最小值"""
+    dq = deque()  # 存储下标，保持递增
+    result = []
+
+    for i in range(len(nums)):
+        # 移除超出窗口的元素
+        while dq and dq[0] <= i - k:
+            dq.popleft()
+
+        # 保持队列递增
+        while dq and nums[dq[-1]] > nums[i]:
+            dq.pop()
+
+        dq.append(i)
+
+        # 记录窗口最小值
+        if i >= k - 1:
+            result.append(nums[dq[0]])
+
+    return result
+
+# 测试
+n, k = map(int, input().split())
+nums = list(map(int, input().split()))
+
+result = min_sliding_window(nums, k)
+print("滑动窗口最小值:", *result)
+```
+
+应用二：最大子数组和（滑动窗口优化）
+--------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int maxSumSubarray(vector<int>& nums, int k) {
+    deque<int> dq;  // 存储前缀和下标，保持递增
+    vector<int> prefix(nums.size() + 1, 0);
+
+    // 计算前缀和
+    for (int i = 0; i < nums.size(); i++) {
+        prefix[i + 1] = prefix[i] + nums[i];
+    }
+
+    int maxSum = INT_MIN;
+
+    for (int i = 0; i <= nums.size(); i++) {
+        // 移除超出窗口的元素
+        while (!dq.empty() && dq.front() < i - k) {
+            dq.pop_front();
+        }
+
+        // 计算当前窗口和
+        if (!dq.empty()) {
+            maxSum = max(maxSum, prefix[i] - prefix[dq.front()]);
+        }
+
+        // 保持队列递增
+        while (!dq.empty() && prefix[dq.back()] >= prefix[i]) {
+            dq.pop_back();
+        }
+
+        dq.push_back(i);
+    }
+
+    return maxSum;
+}
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+
+    vector<int> nums(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nums[i];
+    }
+
+    cout << "最大子数组和: " << maxSumSubarray(nums, k) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from collections import deque
+
+def max_sum_subarray(nums, k):
+    """长度为k的最大子数组和"""
+    dq = deque()  # 存储前缀和下标，保持递增
+    prefix = [0] * (len(nums) + 1)
+
+    # 计算前缀和
+    for i in range(len(nums)):
+        prefix[i + 1] = prefix[i] + nums[i]
+
+    max_sum = float('-inf')
+
+    for i in range(len(nums) + 1):
+        # 移除超出窗口的元素
+        while dq and dq[0] < i - k:
+            dq.popleft()
+
+        # 计算当前窗口和
+        if dq:
+            max_sum = max(max_sum, prefix[i] - prefix[dq[0]])
+
+        # 保持队列递增
+        while dq and prefix[dq[-1]] >= prefix[i]:
+            dq.pop()
+
+        dq.append(i)
+
+    return max_sum
+
+# 测试
+n, k = map(int, input().split())
+nums = list(map(int, input().split()))
+
+print(f"最大子数组和: {max_sum_subarray(nums, k)}")
+```
+
+应用三：最长连续子数组（绝对差不超过限制）
+------------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int longestSubarray(vector<int>& nums, int limit) {
+    deque<int> max_dq;  // 单调递减，存最大值
+    deque<int> min_dq;  // 单调递增，存最小值
+    int left = 0;
+    int result = 0;
+
+    for (int right = 0; right < nums.size(); right++) {
+        // 维护最大值队列（递减）
+        while (!max_dq.empty() && nums[max_dq.back()] <= nums[right]) {
+            max_dq.pop_back();
+        }
+        max_dq.push_back(right);
+
+        // 维护最小值队列（递增）
+        while (!min_dq.empty() && nums[min_dq.back()] >= nums[right]) {
+            min_dq.pop_back();
+        }
+        min_dq.push_back(right);
+
+        // 检查是否满足条件
+        while (nums[max_dq.front()] - nums[min_dq.front()] > limit) {
+            left++;
+            while (max_dq.front() < left) max_dq.pop_front();
+            while (min_dq.front() < left) min_dq.pop_front();
+        }
+
+        result = max(result, right - left + 1);
+    }
+
+    return result;
+}
+
+int main() {
+    int n, limit;
+    cin >> n >> limit;
+
+    vector<int> nums(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nums[i];
+    }
+
+    cout << "最长连续子数组长度: " << longestSubarray(nums, limit) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from collections import deque
+
+def longest_subarray(nums, limit):
+    """绝对差不超过限制的最长子数组"""
+    max_dq = deque()  # 单调递减，存最大值
+    min_dq = deque()  # 单调递增，存最小值
+    left = 0
+    result = 0
+
+    for right in range(len(nums)):
+        # 维护最大值队列（递减）
+        while max_dq and nums[max_dq[-1]] <= nums[right]:
+            max_dq.pop()
+        max_dq.append(right)
+
+        # 维护最小值队列（递增）
+        while min_dq and nums[min_dq[-1]] >= nums[right]:
+            min_dq.pop()
+        min_dq.append(right)
+
+        # 检查是否满足条件
+        while nums[max_dq[0]] - nums[min_dq[0]] > limit:
+            left += 1
+            while max_dq[0] < left:
+                max_dq.popleft()
+            while min_dq[0] < left:
+                min_dq.popleft()
+
+        result = max(result, right - left + 1)
+
+    return result
+
+# 测试
+n, limit = map(int, input().split())
+nums = list(map(int, input().split()))
+
+print(f"最长连续子数组长度: {longest_subarray(nums, limit)}")
+```
+
+应用四：区间最值查询（单调队列优化）
+--------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<vector<int>> rangeMaxQueries(vector<int>& nums, vector<pair<int, int>>& queries) {
+    vector<vector<int>> results;
+
+    for (auto& query : queries) {
+        int l = query.first;
+        int r = query.second;
+        int k = r - l + 1;
+
+        deque<int> dq;
+
+        vector<int> windowMax;
+        for (int i = l; i <= r; i++) {
+            while (!dq.empty() && nums[dq.back()] < nums[i]) {
+                dq.pop_back();
+            }
+            dq.push_back(i);
+
+            if (i >= l + k - 1) {
+                if (dq.front() <= i - k) {
+                    dq.pop_front();
+                }
+                windowMax.push_back(nums[dq.front()]);
+            }
+        }
+
+        results.push_back(windowMax);
+    }
+
+    return results;
+}
+
+int main() {
+    int n, q;
+    cin >> n >> q;
+
+    vector<int> nums(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nums[i];
+    }
+
+    vector<pair<int, int>> queries(q);
+    for (int i = 0; i < q; i++) {
+        cin >> queries[i].first >> queries[i].second;
+    }
+
+    auto results = rangeMaxQueries(nums, queries);
+
+    for (auto& res : results) {
+        for (int x : res) {
+            cout << x << " ";
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from collections import deque
+
+def range_max_queries(nums, queries):
+    """区间最大值查询"""
+    results = []
+
+    for l, r in queries:
+        dq = deque()
+        window_max = []
+
+        for i in range(l, r + 1):
+            while dq and nums[dq[-1]] < nums[i]:
+                dq.pop()
+            dq.append(i)
+
+            if dq[0] <= i - (r - l + 1):
+                dq.popleft()
+
+            window_max.append(nums[dq[0]])
+
+        results.append(window_max)
+
+    return results
+
+# 测试
+n, q = map(int, input().split())
+nums = list(map(int, input().split()))
+
+queries = []
+for _ in range(q):
+    l, r = map(int, input().split())
+    queries.append((l, r))
+
+results = range_max_queries(nums, queries)
+for res in results:
+    print(*res)
+```
+
+应用五：最短子数组（使得和至少为K）
+-------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int shortestSubarray(vector<int>& nums, int k) {
+    int n = nums.size();
+    vector<long long> prefix(n + 1, 0);
+
+    // 计算前缀和
+    for (int i = 0; i < n; i++) {
+        prefix[i + 1] = prefix[i] + nums[i];
+    }
+
+    deque<int> dq;
+    int result = n + 1;
+
+    for (int i = 0; i <= n; i++) {
+        // 维护单调递增队列
+        while (!dq.empty() && prefix[i] <= prefix[dq.back()]) {
+            dq.pop_back();
+        }
+
+        // 尝试更新答案
+        while (!dq.empty() && prefix[i] - prefix[dq.front()] >= k) {
+            result = min(result, i - dq.front());
+            dq.pop_front();
+        }
+
+        dq.push_back(i);
+    }
+
+    return result == n + 1 ? -1 : result;
+}
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+
+    vector<int> nums(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nums[i];
+    }
+
+    cout << "最短子数组长度: " << shortestSubarray(nums, k) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from collections import deque
+
+def shortest_subarray(nums, k):
+    """和至少为K的最短子数组"""
+    n = len(nums)
+    prefix = [0] * (n + 1)
+
+    # 计算前缀和
+    for i in range(n):
+        prefix[i + 1] = prefix[i] + nums[i]
+
+    dq = deque()
+    result = n + 1
+
+    for i in range(n + 1):
+        # 维护单调递增队列
+        while dq and prefix[i] <= prefix[dq[-1]]:
+            dq.pop()
+
+        # 尝试更新答案
+        while dq and prefix[i] - prefix[dq[0]] >= k:
+            result = min(result, i - dq[0])
+            dq.popleft()
+
+        dq.append(i)
+
+    return result if result != n + 1 else -1
+
+# 测试
+n, k = map(int, input().split())
+nums = list(map(int, input().split()))
+
+print(f"最短子数组长度: {shortest_subarray(nums, k)}")
+```
+
+应用六：股票价格波动（连续K天最大波动）
+----------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> maxFluctuation(vector<int>& prices, int k) {
+    deque<int> max_dq;  // 单调递减
+    deque<int> min_dq;  // 单调递增
+    vector<int> result;
+
+    for (int i = 0; i < prices.size(); i++) {
+        // 维护最大值队列
+        while (!max_dq.empty() && prices[max_dq.back()] <= prices[i]) {
+            max_dq.pop_back();
+        }
+        max_dq.push_back(i);
+
+        // 维护最小值队列
+        while (!min_dq.empty() && prices[min_dq.back()] >= prices[i]) {
+            min_dq.pop_back();
+        }
+        min_dq.push_back(i);
+
+        // 移除超出窗口的元素
+        if (max_dq.front() <= i - k) max_dq.pop_front();
+        if (min_dq.front() <= i - k) min_dq.pop_front();
+
+        // 记录波动
+        if (i >= k - 1) {
+            int fluctuation = prices[max_dq.front()] - prices[min_dq.front()];
+            result.push_back(fluctuation);
+        }
+    }
+
+    return result;
+}
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+
+    vector<int> prices(n);
+    for (int i = 0; i < n; i++) {
+        cin >> prices[i];
+    }
+
+    vector<int> result = maxFluctuation(prices, k);
+
+    cout << "连续" << k << "天最大波动: ";
+    for (int x : result) {
+        cout << x << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from collections import deque
+
+def max_fluctuation(prices, k):
+    """连续K天的最大价格波动"""
+    max_dq = deque()  # 单调递减
+    min_dq = deque()  # 单调递增
+    result = []
+
+    for i in range(len(prices)):
+        # 维护最大值队列
+        while max_dq and prices[max_dq[-1]] <= prices[i]:
+            max_dq.pop()
+        max_dq.append(i)
+
+        # 维护最小值队列
+        while min_dq and prices[min_dq[-1]] >= prices[i]:
+            min_dq.pop()
+        min_dq.append(i)
+
+        # 移除超出窗口的元素
+        if max_dq[0] <= i - k:
+            max_dq.popleft()
+        if min_dq[0] <= i - k:
+            min_dq.popleft()
+
+        # 记录波动
+        if i >= k - 1:
+            fluctuation = prices[max_dq[0]] - prices[min_dq[0]]
+            result.append(fluctuation)
+
+    return result
+
+# 测试
+n, k = map(int, input().split())
+prices = list(map(int, input().split()))
+
+result = max_fluctuation(prices, k)
+print(f"连续{k}天最大波动:", *result)
+```
+
+典型例题
+--------
+1. 滑动窗口最大值（LeetCode 239）：单调队列经典题
+2. 滑动窗口最小值：类似题目
+3. 最长连续子数组（LeetCode 1438）：双单调队列
+4. 最短子数组（LeetCode 862）：前缀和+单调队列
+5. 和至少为K的最短子数组：单调队列应用
+6. 移除最多的K个数字（单调栈+队列）
+7. 数据流中的中位数（双堆）
+
+注意事项
+--------
+1. 单调队列用双端队列deque实现
+2. 队列存储的是下标，不是值
+3. 求最大值用单调递减队列
+4. 求最小值用单调递增队列
+5. 注意窗口范围的判断（i - k）
+6. 时间复杂度O(n)，每个元素最多入队出队一次
+7. 空间复杂度O(k)，最多存储窗口大小的元素
+
+时间复杂度总结
+--------------
+- 单调队列操作：O(n)
+- 每个元素最多入队出队一次
+- 空间复杂度：O(k)
+
+单调队列是解决滑动窗口最值问题的高效工具，比优先队列更优。

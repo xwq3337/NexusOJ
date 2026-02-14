@@ -1,0 +1,760 @@
+Dijkstra算法
+============
+
+算法概述
+--------
+Dijkstra算法是解决单源最短路问题的经典算法,由荷兰计算机科学家Edsger W. Dijkstra于1956年提出。该算法用于计算从图中一个顶点到其余各顶点的最短路径,适用于边权非负的图。
+
+核心思想
+--------
+1. 贪心策略:每次从未确定最短距离的节点中选择距离最小的节点
+2. 松弛操作:用当前节点的最短距离去更新其邻接点的距离
+3. 标记确定:一旦节点被选中,其最短距离就确定了
+4. 优先级队列优化:使用堆来维护距离最小的节点,提高效率
+
+算法流程
+--------
+1. 初始化:起点距离为0,其他节点距离为无穷大
+2. 将起点加入优先级队列
+3. 从优先级队列中取出距离最小的节点u
+4. 如果u已经确定最短距离,则跳过
+5. 标记u的最短距离已确定
+6. 遍历u的所有邻接边,进行松弛操作
+7. 重复步骤3-6,直到优先级队列为空
+
+基础版本:邻接矩阵实现
+--------------------
+时间复杂度:O(n²),适合稠密图
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+int g[MAXN][MAXN];  // 邻接矩阵
+int dist[MAXN];     // 距离数组
+bool vis[MAXN];     // 标记数组
+
+void dijkstra(int start) {
+    // 初始化
+    memset(dist, 0x3f, sizeof(dist));
+    memset(vis, false, sizeof(vis));
+    dist[start] = 0;
+
+    for (int i = 1; i <= n; i++) {
+        // 找到未访问节点中距离最小的
+        int u = -1;
+        int min_dist = INF;
+        for (int j = 1; j <= n; j++) {
+            if (!vis[j] && dist[j] < min_dist) {
+                u = j;
+                min_dist = dist[j];
+            }
+        }
+
+        if (u == -1) break;  // 所有可达节点都已访问
+        vis[u] = true;
+
+        // 松弛操作
+        for (int v = 1; v <= n; v++) {
+            if (!vis[v] && g[u][v] < INF) {
+                if (dist[u] + g[u][v] < dist[v]) {
+                    dist[v] = dist[u] + g[u][v];
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    // 初始化邻接矩阵
+    memset(g, 0x3f, sizeof(g));
+    for (int i = 1; i <= n; i++) {
+        g[i][i] = 0;
+    }
+
+    // 读入边
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        g[u][v] = min(g[u][v], w);  // 取最小边权
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    dijkstra(start);
+
+    if (dist[end] >= INF / 2) {
+        cout << "No path from " << start << " to " << end << endl;
+    } else {
+        cout << "Shortest path: " << dist[end] << endl;
+    }
+
+    // 输出到所有点的最短距离
+    cout << "\nDistances from " << start << ":\n";
+    for (int i = 1; i <= n; i++) {
+        if (dist[i] >= INF / 2) {
+            cout << "To " << i << ": INF\n";
+        } else {
+            cout << "To " << i << ": " << dist[i] << "\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+import heapq
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    INF = float('inf')
+    g = [[INF] * (n + 1) for _ in range(n + 1)]
+    for i in range(n + 1):
+        g[i][i] = 0
+
+    # 读入边
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        g[u][v] = min(g[u][v], w)
+
+    start, end = map(int, input().split())
+
+    # Dijkstra
+    dist = [INF] * (n + 1)
+    vis = [False] * (n + 1)
+    dist[start] = 0
+
+    for _ in range(n):
+        # 找到未访问节点中距离最小的
+        u = -1
+        min_dist = INF
+        for j in range(1, n + 1):
+            if not vis[j] and dist[j] < min_dist:
+                u = j
+                min_dist = dist[j]
+
+        if u == -1:
+            break
+        vis[u] = True
+
+        # 松弛操作
+        for v in range(1, n + 1):
+            if not vis[v] and g[u][v] < INF:
+                if dist[u] + g[u][v] < dist[v]:
+                    dist[v] = dist[u] + g[u][v]
+
+    if dist[end] >= INF / 2:
+        print(f"No path from {start} to {end}")
+    else:
+        print(f"Shortest path: {dist[end]}")
+
+    # 输出到所有点的最短距离
+    print(f"\nDistances from {start}:")
+    for i in range(1, n + 1):
+        if dist[i] >= INF / 2:
+            print(f"To {i}: INF")
+        else:
+            print(f"To {i}: {dist[i]}")
+
+solve()
+```
+
+堆优化版本:邻接表+优先级队列
+--------------------------
+时间复杂度:O((n+m)log n),适合稀疏图
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];  // adj[u]: {v, w}
+int dist[MAXN];
+bool vis[MAXN];
+
+void dijkstra(int start) {
+    // 初始化
+    memset(dist, 0x3f, sizeof(dist));
+    memset(vis, false, sizeof(vis));
+    dist[start] = 0;
+
+    // 优先级队列: {距离, 节点}
+    priority_queue<pair<int, int>,
+                   vector<pair<int, int>>,
+                   greater<pair<int, int>>> pq;
+    pq.push({0, start});
+
+    while (!pq.empty()) {
+        int u = pq.top().second;
+        int d = pq.top().first;
+        pq.pop();
+
+        // 如果已经找到更短的距离,跳过
+        if (vis[u]) continue;
+        vis[u] = true;
+
+        // 松弛操作
+        for (auto& edge : adj[u]) {
+            int v = edge.first;
+            int w = edge.second;
+            if (!vis[v] && dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                pq.push({dist[v], v});
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    // 读入边
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        // adj[v].push_back({u, w});  // 无向图
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    dijkstra(start);
+
+    if (dist[end] >= INF / 2) {
+        cout << "No path from " << start << " to " << end << endl;
+    } else {
+        cout << "Shortest path: " << dist[end] << endl;
+    }
+
+    // 输出到所有点的最短距离
+    cout << "\nDistances from " << start << ":\n";
+    for (int i = 1; i <= n; i++) {
+        if (dist[i] >= INF / 2) {
+            cout << "To " << i << ": INF\n";
+        } else {
+            cout << "To " << i << ": " << dist[i] << "\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+import heapq
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+
+    # 读入边
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        # adj[v].append((u, w))  # 无向图
+
+    start, end = map(int, input().split())
+
+    # Dijkstra
+    INF = float('inf')
+    dist = [INF] * (n + 1)
+    vis = [False] * (n + 1)
+    dist[start] = 0
+
+    # 优先级队列: (距离, 节点)
+    pq = [(0, start)]
+    heapq.heapify(pq)
+
+    while pq:
+        d, u = heapq.heappop(pq)
+
+        if vis[u]:
+            continue
+        vis[u] = True
+
+        # 松弛操作
+        for v, w in adj[u]:
+            if not vis[v] and dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                heapq.heappush(pq, (dist[v], v))
+
+    if dist[end] >= INF / 2:
+        print(f"No path from {start} to {end}")
+    else:
+        print(f"Shortest path: {dist[end]}")
+
+    # 输出到所有点的最短距离
+    print(f"\nDistances from {start}:")
+    for i in range(1, n + 1):
+        if dist[i] >= INF / 2:
+            print(f"To {i}: INF")
+        else:
+            print(f"To {i}: {dist[i]}")
+
+solve()
+```
+
+路径还原
+--------
+记录前驱节点,还原最短路径。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];
+int dist[MAXN];
+bool vis[MAXN];
+int pre[MAXN];  // 前驱节点
+
+void dijkstra(int start) {
+    memset(dist, 0x3f, sizeof(dist));
+    memset(vis, false, sizeof(vis));
+    memset(pre, -1, sizeof(pre));
+    dist[start] = 0;
+
+    priority_queue<pair<int, int>,
+                   vector<pair<int, int>>,
+                   greater<pair<int, int>>> pq;
+    pq.push({0, start});
+
+    while (!pq.empty()) {
+        int u = pq.top().second;
+        int d = pq.top().first;
+        pq.pop();
+
+        if (vis[u]) continue;
+        vis[u] = true;
+
+        for (auto& edge : adj[u]) {
+            int v = edge.first;
+            int w = edge.second;
+            if (!vis[v] && dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                pre[v] = u;  // 记录前驱
+                pq.push({dist[v], v});
+            }
+        }
+    }
+}
+
+// 打印路径
+void print_path(int end) {
+    if (pre[end] == -1 && dist[end] >= INF / 2) {
+        cout << "No path!" << endl;
+        return;
+    }
+
+    vector<int> path;
+    for (int v = end; v != -1; v = pre[v]) {
+        path.push_back(v);
+    }
+    reverse(path.begin(), path.end());
+
+    cout << "Path: ";
+    for (size_t i = 0; i < path.size(); i++) {
+        cout << path[i];
+        if (i < path.size() - 1) cout << " -> ";
+    }
+    cout << endl;
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    dijkstra(start);
+    print_path(end);
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+import heapq
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+
+    start, end = map(int, input().split())
+
+    # Dijkstra
+    INF = float('inf')
+    dist = [INF] * (n + 1)
+    vis = [False] * (n + 1)
+    pre = [-1] * (n + 1)
+    dist[start] = 0
+
+    pq = [(0, start)]
+
+    while pq:
+        d, u = heapq.heappop(pq)
+
+        if vis[u]:
+            continue
+        vis[u] = True
+
+        for v, w in adj[u]:
+            if not vis[v] and dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                pre[v] = u
+                heapq.heappush(pq, (dist[v], v))
+
+    # 打印路径
+    if pre[end] == -1 and dist[end] >= INF / 2:
+        print("No path!")
+    else:
+        path = []
+        v = end
+        while v != -1:
+            path.append(v)
+            v = pre[v]
+        path.reverse()
+
+        print("Path:", " -> ".join(map(str, path)))
+
+solve()
+```
+
+链式前向星+堆优化
+----------------
+结合链式前向星和堆优化的高效实现。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int MAXM = 200005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+int head[MAXN];
+struct Edge {
+    int to, weight, next;
+} edges[MAXM];
+int tot;
+
+int dist[MAXN];
+bool vis[MAXN];
+
+void add_edge(int u, int v, int w) {
+    edges[++tot].to = v;
+    edges[tot].weight = w;
+    edges[tot].next = head[u];
+    head[u] = tot;
+}
+
+void dijkstra(int start) {
+    memset(dist, 0x3f, sizeof(dist));
+    memset(vis, false, sizeof(vis));
+    dist[start] = 0;
+
+    priority_queue<pair<int, int>,
+                   vector<pair<int, int>>,
+                   greater<pair<int, int>>> pq;
+    pq.push({0, start});
+
+    while (!pq.empty()) {
+        int u = pq.top().second;
+        int d = pq.top().first;
+        pq.pop();
+
+        if (vis[u]) continue;
+        vis[u] = true;
+
+        for (int i = head[u]; i; i = edges[i].next) {
+            int v = edges[i].to;
+            int w = edges[i].weight;
+            if (!vis[v] && dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                pq.push({dist[v], v});
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    memset(head, 0, sizeof(head));
+    tot = 0;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        add_edge(u, v, w);
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    dijkstra(start);
+
+    if (dist[end] >= INF / 2) {
+        cout << "No path" << endl;
+    } else {
+        cout << dist[end] << endl;
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+import heapq
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    MAXM = m * 2 + 5
+
+    head = [0] * (n + 1)
+    edges = [(0, 0, 0) for _ in range(MAXM)]
+    tot = 0
+
+    def add_edge(u, v, w):
+        nonlocal tot
+        tot += 1
+        edges[tot] = (v, w, head[u])
+        head[u] = tot
+
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        add_edge(u, v, w)
+
+    start, end = map(int, input().split())
+
+    INF = float('inf')
+    dist = [INF] * (n + 1)
+    vis = [False] * (n + 1)
+    dist[start] = 0
+
+    pq = [(0, start)]
+
+    while pq:
+        d, u = heapq.heappop(pq)
+
+        if vis[u]:
+            continue
+        vis[u] = True
+
+        i = head[u]
+        while i:
+            v, w, _ = edges[i]
+            if not vis[v] and dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                heapq.heappush(pq, (dist[v], v))
+            i = edges[i][2]
+
+    if dist[end] >= INF / 2:
+        print("No path")
+    else:
+        print(dist[end])
+
+solve()
+```
+
+多源最短路问题
+--------------
+对每个点都跑一次Dijkstra,得到所有点对的最短距离。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];
+int dist[MAXN][MAXN];
+
+void dijkstra(int start, int idx) {
+    bool vis[MAXN];
+    memset(vis, false, sizeof(vis));
+
+    for (int i = 1; i <= n; i++) {
+        dist[idx][i] = INF;
+    }
+    dist[idx][start] = 0;
+
+    priority_queue<pair<int, int>,
+                   vector<pair<int, int>>,
+                   greater<pair<int, int>>> pq;
+    pq.push({0, start});
+
+    while (!pq.empty()) {
+        int u = pq.top().second;
+        pq.pop();
+
+        if (vis[u]) continue;
+        vis[u] = true;
+
+        for (auto& edge : adj[u]) {
+            int v = edge.first;
+            int w = edge.second;
+            if (!vis[v] && dist[idx][u] + w < dist[idx][v]) {
+                dist[idx][v] = dist[idx][u] + w;
+                pq.push({dist[idx][v], v});
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    }
+
+    // 对每个点跑Dijkstra
+    for (int i = 1; i <= n; i++) {
+        dijkstra(i, i);
+    }
+
+    // 查询任意两点距离
+    int q;
+    cin >> q;
+    while (q--) {
+        int u, v;
+        cin >> u >> v;
+        if (dist[u][v] >= INF / 2) {
+            cout << "No path\n";
+        } else {
+            cout << dist[u][v] << "\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+import heapq
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        adj[v].append((u, w))
+
+    INF = float('inf')
+    dist = [[INF] * (n + 1) for _ in range(n + 1)]
+
+    def dijkstra(start, idx):
+        vis = [False] * (n + 1)
+        dist[idx][start] = 0
+
+        pq = [(0, start)]
+
+        while pq:
+            d, u = heapq.heappop(pq)
+
+            if vis[u]:
+                continue
+            vis[u] = True
+
+            for v, w in adj[u]:
+                if not vis[v] and dist[idx][u] + w < dist[idx][v]:
+                    dist[idx][v] = dist[idx][u] + w
+                    heapq.heappush(pq, (dist[idx][v], v))
+
+    for i in range(1, n + 1):
+        dijkstra(i, i)
+
+    q = int(input())
+    for _ in range(q):
+        u, v = map(int, input().split())
+        if dist[u][v] >= INF / 2:
+            print("No path")
+        else:
+            print(dist[u][v])
+
+solve()
+```
+
+典型例题
+--------
+1. 单源最短路径(洛谷P3371): Dijkstra模板题
+2. 最短路计数(洛谷P1144): 统计最短路数量
+3. 最短路径问题(洛谷P4779): Dijkstra堆优化
+4. 路径还原(洛谷P3947): 输出最短路径
+5. 信使(洛谷P1629): 求所有点到起点的最短路
+
+注意事项
+--------
+1. Dijkstra算法不能处理负权边,负权边使用SPFA或Bellman-Ford
+2. 堆优化版本使用优先级队列,注意greater表示小根堆
+3. 邻接矩阵版本适合稠密图(n ≤ 1000),邻接表版本适合稀疏图
+4. INF值设置要足够大但不能溢出,通常用0x3f3f3f3f
+5. 多组数据时注意清空邻接表和重置数组
+6. vis数组的判断可以放在pop后,避免重复入队
+
+时间复杂度总结
+--------------
+- 邻接矩阵版本:O(n²)
+- 邻接表+堆优化:O((n+m)log n)
+- 空间复杂度:O(n+m)
+
+Dijkstra算法是最短路算法的基础,必须熟练掌握堆优化版本的实现。

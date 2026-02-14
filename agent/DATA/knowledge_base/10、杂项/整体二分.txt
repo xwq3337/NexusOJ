@@ -1,0 +1,651 @@
+整体二分（Parallel Binary Search）
+================================
+
+算法概述
+--------
+整体二分是一种将多个查询的二分答案过程合并进行的技术。
+它将所有查询一起处理，避免了对每个查询单独二分，从而提高效率。
+
+核心思想
+--------
+1. 将所有查询放在一起二分
+2. 分治处理：将答案区间[mid+1, r]的查询和[l, mid]的查询分开
+3. 使用数据结构（如树状数组）维护当前mid的状态
+4. 递归处理左右两半
+
+基础应用：K小数查询
+------------------
+给定数列，多次询问区间第k小的数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+int a[MAXN];
+int ans[MAXN];
+
+struct Query {
+    int l, r, k, id;
+} q[MAXN], q1[MAXN], q2[MAXN];
+
+vector<int> nums;
+int bit[MAXN];
+
+void add(int x, int val) {
+    for (; x <= n; x += x & (-x)) {
+        bit[x] += val;
+    }
+}
+
+int query(int x) {
+    int res = 0;
+    for (; x > 0; x -= x & (-x)) {
+        res += bit[x];
+    }
+    return res;
+}
+
+void solve(int ql, int qr, int L, int R) {
+    if (ql > qr) return;
+    if (L == R) {
+        for (int i = ql; i <= qr; i++) {
+            ans[q[i].id] = nums[L];
+        }
+        return;
+    }
+
+    int mid = (L + R) / 2;
+    int cnt1 = 0, cnt2 = 0;
+
+    for (int i = ql; i <= qr; i++) {
+        int cnt = query(q[i].r) - query(q[i].l - 1);
+        if (cnt >= q[i].k) {
+            q1[++cnt1] = q[i];
+        } else {
+            q[i].k -= cnt;
+            q2[++cnt2] = q[i];
+        }
+    }
+
+    // 回滚
+    for (int i = ql; i <= qr; i++) {
+        if (q[i].l == -1) {
+            add(q[i].r, -1);
+        }
+    }
+
+    // 处理左半部分
+    for (int i = 1; i <= cnt1; i++) {
+        q[ql + i - 1] = q1[i];
+    }
+    solve(ql, ql + cnt1 - 1, L, mid);
+
+    // 处理右半部分
+    for (int i = 1; i <= cnt2; i++) {
+        q[ql + cnt1 + i - 1] = q2[i];
+    }
+    solve(ql + cnt1, qr, mid + 1, R);
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+        nums.push_back(a[i]);
+    }
+
+    sort(nums.begin(), nums.end());
+    nums.erase(unique(nums.begin(), nums.end()), nums.end());
+
+    for (int i = 1; i <= n; i++) {
+        a[i] = lower_bound(nums.begin(), nums.end(), a[i]) - nums.begin() + 1;
+    }
+
+    for (int i = 1; i <= m; i++) {
+        cin >> q[i].l >> q[i].r >> q[i].k;
+        q[i].id = i;
+    }
+
+    solve(1, m, 1, nums.size());
+
+    for (int i = 1; i <= m; i++) {
+        cout << ans[i] << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def add(bit, x, val, n):
+    while x <= n:
+        bit[x] += val
+        x += x & (-x)
+
+def query(bit, x):
+    res = 0
+    while x > 0:
+        res += bit[x]
+        x -= x & (-x)
+    return res
+
+def solve(q, ql, qr, L, R, bit, n, nums, ans):
+    if ql > qr:
+        return
+    if L == R:
+        for i in range(ql, qr + 1):
+            ans[q[i]['id']] = nums[L]
+        return
+
+    mid = (L + R) // 2
+    q1, q2 = [], []
+
+    for i in range(ql, qr + 1):
+        cnt = query(bit, q[i]['r']) - query(bit, q[i]['l'] - 1)
+        if cnt >= q[i]['k']:
+            q1.append(q[i])
+        else:
+            q[i]['k'] -= cnt
+            q2.append(q[i])
+
+    # 处理左半部分
+    for i in range(len(q1)):
+        q[ql + i] = q1[i]
+    solve(q, ql, ql + len(q1) - 1, L, mid, bit, n, nums, ans)
+
+    # 处理右半部分
+    for i in range(len(q2)):
+        q[ql + len(q1) + i] = q2[i]
+    solve(q, ql + len(q1), qr, mid + 1, R, bit, n, nums, ans)
+
+def main():
+    import sys
+    input = sys.stdin.readline
+
+    n, m = map(int, input().split())
+    a = [0] + list(map(int, input().split()))
+
+    nums = sorted(set(a[1:]))
+    num_to_idx = {v: i + 1 for i, v in enumerate(nums)}
+
+    for i in range(1, n + 1):
+        a[i] = num_to_idx[a[i]]
+
+    q = []
+    for i in range(m):
+        l, r, k = map(int, input().split())
+        q.append({'l': l, 'r': r, 'k': k, 'id': i})
+
+    bit = [0] * (n + 1)
+    ans = [0] * m
+
+    solve(q, 0, m - 1, 1, len(nums), bit, n, nums, ans)
+
+    for i in range(m):
+        print(ans[i])
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用一：矩阵查询
+------------------
+给定矩阵，每次查询子矩阵中第k小的数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 505;
+
+int n, m, q;
+int a[MAXN][MAXN];
+int ans[MAXN * MAXN];
+
+struct Query {
+    int x1, y1, x2, y2, k, id;
+} query[MAXN * MAXN], q1[MAXN * MAXN], q2[MAXN * MAXN];
+
+vector<int> nums;
+int bit[MAXN][MAXN];
+
+void add(int x, int y, int val) {
+    for (int i = x; i <= n; i += i & (-i)) {
+        for (int j = y; j <= m; j += j & (-j)) {
+            bit[i][j] += val;
+        }
+    }
+}
+
+int query(int x, int y) {
+    int res = 0;
+    for (int i = x; i > 0; i -= i & (-i)) {
+        for (int j = y; j > 0; j -= j & (-j)) {
+            res += bit[i][j];
+        }
+    }
+    return res;
+}
+
+int query_rect(int x1, int y1, int x2, int y2) {
+    return query(x2, y2) - query(x1-1, y2) - query(x2, y1-1) + query(x1-1, y1-1);
+}
+
+void solve(int ql, int qr, int L, int R) {
+    if (ql > qr) return;
+    if (L == R) {
+        for (int i = ql; i <= qr; i++) {
+            ans[query[i].id] = nums[L];
+        }
+        return;
+    }
+
+    int mid = (L + R) / 2;
+    int cnt1 = 0, cnt2 = 0;
+
+    for (int i = ql; i <= qr; i++) {
+        int cnt = query_rect(query[i].x1, query[i].y1, query[i].x2, query[i].y2);
+        if (cnt >= query[i].k) {
+            q1[++cnt1] = query[i];
+        } else {
+            query[i].k -= cnt;
+            q2[++cnt2] = query[i];
+        }
+    }
+
+    for (int i = 1; i <= cnt1; i++) {
+        query[ql + i - 1] = q1[i];
+    }
+    solve(ql, ql + cnt1 - 1, L, mid);
+
+    for (int i = 1; i <= cnt2; i++) {
+        query[ql + cnt1 + i - 1] = q2[i];
+    }
+    solve(ql + cnt1, qr, mid + 1, R);
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            cin >> a[i][j];
+            nums.push_back(a[i][j]);
+        }
+    }
+
+    sort(nums.begin(), nums.end());
+    nums.erase(unique(nums.begin(), nums.end()), nums.end());
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            a[i][j] = lower_bound(nums.begin(), nums.end(), a[i][j]) - nums.begin() + 1;
+            add(i, j, 1);
+        }
+    }
+
+    cin >> q;
+    for (int i = 1; i <= q; i++) {
+        cin >> query[i].x1 >> query[i].y1 >> query[i].x2 >> query[i].y2 >> query[i].k;
+        query[i].id = i;
+    }
+
+    solve(1, q, 1, nums.size());
+
+    for (int i = 1; i <= q; i++) {
+        cout << ans[i] << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def add(bit, x, y, val, n, m):
+    i = x
+    while i <= n:
+        j = y
+        while j <= m:
+            bit[i][j] += val
+            j += j & (-j)
+        i += i & (-i)
+
+def query(bit, x, y):
+    res = 0
+    i = x
+    while i > 0:
+        j = y
+        while j > 0:
+            res += bit[i][j]
+            j -= j & (-j)
+        i -= i & (-i)
+    return res
+
+def query_rect(bit, x1, y1, x2, y2):
+    return query(bit, x2, y2) - query(bit, x1-1, y2) - query(bit, x2, y1-1) + query(bit, x1-1, y1-1)
+
+def solve(query, ql, qr, L, R, bit, n, m, nums, ans):
+    if ql > qr:
+        return
+    if L == R:
+        for i in range(ql, qr + 1):
+            ans[query[i]['id']] = nums[L]
+        return
+
+    mid = (L + R) // 2
+    q1, q2 = [], []
+
+    for i in range(ql, qr + 1):
+        cnt = query_rect(bit, query[i]['x1'], query[i]['y1'], query[i]['x2'], query[i]['y2'])
+        if cnt >= query[i]['k']:
+            q1.append(query[i])
+        else:
+            query[i]['k'] -= cnt
+            q2.append(query[i])
+
+    for i in range(len(q1)):
+        query[ql + i] = q1[i]
+    solve(query, ql, ql + len(q1) - 1, L, mid, bit, n, m, nums, ans)
+
+    for i in range(len(q2)):
+        query[ql + len(q1) + i] = q2[i]
+    solve(query, ql + len(q1), qr, mid + 1, R, bit, n, m, nums, ans)
+
+def main():
+    import sys
+    input = sys.stdin.readline
+
+    n, m = map(int, input().split())
+    a = [[0] * (m + 1) for _ in range(n + 1)]
+    nums = []
+
+    for i in range(1, n + 1):
+        row = list(map(int, input().split()))
+        for j in range(1, m + 1):
+            a[i][j] = row[j-1]
+            nums.append(a[i][j])
+
+    nums = sorted(set(nums))
+    num_to_idx = {v: i + 1 for i, v in enumerate(nums)}
+
+    bit = [[0] * (m + 1) for _ in range(n + 1)]
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+            a[i][j] = num_to_idx[a[i][j]]
+            add(bit, i, j, 1, n, m)
+
+    q = int(input())
+    query = []
+    for i in range(q):
+        x1, y1, x2, y2, k = map(int, input().split())
+        query.append({'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'k': k, 'id': i})
+
+    ans = [0] * q
+    solve(query, 0, q - 1, 1, len(nums), bit, n, m, nums, ans)
+
+    for i in range(q):
+        print(ans[i])
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用二：动态第K小
+------------------
+支持单点修改和区间第K小查询。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+int a[MAXN];
+int ans[MAXN];
+
+struct Operation {
+    int type, x, y, k, id, time;
+} op[MAXN], op1[MAXN], op2[MAXN];
+
+vector<int> nums;
+int bit[MAXN];
+
+void add(int x, int val) {
+    for (; x <= n; x += x & (-x)) {
+        bit[x] += val;
+    }
+}
+
+int query(int x) {
+    int res = 0;
+    for (; x > 0; x -= x & (-x)) {
+        res += bit[x];
+    }
+    return res;
+}
+
+void solve(int ql, int qr, int L, int R) {
+    if (ql > qr) return;
+    if (L == R) {
+        for (int i = ql; i <= qr; i++) {
+            if (op[i].type == 2) {
+                ans[op[i].id] = nums[L];
+            }
+        }
+        return;
+    }
+
+    int mid = (L + R) / 2;
+    int cnt1 = 0, cnt2 = 0;
+
+    for (int i = ql; i <= qr; i++) {
+        if (op[i].type == 1) {
+            if (op[i].y <= mid) {
+                add(op[i].x, 1);
+                op1[++cnt1] = op[i];
+            } else {
+                op2[++cnt2] = op[i];
+            }
+        } else {
+            int cnt = query(op[i].y) - query(op[i].x - 1);
+            if (cnt >= op[i].k) {
+                op1[++cnt1] = op[i];
+            } else {
+                op[i].k -= cnt;
+                op2[++cnt2] = op[i];
+            }
+        }
+    }
+
+    for (int i = 1; i <= cnt1; i++) {
+        if (op1[i].type == 1) {
+            add(op1[i].x, -1);
+        }
+        op[ql + i - 1] = op1[i];
+    }
+
+    for (int i = 1; i <= cnt2; i++) {
+        op[ql + cnt1 + i - 1] = op2[i];
+    }
+
+    solve(ql, ql + cnt1 - 1, L, mid);
+    solve(ql + cnt1, qr, mid + 1, R);
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+        nums.push_back(a[i]);
+    }
+
+    int q_cnt = 0, op_cnt = 0;
+    for (int i = 1; i <= m; i++) {
+        int type;
+        cin >> type;
+        if (type == 1) {
+            int x, y;
+            cin >> x >> y;
+            nums.push_back(y);
+            op[++op_cnt] = {1, x, y, 0, 0, 0};
+        } else {
+            int l, r, k;
+            cin >> l >> r >> k;
+            q_cnt++;
+            op[++op_cnt] = {2, l, r, k, q_cnt, 0};
+        }
+    }
+
+    sort(nums.begin(), nums.end());
+    nums.erase(unique(nums.begin(), nums.end()), nums.end());
+
+    for (int i = 1; i <= op_cnt; i++) {
+        if (op[i].type == 1) {
+            op[i].y = lower_bound(nums.begin(), nums.end(), op[i].y) - nums.begin() + 1;
+        }
+    }
+
+    solve(1, op_cnt, 1, nums.size());
+
+    for (int i = 1; i <= q_cnt; i++) {
+        cout << ans[i] << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def add(bit, x, val, n):
+    while x <= n:
+        bit[x] += val
+        x += x & (-x)
+
+def query(bit, x):
+    res = 0
+    while x > 0:
+        res += bit[x]
+        x -= x & (-x)
+    return res
+
+def solve(op, ql, qr, L, R, bit, n, nums, ans):
+    if ql > qr:
+        return
+    if L == R:
+        for i in range(ql, qr + 1):
+            if op[i]['type'] == 2:
+                ans[op[i]['id']] = nums[L]
+        return
+
+    mid = (L + R) // 2
+    op1, op2 = [], []
+
+    for i in range(ql, qr + 1):
+        if op[i]['type'] == 1:
+            if op[i]['y'] <= mid:
+                add(bit, op[i]['x'], 1, n)
+                op1.append(op[i])
+            else:
+                op2.append(op[i])
+        else:
+            cnt = query(bit, op[i]['y']) - query(bit, op[i]['x'] - 1)
+            if cnt >= op[i]['k']:
+                op1.append(op[i])
+            else:
+                op[i]['k'] -= cnt
+                op2.append(op[i])
+
+    for i in range(len(op1)):
+        if op1[i]['type'] == 1:
+            add(bit, op1[i]['x'], -1, n)
+        op[ql + i] = op1[i]
+
+    for i in range(len(op2)):
+        op[ql + len(op1) + i] = op2[i]
+
+    solve(op, ql, ql + len(op1) - 1, L, mid, bit, n, nums, ans)
+    solve(op, ql + len(op1), qr, mid + 1, R, bit, n, nums, ans)
+
+def main():
+    import sys
+    input = sys.stdin.readline
+
+    n, m = map(int, input().split())
+    a = [0] + list(map(int, input().split()))
+
+    nums = a[1:]
+    op = []
+    q_cnt = 0
+
+    for _ in range(m):
+        parts = list(map(int, input().split()))
+        if parts[0] == 1:
+            x, y = parts[1], parts[2]
+            nums.append(y)
+            op.append({'type': 1, 'x': x, 'y': y, 'k': 0, 'id': 0})
+        else:
+            l, r, k = parts[1], parts[2], parts[3]
+            q_cnt += 1
+            op.append({'type': 2, 'x': l, 'y': r, 'k': k, 'id': q_cnt})
+
+    nums = sorted(set(nums))
+    num_to_idx = {v: i + 1 for i, v in enumerate(nums)}
+
+    for i in range(len(op)):
+        if op[i]['type'] == 1:
+            op[i]['y'] = num_to_idx[op[i]['y']]
+
+    bit = [0] * (n + 1)
+    ans = [0] * (q_cnt + 1)
+
+    solve(op, 0, len(op) - 1, 1, len(nums), bit, n, nums, ans)
+
+    for i in range(1, q_cnt + 1):
+        print(ans[i])
+
+if __name__ == "__main__":
+    main()
+```
+
+算法特点总结
+------------
+1. 并行处理：同时处理多个查询
+2. 分治思想：将查询按答案范围分治
+3. 数据结构：通常配合树状数组等数据结构
+4. 离线算法：需要提前知道所有查询
+
+应用场景
+--------
+1. 区间第K小查询
+2. 矩阵第K小查询
+3. 动态第K小
+4. 逆序对计数
+5. 优化二分答案类问题
+
+注意事项
+--------
+1. 需要离线处理所有查询
+2. 注意查询和修改的分离
+3. 数据结构的清空和回滚
+4. 递归深度问题
+5. 边界条件的处理
+
+时间复杂度总结
+--------------
+- 单次操作：O(log n)
+- 整体复杂度：O((n + q) log n log C)，其中C是值域
+- 空间复杂度：O(n + q)
+
+整体二分是一种强大的离线处理技术，特别适合处理第K小类查询问题，在竞赛中应用广泛。

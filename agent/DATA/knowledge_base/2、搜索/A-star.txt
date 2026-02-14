@@ -1,0 +1,935 @@
+A*算法（A-Star Algorithm）
+========================
+
+算法概述
+--------
+A*算法是一种启发式搜索算法，结合了Dijkstra算法（保证最短路径）和贪心最佳优先搜索（使用启发函数）的优点。
+它是解决路径规划问题最有效的算法之一，广泛应用于游戏开发、地图导航、人工智能等领域。
+
+核心思想
+--------
+1. 使用估价函数f(n) = g(n) + h(n)来评估每个节点
+   - g(n): 从起点到当前节点的实际代价
+   - h(n): 从当前节点到终点的启发估计代价
+   - f(n): 预估的总代价
+
+2. 总是选择f(n)最小的节点进行扩展
+
+3. 启发函数h(n)的性质：
+   - 可采纳性：h(n) <= h*(n)（实际最小代价），保证找到最优解
+   - 一致性：h(n) <= c(n, n') + h(n')，保证算法效率
+
+4. 时间复杂度：O(b^d)，其中b是分支因子，d是解的深度
+5. 空间复杂度：O(b^d)
+
+基础模板：A*算法实现
+------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];  // adj[u] = {(v, w), ...}
+int dist[MAXN];        // g值：从起点到当前节点的实际距离
+int h[MAXN];           // h值：启发函数值
+
+// 估价函数
+int f(int u) {
+    return dist[u] + h[u];
+}
+
+void astar(int start, int end) {
+    memset(dist, 0x3f, sizeof(dist));
+    dist[start] = 0;
+
+    // 优先队列，按照f值排序
+    priority_queue<pair<int, int>,
+                   vector<pair<int, int>>,
+                   greater<pair<int, int>>> pq;
+
+    pq.push({f(start), start});
+
+    while (!pq.empty()) {
+        auto [fu, u] = pq.top();
+        pq.pop();
+
+        // 如果当前节点的f值不是最优，跳过
+        if (fu != f(u)) continue;
+
+        // 到达终点
+        if (u == end) {
+            cout << "最短路径长度: " << dist[end] << '\n';
+            return;
+        }
+
+        for (auto& [v, w] : adj[u]) {
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                pq.push({f(v), v});
+            }
+        }
+    }
+
+    cout << "无法到达终点\n";
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    }
+
+    // 输入启发函数值（实际应用中需要设计）
+    for (int i = 1; i <= n; i++) {
+        cin >> h[i];
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    astar(start, end);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+import heapq
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        adj[v].append((u, w))
+
+    dist = [float('inf')] * (n + 1)
+    h = [0] * (n + 1)
+
+    # 输入启发函数值（实际应用中需要设计）
+    for i in range(1, n + 1):
+        h[i] = int(input())
+
+    def f(u):
+        return dist[u] + h[u]
+
+    def astar(start, end):
+        dist[start] = 0
+        pq = [(f(start), start)]
+
+        while pq:
+            fu, u = heapq.heappop(pq)
+
+            if fu != f(u):
+                continue
+
+            if u == end:
+                print(f"最短路径长度: {dist[end]}")
+                return
+
+            for v, w in adj[u]:
+                if dist[u] + w < dist[v]:
+                    dist[v] = dist[u] + w
+                    heapq.heappush(pq, (f(v), v))
+
+        print("无法到达终点")
+
+    start, end = map(int, input().split())
+    astar(start, end)
+
+solve()
+```
+
+应用一：网格地图最短路径
+----------------------
+在网格地图中，使用A*算法寻找从起点到终点的最短路径。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+
+int n, m;
+char grid[MAXN][MAXN];
+int dist[MAXN][MAXN];
+int dx[8] = {0, 0, 1, -1, 1, 1, -1, -1};  // 8个方向
+int dy[8] = {1, -1, 0, 0, 1, -1, 1, -1};
+
+struct Point {
+    int x, y;
+};
+
+// 曼哈顿距离启发函数（4方向）
+int manhattan_distance(Point u, Point v) {
+    return abs(u.x - v.x) + abs(u.y - v.y);
+}
+
+// 对角线距离启发函数（8方向）
+int diagonal_distance(Point u, Point v) {
+    int dx = abs(u.x - v.x);
+    int dy = abs(u.y - v.y);
+    return max(dx, dy);
+}
+
+struct State {
+    Point pos;
+    int g;  // 实际代价
+    int h;  // 启发值
+    int f() const { return g + h; }
+
+    bool operator>(const State& other) const {
+        return f() > other.f();
+    }
+};
+
+bool is_valid(int x, int y) {
+    return x >= 0 && x < n && y >= 0 && y < m && grid[x][y] != '#';
+}
+
+int astar_grid(Point start, Point end) {
+    memset(dist, 0x3f, sizeof(dist));
+
+    priority_queue<State, vector<State>, greater<State>> pq;
+    dist[start.x][start.y] = 0;
+
+    pq.push({start, 0, manhattan_distance(start, end)});
+
+    while (!pq.empty()) {
+        State cur = pq.top();
+        pq.pop();
+
+        if (cur.g > dist[cur.pos.x][cur.pos.y]) continue;
+
+        if (cur.pos.x == end.x && cur.pos.y == end.y) {
+            return cur.g;
+        }
+
+        for (int i = 0; i < 8; i++) {
+            int nx = cur.pos.x + dx[i];
+            int ny = cur.pos.y + dy[i];
+
+            if (is_valid(nx, ny)) {
+                int cost = (i < 4) ? 1 : 2;  // 对角线移动代价更大
+                if (cur.g + cost < dist[nx][ny]) {
+                    dist[nx][ny] = cur.g + cost;
+                    pq.push({{nx, ny}, cur.g + cost,
+                             manhattan_distance({nx, ny}, end)});
+                }
+            }
+        }
+    }
+
+    return -1;
+}
+
+int main() {
+    cin >> n >> m;
+
+    Point start, end;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            cin >> grid[i][j];
+            if (grid[i][j] == 'S') {
+                start = {i, j};
+            } else if (grid[i][j] == 'E') {
+                end = {i, j};
+            }
+        }
+    }
+
+    int shortest = astar_grid(start, end);
+    if (shortest != -1) {
+        cout << "最短路径长度: " << shortest << '\n';
+    } else {
+        cout << "无法到达终点\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import heapq
+import sys
+import math
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    grid = []
+    start = end = None
+    for i in range(n):
+        row = list(input().strip())
+        grid.append(row)
+        for j, ch in enumerate(row):
+            if ch == 'S':
+                start = (i, j)
+            elif ch == 'E':
+                end = (i, j)
+
+    def manhattan_distance(p1, p2):
+        return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+
+    def is_valid(x, y):
+        return 0 <= x < n and 0 <= y < m and grid[x][y] != '#'
+
+    def astar_grid(start, end):
+        dist = [[float('inf')] * m for _ in range(n)]
+        dist[start[0]][start[1]] = 0
+
+        # (f值, g值, x, y)
+        pq = [(manhattan_distance(start, end), 0, start[0], start[1])]
+        dx = [0, 0, 1, -1, 1, 1, -1, -1]
+        dy = [1, -1, 0, 0, 1, -1, 1, -1]
+
+        while pq:
+            f, g, x, y = heapq.heappop(pq)
+
+            if g > dist[x][y]:
+                continue
+
+            if (x, y) == end:
+                return g
+
+            for i in range(8):
+                nx, ny = x + dx[i], y + dy[i]
+                if is_valid(nx, ny):
+                    cost = 1 if i < 4 else 2  # 对角线移动代价更大
+                    if g + cost < dist[nx][ny]:
+                        dist[nx][ny] = g + cost
+                        h = manhattan_distance((nx, ny), end)
+                        heapq.heappush(pq, (g + cost + h, g + cost, nx, ny))
+
+        return -1
+
+    shortest = astar_grid(start, end)
+    if shortest != -1:
+        print(f"最短路径长度: {shortest}")
+    else:
+        print("无法到达终点")
+
+solve()
+```
+
+应用二：八数码问题（A*算法）
+--------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const string TARGET = "123456780";
+
+// 曼哈顿距离启发函数
+int manhattan_distance(const string& state) {
+    int dist = 0;
+    for (int i = 0; i < 9; i++) {
+        if (state[i] == '0') continue;
+
+        int num = state[i] - '0';
+        int cur_row = i / 3, cur_col = i % 3;
+        int target_row = (num - 1) / 3, target_col = (num - 1) % 3;
+
+        dist += abs(cur_row - target_row) + abs(cur_col - target_col);
+    }
+    return dist;
+}
+
+// 不匹配位置数量启发函数
+int misplaced_tiles(const string& state) {
+    int cnt = 0;
+    for (int i = 0; i < 9; i++) {
+        if (state[i] != '0' && state[i] != TARGET[i]) {
+            cnt++;
+        }
+    }
+    return cnt;
+}
+
+struct State {
+    string board;
+    int g;  // 实际代价
+    int h;  // 启发值
+    int f() const { return g + h; }
+
+    bool operator>(const State& other) const {
+        return f() > other.f();
+    }
+};
+
+int astar_eight_puzzle(string start) {
+    if (start == TARGET) return 0;
+
+    unordered_map<string, int> dist;
+    priority_queue<State, vector<State>, greater<State>> pq;
+
+    dist[start] = 0;
+    pq.push({start, 0, manhattan_distance(start)});
+
+    int dx[4] = {0, 0, 1, -1};
+    int dy[4] = {1, -1, 0, 0};
+
+    while (!pq.empty()) {
+        State cur = pq.top();
+        pq.pop();
+
+        if (cur.board == TARGET) {
+            return cur.g;
+        }
+
+        if (cur.g > dist[cur.board]) continue;
+
+        int pos = cur.board.find('0');
+        int x = pos / 3, y = pos % 3;
+
+        for (int i = 0; i < 4; i++) {
+            int nx = x + dx[i];
+            int ny = y + dy[i];
+            int npos = nx * 3 + ny;
+
+            if (nx >= 0 && nx < 3 && ny >= 0 && ny < 3) {
+                string next = cur.board;
+                swap(next[pos], next[npos]);
+
+                if (dist.find(next) == dist.end() || cur.g + 1 < dist[next]) {
+                    dist[next] = cur.g + 1;
+                    pq.push({next, cur.g + 1, manhattan_distance(next)});
+                }
+            }
+        }
+    }
+
+    return -1;
+}
+
+int main() {
+    string start;
+    cout << "输入初始状态: ";
+    cin >> start;
+
+    int steps = astar_eight_puzzle(start);
+    if (steps != -1) {
+        cout << "最少移动次数: " << steps << '\n';
+    } else {
+        cout << "无法到达目标状态\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import heapq
+
+TARGET = "123456780"
+
+def manhattan_distance(state):
+    """曼哈顿距离启发函数"""
+    dist = 0
+    for i in range(9):
+        if state[i] == '0':
+            continue
+        num = int(state[i])
+        cur_row, cur_col = i // 3, i % 3
+        target_row, target_col = (num - 1) // 3, (num - 1) % 3
+        dist += abs(cur_row - target_row) + abs(cur_col - target_col)
+    return dist
+
+def linear_conflict(state):
+    """线性冲突：改进的启发函数"""
+    base = manhattan_distance(state)
+    conflict = 0
+
+    # 检查每一行的线性冲突
+    for row in range(3):
+        tiles = []
+        for col in range(3):
+            pos = row * 3 + col
+            if state[pos] != '0':
+                target_pos = int(state[pos]) - 1
+                if target_pos // 3 == row:  # 目标也在这一行
+                    tiles.append((target_pos, col))
+
+        for i in range(len(tiles)):
+            for j in range(i + 1, len(tiles)):
+                if tiles[i][1] > tiles[j][1]:
+                    conflict += 2
+
+    return base + conflict
+
+def astar_eight_puzzle(start):
+    if start == TARGET:
+        return 0
+
+    dist = {start: 0}
+    pq = [(manhattan_distance(start), 0, start)]
+
+    dx = [0, 0, 1, -1]
+    dy = [1, -1, 0, 0]
+
+    while pq:
+        f, g, state = heapq.heappop(pq)
+
+        if state == TARGET:
+            return g
+
+        if g > dist[state]:
+            continue
+
+        pos = state.find('0')
+        x, y = pos // 3, pos % 3
+
+        for i in range(4):
+            nx, ny = x + dx[i], y + dy[i]
+            if 0 <= nx < 3 and 0 <= ny < 3:
+                npos = nx * 3 + ny
+                next_state = list(state)
+                next_state[pos], next_state[npos] = next_state[npos], next_state[pos]
+                next_state = ''.join(next_state)
+
+                if next_state not in dist or g + 1 < dist[next_state]:
+                    dist[next_state] = g + 1
+                    h = manhattan_distance(next_state)
+                    heapq.heappush(pq, (g + 1 + h, g + 1, next_state))
+
+    return -1
+
+def main():
+    start = input("输入初始状态: ")
+    steps = astar_eight_puzzle(start)
+    if steps != -1:
+        print(f"最少移动次数: {steps}")
+    else:
+        print("无法到达目标状态")
+
+if __name__ == "__main__":
+    main()
+```
+
+应用三：路径重建（输出完整路径）
+----------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+
+int n, m;
+char grid[MAXN][MAXN];
+int dist[MAXN][MAXN];
+Point parent[MAXN][MAXN];  // 记录父节点
+int dx[4] = {0, 0, 1, -1};
+int dy[4] = {1, -1, 0, 0};
+
+struct Point {
+    int x, y;
+};
+
+int heuristic(Point u, Point v) {
+    return abs(u.x - v.x) + abs(u.y - v.y);
+}
+
+bool is_valid(int x, int y) {
+    return x >= 0 && x < n && y >= 0 && y < m && grid[x][y] != '#';
+}
+
+int astar_with_path(Point start, Point end) {
+    memset(dist, 0x3f, sizeof(dist));
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            parent[i][j] = {-1, -1};
+        }
+    }
+
+    priority_queue<tuple<int, int, Point>,
+                   vector<tuple<int, int, Point>>,
+                   greater<tuple<int, int, Point>>> pq;
+
+    dist[start.x][start.y] = 0;
+    pq.push({heuristic(start, end), 0, start});
+
+    while (!pq.empty()) {
+        auto [f, g, u] = pq.top();
+        pq.pop();
+
+        if (g > dist[u.x][u.y]) continue;
+
+        if (u.x == end.x && u.y == end.y) {
+            return g;
+        }
+
+        for (int i = 0; i < 4; i++) {
+            int nx = u.x + dx[i];
+            int ny = u.y + dy[i];
+
+            if (is_valid(nx, ny) && g + 1 < dist[nx][ny]) {
+                dist[nx][ny] = g + 1;
+                parent[nx][ny] = u;
+                pq.push({g + 1 + heuristic({nx, ny}, end), g + 1, {nx, ny}});
+            }
+        }
+    }
+
+    return -1;
+}
+
+void print_path(Point end) {
+    vector<Point> path;
+    Point cur = end;
+
+    while (cur.x != -1 && cur.y != -1) {
+        path.push_back(cur);
+        cur = parent[cur.x][cur.y];
+    }
+
+    reverse(path.begin(), path.end());
+
+    cout << "路径: ";
+    for (Point& p : path) {
+        cout << "(" << p.x << "," << p.y << ") ";
+    }
+    cout << '\n';
+}
+
+int main() {
+    cin >> n >> m;
+
+    Point start, end;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            cin >> grid[i][j];
+            if (grid[i][j] == 'S') {
+                start = {i, j};
+            } else if (grid[i][j] == 'E') {
+                end = {i, j};
+            }
+        }
+    }
+
+    int shortest = astar_with_path(start, end);
+    if (shortest != -1) {
+        cout << "最短路径长度: " << shortest << '\n';
+        print_path(end);
+    } else {
+        cout << "无法到达终点\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import heapq
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    grid = []
+    start = end = None
+    for i in range(n):
+        row = list(input().strip())
+        grid.append(row)
+        for j, ch in enumerate(row):
+            if ch == 'S':
+                start = (i, j)
+            elif ch == 'E':
+                end = (i, j)
+
+    def heuristic(p):
+        return abs(p[0] - end[0]) + abs(p[1] - end[1])
+
+    def is_valid(x, y):
+        return 0 <= x < n and 0 <= y < m and grid[x][y] != '#'
+
+    def astar_with_path():
+        dist = [[float('inf')] * m for _ in range(n)]
+        parent = [[None] * m for _ in range(n)]
+
+        dist[start[0]][start[1]] = 0
+        pq = [(heuristic(start), 0, start[0], start[1])]
+
+        dx = [0, 0, 1, -1]
+        dy = [1, -1, 0, 0]
+
+        while pq:
+            f, g, x, y = heapq.heappop(pq)
+
+            if g > dist[x][y]:
+                continue
+
+            if (x, y) == end:
+                return g
+
+            for i in range(4):
+                nx, ny = x + dx[i], y + dy[i]
+                if is_valid(nx, ny) and g + 1 < dist[nx][ny]:
+                    dist[nx][ny] = g + 1
+                    parent[nx][ny] = (x, y)
+                    heapq.heappush(pq, (g + 1 + heuristic((nx, ny)), g + 1, nx, ny))
+
+        return -1
+
+    def print_path():
+        path = []
+        cur = end
+        while cur is not None:
+            path.append(cur)
+            x, y = cur
+            cur = parent[x][y]
+
+        path.reverse()
+        path_str = ' -> '.join([f"({x},{y})" for x, y in path])
+        print(f"路径: {path_str}")
+
+    shortest = astar_with_path()
+    if shortest != -1:
+        print(f"最短路径长度: {shortest}")
+        print_path()
+    else:
+        print("无法到达终点")
+
+solve()
+```
+
+应用四：双向A*算法
+----------------
+同时从起点和终点进行A*搜索。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];
+int dist_start[MAXN], dist_end[MAXN];
+int h_start[MAXN], h_end[MAXN];
+
+int f_start(int u) { return dist_start[u] + h_start[u]; }
+int f_end(int u) { return dist_end[u] + h_end[u]; }
+
+int bidirectional_astar(int start, int end) {
+    memset(dist_start, 0x3f, sizeof(dist_start));
+    memset(dist_end, 0x3f, sizeof(dist_end));
+
+    priority_queue<pair<int, int>,
+                   vector<pair<int, int>>,
+                   greater<pair<int, int>>> pq_start, pq_end;
+
+    dist_start[start] = 0;
+    dist_end[end] = 0;
+
+    pq_start.push({f_start(start), start});
+    pq_end.push({f_end(end), end});
+
+    int meet_node = -1;
+
+    while (!pq_start.empty() && !pq_end.empty()) {
+        // 选择f值较小的一边
+        if (pq_start.top().first > pq_end.top().first) {
+            swap(pq_start, pq_end);
+            swap(dist_start, dist_end);
+            swap(h_start, h_end);
+        }
+
+        auto [fu, u] = pq_start.top();
+        pq_start.pop();
+
+        if (fu != f_start(u)) continue;
+
+        // 检查是否相遇
+        if (dist_end[u] != 0x3f3f3f3f) {
+            meet_node = u;
+            break;
+        }
+
+        for (auto& [v, w] : adj[u]) {
+            if (dist_start[u] + w < dist_start[v]) {
+                dist_start[v] = dist_start[u] + w;
+                pq_start.push({f_start(v), v});
+            }
+        }
+    }
+
+    if (meet_node != -1) {
+        return dist_start[meet_node] + dist_end[meet_node];
+    }
+    return -1;
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    }
+
+    // 输入启发函数值
+    for (int i = 1; i <= n; i++) {
+        cin >> h_start[i];
+        h_end[i] = h_start[i];  // 假设对称
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    int shortest = bidirectional_astar(start, end);
+    if (shortest != -1) {
+        cout << "最短路径长度: " << shortest << '\n';
+    } else {
+        cout << "无法到达终点\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import heapq
+import sys
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        adj[v].append((u, w))
+
+    dist_start = [float('inf')] * (n + 1)
+    dist_end = [float('inf')] * (n + 1)
+    h_start = [0] * (n + 1)
+    h_end = [0] * (n + 1)
+
+    # 输入启发函数值
+    for i in range(1, n + 1):
+        h_start[i] = int(input())
+        h_end[i] = h_start[i]  # 假设对称
+
+    def f_start(u):
+        return dist_start[u] + h_start[u]
+
+    def f_end(u):
+        return dist_end[u] + h_end[u]
+
+    def bidirectional_astar(start, end):
+        dist_start[start] = 0
+        dist_end[end] = 0
+
+        pq_start = [(f_start(start), start)]
+        pq_end = [(f_end(end), end)]
+
+        while pq_start and pq_end:
+            # 选择f值较小的一边
+            if pq_start[0][0] > pq_end[0][0]:
+                pq_start, pq_end = pq_end, pq_start
+                dist_start, dist_end = dist_end, dist_start
+                h_start, h_end = h_end, h_start
+
+            fu, u = heapq.heappop(pq_start)
+
+            if fu != f_start(u):
+                continue
+
+            # 检查是否相遇
+            if dist_end[u] != float('inf'):
+                return dist_start[u] + dist_end[u]
+
+            for v, w in adj[u]:
+                if dist_start[u] + w < dist_start[v]:
+                    dist_start[v] = dist_start[u] + w
+                    heapq.heappush(pq_start, (f_start(v), v))
+
+        return -1
+
+    start, end = map(int, input().split())
+    shortest = bidirectional_astar(start, end)
+    if shortest != -1:
+        print(f"最短路径长度: {shortest}")
+    else:
+        print("无法到达终点")
+
+solve()
+```
+
+典型例题
+--------
+1. 八数码问题（POJ1077）：经典A*应用
+2. 15数码问题：更复杂的滑块拼图
+3. 迷宫最短路径（POJ3984）：网格地图寻路
+4. 骑士遍历问题（POJ1915）：最少移动次数
+5. 华容道问题：经典滑块游戏
+
+注意事项
+--------
+1. 启发函数的设计是关键：
+   - 太保守（接近0）：退化为Dijkstra
+   - 太激进（超过实际代价）：可能找不到最优解
+   - 最优：曼哈顿距离（网格）、欧几里得距离（连续）
+
+2. 启发函数的性质：
+   - 可采纳性：h(n) <= h*(n)，保证最优性
+   - 一致性：h(n) <= c(n, n') + h(n')，保证效率
+
+3. 实现优化：
+   - 使用优先队列（堆）实现
+   - 注意处理重复节点
+   - 可以使用closed set优化
+
+4. A* vs 其他算法：
+   - Dijkstra：h(n) = 0，保证最优但效率低
+   - 贪心最佳优先：只考虑h(n)，快但不保证最优
+   - A*：平衡g(n)和h(n)，既快又最优
+
+5. 优点：
+   - 保证找到最优解（可采纳启发函数）
+   - 比Dijkstra更高效
+   - 适用于各种路径规划问题
+
+6. 缺点：
+   - 需要设计好的启发函数
+   - 空间复杂度较高
+   - 对动态图不太适用
+
+时间复杂度总结
+--------------
+- 最坏情况：O(b^d)，与BFS相同
+- 平均情况：远优于BFS
+- 取决于启发函数的质量
+- 空间复杂度：O(b^d)
+
+A*算法是路径规划问题的黄金标准，掌握它对解决各类寻路问题至关重要。

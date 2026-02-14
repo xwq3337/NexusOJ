@@ -1,0 +1,695 @@
+卡特兰数（Catalan Numbers）
+==========================
+
+算法概述
+--------
+卡特兰数是组合数学中非常重要的数列，在许多计数问题中都有应用。
+卡特兰数的第n项记为Cat(n)或h(n)，前几项为：1, 1, 2, 5, 14, 42, 132, 429, 1430, ...
+
+核心公式
+--------
+1. 递推公式：Cat(n) = Cat(0)*Cat(n-1) + Cat(1)*Cat(n-2) + ... + Cat(n-1)*Cat(0)
+2. 简化递推：Cat(n) = (4*n-2) * Cat(n-1) / (n+1)
+3. 通项公式：Cat(n) = C(2n, n) / (n+1) = C(2n, n) - C(2n, n+1)
+4. 积分形式：Cat(n) = (1/(n+1)) * C(2n, n)
+
+基础应用一：基本递推计算
+-------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 35;
+const int MOD = 1e9 + 7;
+
+long long cat[MAXN];
+
+// 基础递推
+void init_basic() {
+    cat[0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        cat[i] = 0;
+        for (int j = 0; j < i; j++) {
+            cat[i] = (cat[i] + cat[j] * cat[i-j-1]) % MOD;
+        }
+    }
+}
+
+// 优化递推
+void init_optimized() {
+    cat[0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        cat[i] = cat[i-1] * (4 * i - 2) % MOD;
+        cat[i] = cat[i] * qpow(i + 1, MOD - 2) % MOD;
+    }
+}
+
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a % MOD;
+        a = a * a % MOD;
+        b >>= 1;
+    }
+    return res;
+}
+
+int main() {
+    init_optimized();
+
+    int n;
+    cin >> n;
+    cout << cat[n] << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+MAXN = 35
+
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res = res * a % MOD
+        a = a * a % MOD
+        b >>= 1
+    return res
+
+def init_catalan():
+    cat = [1] * MAXN
+    for i in range(1, MAXN):
+        cat[i] = cat[i-1] * (4 * i - 2) % MOD
+        cat[i] = cat[i] * qpow(i + 1, MOD - 2) % MOD
+    return cat
+
+def main():
+    cat = init_catalan()
+    n = int(input())
+    print(cat[n])
+
+if __name__ == "__main__":
+    main()
+```
+
+基础应用二：使用组合数计算
+---------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 35;
+const int MOD = 1e9 + 7;
+
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a % MOD;
+        a = a * a % MOD;
+        b >>= 1;
+    }
+    return res;
+}
+
+long long C(long long n, long long m) {
+    if (m < 0 || m > n) return 0;
+    if (m > n - m) m = n - m;
+
+    long long res = 1;
+    for (long long i = 1; i <= m; i++) {
+        res = res * (n - m + i) % MOD;
+        res = res * qpow(i, MOD - 2) % MOD;
+    }
+    return res;
+}
+
+// 计算卡特兰数 Cat(n) = C(2n, n) / (n+1)
+long long catalan(int n) {
+    long long res = C(2 * n, n);
+    res = res * qpow(n + 1, MOD - 2) % MOD;
+    return res;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    cout << catalan(n) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res = res * a % MOD
+        a = a * a % MOD
+        b >>= 1
+    return res
+
+def C(n, m):
+    if m < 0 or m > n:
+        return 0
+    if m > n - m:
+        m = n - m
+
+    res = 1
+    for i in range(1, m + 1):
+        res = res * (n - m + i) % MOD
+        res = res * qpow(i, MOD - 2) % MOD
+    return res
+
+def catalan(n):
+    res = C(2 * n, n)
+    res = res * qpow(n + 1, MOD - 2) % MOD
+    return res
+
+def main():
+    n = int(input())
+    print(catalan(n))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用一：括号匹配问题
+------------------------
+求n对括号的有效匹配方式数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MOD = 1e9 + 7;
+
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a % MOD;
+        a = a * a % MOD;
+        b >>= 1;
+    }
+    return res;
+}
+
+long long C(long long n, long long m) {
+    if (m < 0 || m > n) return 0;
+    if (m > n - m) m = n - m;
+
+    long long res = 1;
+    for (long long i = 1; i <= m; i++) {
+        res = res * (n - m + i) % MOD;
+        res = res * qpow(i, MOD - 2) % MOD;
+    }
+    return res;
+}
+
+long long catalan(int n) {
+    return C(2 * n, n) * qpow(n + 1, MOD - 2) % MOD;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    cout << catalan(n) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res = res * a % MOD
+        a = a * a % MOD
+        b >>= 1
+    return res
+
+def C(n, m):
+    if m < 0 or m > n:
+        return 0
+    if m > n - m:
+        m = n - m
+
+    res = 1
+    for i in range(1, m + 1):
+        res = res * (n - m + i) % MOD
+        res = res * qpow(i, MOD - 2) % MOD
+    return res
+
+def catalan(n):
+    return C(2 * n, n) * qpow(n + 1, MOD - 2) % MOD
+
+def main():
+    n = int(input())
+    print(catalan(n))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用二：出栈顺序问题
+------------------------
+给定一个进栈序列（1, 2, ..., n），求合法的出栈序列数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 35;
+const int MOD = 1e9 + 7;
+
+long long cat[MAXN];
+
+void init() {
+    cat[0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        cat[i] = 0;
+        for (int j = 0; j < i; j++) {
+            cat[i] = (cat[i] + cat[j] * cat[i-j-1]) % MOD;
+        }
+    }
+}
+
+int main() {
+    init();
+
+    int n;
+    cin >> n;
+    cout << cat[n] << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+MAXN = 35
+
+def init():
+    cat = [0] * MAXN
+    cat[0] = 1
+    for i in range(1, MAXN):
+        for j in range(i):
+            cat[i] = (cat[i] + cat[j] * cat[i-j-1]) % MOD
+    return cat
+
+def main():
+    cat = init()
+    n = int(input())
+    print(cat[n])
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用三：二叉树计数问题
+--------------------------
+求n个节点能构成多少种不同形态的二叉树。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 35;
+const int MOD = 1e9 + 7;
+
+long long cat[MAXN];
+
+void init() {
+    cat[0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        cat[i] = 0;
+        for (int j = 0; j < i; j++) {
+            cat[i] = (cat[i] + cat[j] * cat[i-j-1]) % MOD;
+        }
+    }
+}
+
+int main() {
+    init();
+
+    int n;
+    cin >> n;
+    cout << cat[n] << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+MAXN = 35
+
+def init():
+    cat = [0] * MAXN
+    cat[0] = 1
+    for i in range(1, MAXN):
+        for j in range(i):
+            cat[i] = (cat[i] + cat[j] * cat[i-j-1]) % MOD
+    return cat
+
+def main():
+    cat = init()
+    n = int(input())
+    print(cat[n])
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用四：网格路径计数
+-----------------------
+在n×n的网格中，从左下角走到右上角，只能向右或向上走，且不能越过对角线。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MOD = 1e9 + 7;
+
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a % MOD;
+        a = a * a % MOD;
+        b >>= 1;
+    }
+    return res;
+}
+
+long long C(long long n, long long m) {
+    if (m < 0 || m > n) return 0;
+    if (m > n - m) m = n - m;
+
+    long long res = 1;
+    for (long long i = 1; i <= m; i++) {
+        res = res * (n - m + i) % MOD;
+        res = res * qpow(i, MOD - 2) % MOD;
+    }
+    return res;
+}
+
+long long catalan(int n) {
+    return C(2 * n, n) * qpow(n + 1, MOD - 2) % MOD;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    cout << catalan(n) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res = res * a % MOD
+        a = a * a % MOD
+        b >>= 1
+    return res
+
+def C(n, m):
+    if m < 0 or m > n:
+        return 0
+    if m > n - m:
+        m = n - m
+
+    res = 1
+    for i in range(1, m + 1):
+        res = res * (n - m + i) % MOD
+        res = res * qpow(i, MOD - 2) % MOD
+    return res
+
+def catalan(n):
+    return C(2 * n, n) * qpow(n + 1, MOD - 2) % MOD
+
+def main():
+    n = int(input())
+    print(catalan(n))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用五：不交叉握手问题
+------------------------
+2n个人围坐圆桌，求所有人两两握手且手不交叉的方案数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MOD = 1e9 + 7;
+
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a % MOD;
+        a = a * a % MOD;
+        b >>= 1;
+    }
+    return res;
+}
+
+long long C(long long n, long long m) {
+    if (m < 0 || m > n) return 0;
+    if (m > n - m) m = n - m;
+
+    long long res = 1;
+    for (long long i = 1; i <= m; i++) {
+        res = res * (n - m + i) % MOD;
+        res = res * qpow(i, MOD - 2) % MOD;
+    }
+    return res;
+}
+
+long long catalan(int n) {
+    return C(2 * n, n) * qpow(n + 1, MOD - 2) % MOD;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    cout << catalan(n) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res = res * a % MOD
+        a = a * a % MOD
+        b >>= 1
+    return res
+
+def C(n, m):
+    if m < 0 or m > n:
+        return 0
+    if m > n - m:
+        m = n - m
+
+    res = 1
+    for i in range(1, m + 1):
+        res = res * (n - m + i) % MOD
+        res = res * qpow(i, MOD - 2) % MOD
+    return res
+
+def catalan(n):
+    return C(2 * n, n) * qpow(n + 1, MOD - 2) % MOD
+
+def main():
+    n = int(input())
+    print(catalan(n))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用六：矩阵链乘
+--------------------
+求n个矩阵相乘的不同加括号方式数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 35;
+const int MOD = 1e9 + 7;
+
+long long cat[MAXN];
+
+void init() {
+    cat[0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        cat[i] = 0;
+        for (int j = 0; j < i; j++) {
+            cat[i] = (cat[i] + cat[j] * cat[i-j-1]) % MOD;
+        }
+    }
+}
+
+int main() {
+    init();
+
+    int n;
+    cin >> n;
+    cout << cat[n-1] << '\n';  // n个矩阵对应Cat(n-1)
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+MAXN = 35
+
+def init():
+    cat = [0] * MAXN
+    cat[0] = 1
+    for i in range(1, MAXN):
+        for j in range(i):
+            cat[i] = (cat[i] + cat[j] * cat[i-j-1]) % MOD
+    return cat
+
+def main():
+    cat = init()
+    n = int(input())
+    print(cat[n-1])  # n个矩阵对应Cat(n-1)
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用七：凸多边形三角形划分
+------------------------------
+求凸n+2边形划分成三角形的方法数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 35;
+const int MOD = 1e9 + 7;
+
+long long cat[MAXN];
+
+void init() {
+    cat[0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        cat[i] = 0;
+        for (int j = 0; j < i; j++) {
+            cat[i] = (cat[i] + cat[j] * cat[i-j-1]) % MOD;
+        }
+    }
+}
+
+int main() {
+    init();
+
+    int n;
+    cin >> n;
+    cout << cat[n] << '\n';  // n+2边形对应Cat(n)
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+MAXN = 35
+
+def init():
+    cat = [0] * MAXN
+    cat[0] = 1
+    for i in range(1, MAXN):
+        for j in range(i):
+            cat[i] = (cat[i] + cat[j] * cat[i-j-1]) % MOD
+    return cat
+
+def main():
+    cat = init()
+    n = int(input())
+    print(cat[n])  # n+2边形对应Cat(n)
+
+if __name__ == "__main__":
+    main()
+```
+
+重要性质总结
+------------
+1. 递推关系：Cat(n) = Σ Cat(i) * Cat(n-1-i) for i = 0 to n-1
+2. 生成函数：C(x) = (1 - √(1-4x)) / (2x)
+3. 渐近公式：Cat(n) ~ 4^n / (n^(3/2) * √π)
+4. 对称性：卡特兰数序列是单调递增的
+5. 整除性质：Cat(n)能被所有满足1 < k ≤ n的质数k整除
+
+卡特兰数的经典问题
+------------------
+1. 括号匹配：n对括号的合法匹配方式
+2. 出栈序列：n个不同元素的合法出栈序列
+3. 二叉树：n个节点构成的不同二叉树形态
+4. 路径计数：不越过对角线的格路路径
+5. 握手问题：2n人圆桌握手不交叉的方案
+6. 矩阵链乘：n个矩阵相乘的不同加括号方式
+7. 多边形划分：凸n+2边形划分成三角形
+8. 满二叉树：n+1个叶子节点的不同满二叉树
+9. 排列避免231模式：长度为n的排列中避免231模式的个数
+
+注意事项
+--------
+1. 卡特兰数增长很快，注意使用模运算
+2. 使用除法时需要用逆元（在模意义下）
+3. 递推公式和通项公式的选择取决于具体问题
+4. 某些问题可能需要对卡特兰数进行变形
+5. 注意n的取值范围，不同的应用可能n的含义不同
+
+时间复杂度总结
+--------------
+- 递推法：O(n^2) 预处理，O(1) 查询
+- 通项公式：O(n) 或 O(log MOD) 计算
+- 优化递推：O(n) 预处理，O(1) 查询
+
+卡特兰数是组合数学中最重要的数列之一，掌握其各种应用对解决计数问题很有帮助。

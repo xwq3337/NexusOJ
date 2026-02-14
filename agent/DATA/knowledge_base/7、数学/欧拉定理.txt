@@ -1,0 +1,335 @@
+欧拉定理（Euler's Theorem）
+==========================
+
+定理内容
+--------
+欧拉定理是数论中的基本定理之一，它是费马小定理的推广。
+
+若gcd(a, m) = 1，则：
+    a^φ(m) ≡ 1 (mod m)
+
+其中φ(m)是欧拉函数。
+
+推论：a^b ≡ a^(b mod φ(m) + φ(m)) (mod m)，当b ≥ φ(m)时
+
+与费马小定理的关系
+----------------
+当m是质数时，φ(m) = m - 1，欧拉定理变为：
+    a^(m-1) ≡ 1 (mod m)
+
+这就是费马小定理。
+
+基础模板：验证欧拉定理
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 求欧拉函数
+ll phi(ll n) {
+    ll res = n;
+    for (ll i = 2; i * i <= n; i++) {
+        if (n % i == 0) {
+            while (n % i == 0) n /= i;
+            res = res / i * (i - 1);
+        }
+    }
+    if (n > 1) res = res / n * (n - 1);
+    return res;
+}
+
+// 快速幂
+ll pow_mod(ll a, ll b, ll mod) {
+    ll res = 1;
+    a %= mod;
+    while (b > 0) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 验证欧拉定理
+bool verify_euler(ll a, ll m) {
+    if (__gcd(a, m) != 1) {
+        return false;  // 不满足条件
+    }
+    ll phi_m = phi(m);
+    return pow_mod(a, phi_m, m) == 1;
+}
+
+int main() {
+    ll a, m;
+    cin >> a >> m;
+
+    if (verify_euler(a, m)) {
+        cout << "欧拉定理成立！" << '\n';
+        cout << a << "^φ(" << m << ") mod " << m << " = 1" << '\n';
+    } else {
+        cout << "欧拉定理不成立或不满足条件" << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import math
+
+def phi(n: int) -> int:
+    """求欧拉函数"""
+    res = n
+    i = 2
+    while i * i <= n:
+        if n % i == 0:
+            while n % i == 0:
+                n //= i
+            res = res // i * (i - 1)
+        i += 1
+    if n > 1:
+        res = res // n * (n - 1)
+    return res
+
+def pow_mod(a: int, b: int, mod: int) -> int:
+    """快速幂"""
+    res = 1
+    a %= mod
+    while b > 0:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def verify_euler(a: int, m: int) -> bool:
+    """验证欧拉定理"""
+    if math.gcd(a, m) != 1:
+        return False
+    phi_m = phi(m)
+    return pow_mod(a, phi_m, m) == 1
+
+def solve():
+    a, m = map(int, input().split())
+    if verify_euler(a, m):
+        print("欧拉定理成立！")
+        print(f"{a}^φ({m}) mod {m} = 1")
+    else:
+        print("欧拉定理不成立或不满足条件")
+
+solve()
+```
+
+应用一：降幂
+----------
+当指数很大时，可以利用欧拉定理降幂。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+ll phi(ll n) {
+    ll res = n;
+    for (ll i = 2; i * i <= n; i++) {
+        if (n % i == 0) {
+            while (n % i == 0) n /= i;
+            res = res / i * (i - 1);
+        }
+    }
+    if (n > 1) res = res / n * (n - 1);
+    return res;
+}
+
+ll pow_mod(ll a, ll b, ll mod) {
+    ll res = 1;
+    a %= mod;
+    while (b > 0) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 计算a^b mod m，b可能很大
+ll power_euler(ll a, string b_str, ll m) {
+    ll phi_m = phi(m);
+
+    // 计算 b mod φ(m)
+    ll b_mod = 0;
+    for (char c : b_str) {
+        b_mod = (b_mod * 10 + (c - '0')) % phi_m;
+    }
+
+    // 检查b是否≥φ(m)
+    bool large = false;
+    ll temp = 0;
+    for (char c : b_str) {
+        temp = temp * 10 + (c - '0');
+        if (temp >= phi_m) {
+            large = true;
+            break;
+        }
+    }
+
+    if (large) {
+        b_mod += phi_m;  // 加上φ(m)
+    }
+
+    return pow_mod(a, b_mod, m);
+}
+
+int main() {
+    ll a, m;
+    string b_str;
+    cin >> a >> b_str >> m;
+
+    cout << power_euler(a, b_str, m) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import math
+
+def phi(n: int) -> int:
+    """求欧拉函数"""
+    res = n
+    i = 2
+    while i * i <= n:
+        if n % i == 0:
+            while n % i == 0:
+                n //= i
+            res = res // i * (i - 1)
+        i += 1
+    if n > 1:
+        res = res // n * (n - 1)
+    return res
+
+def pow_mod(a: int, b: int, mod: int) -> int:
+    """快速幂"""
+    res = 1
+    a %= mod
+    while b > 0:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def power_euler(a: int, b_str: str, m: int) -> int:
+    """计算a^b mod m"""
+    phi_m = phi(m)
+
+    # 计算 b mod φ(m)
+    b_mod = 0
+    for c in b_str:
+        b_mod = (b_mod * 10 + int(c)) % phi_m
+
+    # 检查b是否≥φ(m)
+    if int(b_str) >= phi_m:
+        b_mod += phi_m
+
+    return pow_mod(a, b_mod, m)
+
+def solve():
+    a = int(input())
+    b_str = input().strip()
+    m = int(input())
+    print(power_euler(a, b_str, m))
+
+solve()
+```
+
+应用二：重复幂次
+--------------
+计算a^(a^(a^...)) mod m（共n个a）
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+ll phi(ll n) {
+    ll res = n;
+    for (ll i = 2; i * i <= n; i++) {
+        if (n % i == 0) {
+            while (n % i == 0) n /= i;
+            res = res / i * (i - 1);
+        }
+    }
+    if (n > 1) res = res / n * (n - 1);
+    return res;
+}
+
+ll pow_mod(ll a, ll b, ll mod) {
+    ll res = 1;
+    a %= mod;
+    while (b > 0) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 计算a^(a^(a^...)) mod m（共n个a）
+ll power_tower(ll a, ll n, ll m) {
+    if (m == 1) return 0;
+    if (n == 1) return a % m;
+
+    ll phi_m = phi(m);
+    ll exp = power_tower(a, n - 1, phi_m);
+
+    return pow_mod(a, exp + phi_m, m);
+}
+
+int main() {
+    ll a, n, m;
+    cin >> a >> n >> m;
+
+    cout << power_tower(a, n, m) << '\n';
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 【模板】欧拉定理（洛谷P5091）：基本应用
+2. 降幂打击（洛谷P3811）：降幂应用
+3. 重复幂次（洛谷P4139）：幂塔问题
+
+注意事项
+--------
+1. 使用条件：
+   - gcd(a, m) = 1
+
+2. 降幂技巧：
+   - a^b mod m = a^(b mod φ(m) + φ(m)) mod m
+   - 当b ≥ φ(m)时使用
+
+3. 常见错误：
+   - 忘记检查互质条件
+   - 降幂时忘记加φ(m)
+
+时间复杂度总结
+--------------
+- 求欧拉函数：O(√m)
+- 快速幂：O(log b)
+- 总体：O(√m + log b)
+
+欧拉定理是数论中的重要定理，
+它在密码学、同余运算等领域有广泛应用。

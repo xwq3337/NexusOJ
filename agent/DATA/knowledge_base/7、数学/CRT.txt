@@ -1,0 +1,426 @@
+中国剩余定理（Chinese Remainder Theorem, CRT）
+==============================================
+
+定理概述
+--------
+中国剩余定理（又称孙子定理）是数论中的重要定理，
+用于求解一元线性同余方程组。它在中国古代数学著作《孙子算经》中就有记载。
+
+定理内容
+--------
+给定两两互质的模数m1, m2, ..., mn和对应的余数a1, a2, ..., an，
+求解满足以下同余方程组的x：
+
+    x ≡ a1 (mod m1)
+    x ≡ a2 (mod m2)
+    ...
+    x ≡ an (mod mn)
+
+解法步骤
+--------
+1. 计算M = m1 × m2 × ... × mn
+2. 对每个i，计算Mi = M / mi
+3. 对每个i，求Mi模mi的逆元ti，即Mi × ti ≡ 1 (mod mi)
+4. 解为：x = Σ(ai × Mi × ti) mod M
+
+基础模板：CRT
+------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 扩展欧几里得算法
+ll exgcd(ll a, ll b, ll &x, ll &y) {
+    if (b == 0) {
+        x = 1;
+        y = 0;
+        return a;
+    }
+    ll x1, y1;
+    ll gcd = exgcd(b, a % b, x1, y1);
+    x = y1;
+    y = x1 - (a / b) * y1;
+    return gcd;
+}
+
+// 中国剩余定理（模数两两互质）
+// a[]: 余数数组, m[]: 模数数组, n: 方程个数
+ll crt(ll a[], ll m[], int n) {
+    ll M = 1;
+    for (int i = 0; i < n; i++) {
+        M *= m[i];
+    }
+
+    ll res = 0;
+    for (int i = 0; i < n; i++) {
+        ll Mi = M / m[i];
+        ll ti, y;
+        exgcd(Mi, m[i], ti, y);
+        res = (res + a[i] * Mi % M * ti % M) % M;
+    }
+
+    return (res % M + M) % M;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    ll a[20], m[20];
+    for (int i = 0; i < n; i++) {
+        cin >> m[i] >> a[i];
+    }
+
+    ll ans = crt(a, m, n);
+    cout << "最小正整数解：" << ans << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List
+
+def exgcd(a: int, b: int):
+    """扩展欧几里得算法"""
+    if b == 0:
+        return a, 1, 0
+    gcd, x1, y1 = exgcd(b, a % b)
+    x = y1
+    y = x1 - (a // b) * y1
+    return gcd, x, y
+
+def crt(a: List[int], m: List[int], n: int) -> int:
+    """中国剩余定理（模数两两互质）"""
+    M = 1
+    for i in range(n):
+        M *= m[i]
+
+    res = 0
+    for i in range(n):
+        Mi = M // m[i]
+        gcd, ti, y = exgcd(Mi, m[i])
+        res = (res + a[i] * Mi % M * ti % M) % M
+
+    return (res % M + M) % M
+
+def solve():
+    n = int(input())
+    a = []
+    m = []
+
+    for _ in range(n):
+        mi, ai = map(int, input().split())
+        m.append(mi)
+        a.append(ai)
+
+    ans = crt(a, m, n)
+    print(f"最小正整数解：{ans}")
+
+solve()
+```
+
+扩展中国剩余定理（模数不互质）
+---------------------------
+当模数不互质时，需要使用合并同余方程的方法。
+
+对于两个方程：
+    x ≡ a1 (mod m1)
+    x ≡ a2 (mod m2)
+
+等价于：
+    x = a1 + k1 × m1 = a2 + k2 × m2
+即：k1 × m1 - k2 × m2 = a2 - a1
+
+使用扩展欧几里得求解k1，然后合并方程。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 扩展欧几里得算法
+ll exgcd(ll a, ll b, ll &x, ll &y) {
+    if (b == 0) {
+        x = 1;
+        y = 0;
+        return a;
+    }
+    ll x1, y1;
+    ll gcd = exgcd(b, a % b, x1, y1);
+    x = y1;
+    y = x1 - (a / b) * y1;
+    return gcd;
+}
+
+// 扩展中国剩余定理（模数不互质）
+// 返回值：{是否有解, 最小正整数解}
+pair<bool, ll> excrt(ll a[], ll m[], int n) {
+    ll x = a[0], mod = m[0];
+
+    for (int i = 1; i < n; i++) {
+        ll a1 = x, m1 = mod;
+        ll a2 = a[i], m2 = m[i];
+
+        ll k1, k2;
+        ll gcd = exgcd(m1, m2, k1, k2);
+        ll diff = a2 - a1;
+
+        if (diff % gcd != 0) {
+            return {false, 0};  // 无解
+        }
+
+        ll lcm = m1 / gcd * m2;
+        k1 = (k1 % lcm + lcm) % lcm;
+        k1 = k1 * (diff / gcd) % lcm;
+
+        x = (a1 + m1 * k1) % lcm;
+        mod = lcm;
+    }
+
+    return {true, (x % mod + mod) % mod};
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    ll a[20], m[20];
+    for (int i = 0; i < n; i++) {
+        cin >> m[i] >> a[i];
+    }
+
+    auto [ok, ans] = excrt(a, m, n);
+    if (ok) {
+        cout << "最小正整数解：" << ans << '\n';
+    } else {
+        cout << "无解" << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List, Tuple
+
+def exgcd(a: int, b: int):
+    """扩展欧几里得算法"""
+    if b == 0:
+        return a, 1, 0
+    gcd, x1, y1 = exgcd(b, a % b)
+    x = y1
+    y = x1 - (a // b) * y1
+    return gcd, x, y
+
+def excrt(a: List[int], m: List[int], n: int) -> Tuple[bool, int]:
+    """扩展中国剩余定理（模数不互质）"""
+    x = a[0]
+    mod = m[0]
+
+    for i in range(1, n):
+        a1, m1 = x, mod
+        a2, m2 = a[i], m[i]
+
+        gcd, k1, k2 = exgcd(m1, m2)
+        diff = a2 - a1
+
+        if diff % gcd != 0:
+            return False, 0  # 无解
+
+        lcm = m1 // gcd * m2
+        k1 = (k1 % lcm + lcm) % lcm
+        k1 = k1 * (diff // gcd) % lcm
+
+        x = (a1 + m1 * k1) % lcm
+        mod = lcm
+
+    return True, (x % mod + mod) % mod
+
+def solve():
+    n = int(input())
+    a = []
+    m = []
+
+    for _ in range(n):
+        mi, ai = map(int, input().split())
+        m.append(mi)
+        a.append(ai)
+
+    ok, ans = excrt(a, m, n)
+    if ok:
+        print(f"最小正整数解：{ans}")
+    else:
+        print("无解")
+
+solve()
+```
+
+应用一：韩信点兵
+--------------
+经典问题："韩信点兵，三人一组余两人，五人一组余三人，七人一组余四人，问最少多少人？"
+
+方程组：
+    x ≡ 2 (mod 3)
+    x ≡ 3 (mod 5)
+    x ≡ 4 (mod 7)
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+ll exgcd(ll a, ll b, ll &x, ll &y) {
+    if (b == 0) {
+        x = 1;
+        y = 0;
+        return a;
+    }
+    ll x1, y1;
+    ll gcd = exgcd(b, a % b, x1, y1);
+    x = y1;
+    y = x1 - (a / b) * y1;
+    return gcd;
+}
+
+ll crt(ll a[], ll m[], int n) {
+    ll M = 1;
+    for (int i = 0; i < n; i++) {
+        M *= m[i];
+    }
+
+    ll res = 0;
+    for (int i = 0; i < n; i++) {
+        ll Mi = M / m[i];
+        ll ti, y;
+        exgcd(Mi, m[i], ti, y);
+        res = (res + a[i] * Mi % M * ti % M) % M;
+    }
+
+    return (res % M + M) % M;
+}
+
+int main() {
+    ll a[] = {2, 3, 4};
+    ll m[] = {3, 5, 7};
+
+    ll ans = crt(a, m, 3);
+    cout << "最少需要：" << ans << "人" << '\n';
+
+    return 0;
+}
+```
+
+应用二：周期性事件
+----------------
+多个周期性事件同时发生的最小时间。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+ll exgcd(ll a, ll b, ll &x, ll &y) {
+    if (b == 0) {
+        x = 1;
+        y = 0;
+        return a;
+    }
+    ll x1, y1;
+    ll gcd = exgcd(b, a % b, x1, y1);
+    x = y1;
+    y = x1 - (a / b) * y1;
+    return gcd;
+}
+
+pair<bool, ll> excrt(ll a[], ll m[], int n) {
+    ll x = a[0], mod = m[0];
+
+    for (int i = 1; i < n; i++) {
+        ll a1 = x, m1 = mod;
+        ll a2 = a[i], m2 = m[i];
+
+        ll k1, k2;
+        ll gcd = exgcd(m1, m2, k1, k2);
+        ll diff = a2 - a1;
+
+        if (diff % gcd != 0) {
+            return {false, 0};
+        }
+
+        ll lcm = m1 / gcd * m2;
+        k1 = (k1 % lcm + lcm) % lcm;
+        k1 = k1 * (diff / gcd) % lcm;
+
+        x = (a1 + m1 * k1) % lcm;
+        mod = lcm;
+    }
+
+    return {true, (x % mod + mod) % mod};
+}
+
+int main() {
+    // 事件A每4天发生一次，3天后发生
+    // 事件B每6天发生一次，5天后发生
+    // 事件C每8天发生一次，2天后发生
+    // 问多久后三个事件同时发生？
+
+    ll a[] = {3, 5, 2};
+    ll m[] = {4, 6, 8};
+
+    auto [ok, ans] = excrt(a, m, 3);
+    if (ok) {
+        cout << ans << "天后三个事件同时发生" << '\n';
+    } else {
+        cout << "三个事件不会同时发生" << '\n';
+    }
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 【模板】中国剩余定理（洛谷P1495）：基本CRT
+2. 【模板】扩展CRT（洛谷P4777）：模数不互质
+3. 青蛙的约会（洛谷P1516）：CRT应用
+4. XXOR-CZ（洛谷P2480）：CRT应用
+
+注意事项
+--------
+1. 标准CRT要求：
+   - 模数两两互质
+
+2. 扩展CRT：
+   - 模数可以不互质
+   - 可能无解
+
+3. 常见错误：
+   - 忘记检查是否有解
+   - 中间结果溢出
+   - 负数处理错误
+
+4. 优化技巧：
+   - 使用__int128防止溢出
+   - 边计算边取模
+
+时间复杂度总结
+--------------
+- 标准CRT：O(n log M)，M是模数的乘积
+- 扩展CRT：O(n log M)
+- 空间复杂度：O(n)
+
+中国剩余定理是求解同余方程组的重要工具，
+在密码学、计算机代数系统等领域有广泛应用。

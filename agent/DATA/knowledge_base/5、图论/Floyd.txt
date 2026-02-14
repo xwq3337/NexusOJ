@@ -1,0 +1,600 @@
+Floyd-Warshall算法
+=================
+
+算法概述
+--------
+Floyd-Warshall算法是一种解决多源最短路问题的动态规划算法,由Robert Floyd和Stephen Warshall提出。该算法可以求出图中任意两点之间的最短距离,适用于稠密图或需要多次查询的场景。
+
+核心思想
+--------
+1. 动态规划:dp[k][i][j]表示只经过前k个节点,从i到j的最短距离
+2. 状态转移:dp[k][i][j] = min(dp[k-1][i][j], dp[k-1][i][k] + dp[k-1][k][j])
+3. 空间优化:使用滚动数组,dp[i][j]表示当前阶段的最短距离
+4. 逐步扩展:依次考虑每个节点作为中间点,更新所有点对的最短距离
+
+算法原理
+--------
+设f[i][j]表示从i到j的最短距离,初始时f[i][j] = edge[i][j](边的权值)
+
+对于中间节点k,如果经过k能使得i到j的距离更短,则更新:
+f[i][j] = min(f[i][j], f[i][k] + f[k][j])
+
+这个过程需要对所有k,i,j进行枚举。
+
+基础实现
+--------
+时间复杂度:O(n³),空间复杂度:O(n²)
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 505;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+int dist[MAXN][MAXN];
+
+void floyd() {
+    // 三层循环,最外层枚举中间点
+    for (int k = 1; k <= n; k++) {
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= n; j++) {
+                if (dist[i][k] < INF && dist[k][j] < INF) {
+                    dist[i][j] = min(dist[i][j],
+                                    dist[i][k] + dist[k][j]);
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    // 初始化
+    memset(dist, 0x3f, sizeof(dist));
+    for (int i = 1; i <= n; i++) {
+        dist[i][i] = 0;  // 自己到自己的距离为0
+    }
+
+    // 读入边
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        dist[u][v] = min(dist[u][v], w);  // 重边取最小
+        // dist[v][u] = min(dist[v][u], w);  // 无向图
+    }
+
+    floyd();
+
+    // 查询
+    int q;
+    cin >> q;
+    while (q--) {
+        int u, v;
+        cin >> u >> v;
+        if (dist[u][v] >= INF / 2) {
+            cout << "INF\n";
+        } else {
+            cout << dist[u][v] << "\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    INF = float('inf')
+    dist = [[INF] * (n + 1) for _ in range(n + 1)]
+
+    for i in range(n + 1):
+        dist[i][i] = 0
+
+    # 读入边
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        dist[u][v] = min(dist[u][v], w)
+        # dist[v][u] = min(dist[v][u], w)
+
+    # Floyd算法
+    for k in range(1, n + 1):
+        for i in range(1, n + 1):
+            for j in range(1, n + 1):
+                if dist[i][k] < INF and dist[k][j] < INF:
+                    dist[i][j] = min(dist[i][j],
+                                    dist[i][k] + dist[k][j])
+
+    # 查询
+    q = int(input())
+    for _ in range(q):
+        u, v = map(int, input().split())
+        if dist[u][v] >= INF / 2:
+            print("INF")
+        else:
+            print(dist[u][v])
+
+solve()
+```
+
+路径还原
+--------
+记录路径上每个节点的前驱节点。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 505;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+int dist[MAXN][MAXN];
+int path[MAXN][MAXN];  // path[i][j]: i到j路径上j的前驱节点
+
+void floyd() {
+    for (int k = 1; k <= n; k++) {
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= n; j++) {
+                if (dist[i][k] < INF && dist[k][j] < INF) {
+                    if (dist[i][k] + dist[k][j] < dist[i][j]) {
+                        dist[i][j] = dist[i][k] + dist[k][j];
+                        path[i][j] = path[k][j];  // 更新前驱
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 打印从u到v的路径
+void print_path(int u, int v) {
+    if (dist[u][v] >= INF / 2) {
+        cout << "No path!\n";
+        return;
+    }
+
+    vector<int> ans;
+    ans.push_back(v);
+    while (u != v) {
+        v = path[u][v];
+        ans.push_back(v);
+    }
+    reverse(ans.begin(), ans.end());
+
+    cout << "Path: ";
+    for (size_t i = 0; i < ans.size(); i++) {
+        cout << ans[i];
+        if (i < ans.size() - 1) cout << " -> ";
+    }
+    cout << "\n";
+}
+
+int main() {
+    cin >> n >> m;
+
+    memset(dist, 0x3f, sizeof(dist));
+    memset(path, -1, sizeof(path));
+    for (int i = 1; i <= n; i++) {
+        dist[i][i] = 0;
+        path[i][i] = i;
+    }
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        if (w < dist[u][v]) {
+            dist[u][v] = w;
+            path[u][v] = u;
+        }
+    }
+
+    floyd();
+
+    int u, v;
+    cin >> u >> v;
+    cout << "Distance: " << dist[u][v] << "\n";
+    print_path(u, v);
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    INF = float('inf')
+    dist = [[INF] * (n + 1) for _ in range(n + 1)]
+    path = [[-1] * (n + 1) for _ in range(n + 1)]
+
+    for i in range(n + 1):
+        dist[i][i] = 0
+        path[i][i] = i
+
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        if w < dist[u][v]:
+            dist[u][v] = w
+            path[u][v] = u
+
+    # Floyd算法
+    for k in range(1, n + 1):
+        for i in range(1, n + 1):
+            for j in range(1, n + 1):
+                if dist[i][k] < INF and dist[k][j] < INF:
+                    if dist[i][k] + dist[k][j] < dist[i][j]:
+                        dist[i][j] = dist[i][k] + dist[k][j]
+                        path[i][j] = path[k][j]
+
+    # 打印路径
+    def print_path(u, v):
+        if dist[u][v] >= INF / 2:
+            print("No path!")
+            return
+
+        ans = []
+        curr = v
+        while True:
+            ans.append(curr)
+            if curr == u:
+                break
+            curr = path[u][curr]
+        ans.reverse()
+
+        print("Path:", " -> ".join(map(str, ans)))
+
+    u, v = map(int, input().split())
+    print(f"Distance: {dist[u][v]}")
+    print_path(u, v)
+
+solve()
+```
+
+判断负权边
+--------
+如果dist[i][i] < 0,说明存在负权环。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 505;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+int dist[MAXN][MAXN];
+
+void floyd() {
+    for (int k = 1; k <= n; k++) {
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= n; j++) {
+                if (dist[i][k] < INF && dist[k][j] < INF) {
+                    dist[i][j] = min(dist[i][j],
+                                    dist[i][k] + dist[k][j]);
+                }
+            }
+        }
+    }
+}
+
+bool has_negative_cycle() {
+    for (int i = 1; i <= n; i++) {
+        if (dist[i][i] < 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int main() {
+    cin >> n >> m;
+
+    memset(dist, 0x3f, sizeof(dist));
+    for (int i = 1; i <= n; i++) {
+        dist[i][i] = 0;
+    }
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        dist[u][v] = min(dist[u][v], w);
+    }
+
+    floyd();
+
+    if (has_negative_cycle()) {
+        cout << "Negative cycle detected!\n";
+    } else {
+        cout << "No negative cycle\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    INF = float('inf')
+    dist = [[INF] * (n + 1) for _ in range(n + 1)]
+
+    for i in range(n + 1):
+        dist[i][i] = 0
+
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        dist[u][v] = min(dist[u][v], w)
+
+    # Floyd算法
+    for k in range(1, n + 1):
+        for i in range(1, n + 1):
+            for j in range(1, n + 1):
+                if dist[i][k] < INF and dist[k][j] < INF:
+                    dist[i][j] = min(dist[i][j],
+                                    dist[i][k] + dist[k][j])
+
+    # 判断负权环
+    has_negative = any(dist[i][i] < 0 for i in range(1, n + 1))
+    if has_negative:
+        print("Negative cycle detected!")
+    else:
+        print("No negative cycle")
+
+solve()
+```
+
+传递闭包
+--------
+Floyd算法的变体,判断图的连通性。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 505;
+
+int n, m;
+bool reach[MAXN][MAXN];  // reach[i][j]: i能否到达j
+
+void transitive_closure() {
+    for (int k = 1; k <= n; k++) {
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= n; j++) {
+                reach[i][j] = reach[i][j] ||
+                             (reach[i][k] && reach[k][j]);
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    memset(reach, false, sizeof(reach));
+    for (int i = 1; i <= n; i++) {
+        reach[i][i] = true;  // 自己能到达自己
+    }
+
+    for (int i = 1; i <= m; i++) {
+        int u, v;
+        cin >> u >> v;
+        reach[u][v] = true;
+    }
+
+    transitive_closure();
+
+    // 查询
+    int q;
+    cin >> q;
+    while (q--) {
+        int u, v;
+        cin >> u >> v;
+        cout << (reach[u][v] ? "YES" : "NO") << "\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    reach = [[False] * (n + 1) for _ in range(n + 1)]
+
+    for i in range(n + 1):
+        reach[i][i] = True
+
+    for _ in range(m):
+        u, v = map(int, input().split())
+        reach[u][v] = True
+
+    # 传递闭包
+    for k in range(1, n + 1):
+        for i in range(1, n + 1):
+            for j in range(1, n + 1):
+                reach[i][j] = reach[i][j] or (reach[i][k] and reach[k][j])
+
+    # 查询
+    q = int(input())
+    for _ in range(q):
+        u, v = map(int, input().split())
+        print("YES" if reach[u][v] else "NO")
+
+solve()
+```
+
+最小环问题
+--------
+利用Floyd算法求无向图的最小环。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 505;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+int dist[MAXN][MAXN];  // 原图距离
+int f[MAXN][MAXN];     // Floyd过程中的距离
+int ans = INF;         // 最小环
+
+void find_min_cycle() {
+    // 复制原图
+    memcpy(f, dist, sizeof(dist));
+
+    for (int k = 1; k <= n; k++) {
+        // 枚举经过k的环
+        for (int i = 1; i < k; i++) {
+            for (int j = i + 1; j < k; j++) {
+                if (dist[i][k] < INF && dist[k][j] < INF &&
+                    f[i][j] < INF) {
+                    ans = min(ans, dist[i][k] + dist[k][j] + f[i][j]);
+                }
+            }
+        }
+
+        // Floyd更新
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= n; j++) {
+                if (f[i][k] < INF && f[k][j] < INF) {
+                    f[i][j] = min(f[i][j], f[i][k] + f[k][j]);
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    memset(dist, 0x3f, sizeof(dist));
+    for (int i = 1; i <= n; i++) {
+        dist[i][i] = 0;
+    }
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        dist[u][v] = min(dist[u][v], w);
+        dist[v][u] = min(dist[v][u], w);  // 无向图
+    }
+
+    find_min_cycle();
+
+    if (ans >= INF / 2) {
+        cout << "No cycle\n";
+    } else {
+        cout << "Minimum cycle: " << ans << "\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    INF = float('inf')
+    dist = [[INF] * (n + 1) for _ in range(n + 1)]
+
+    for i in range(n + 1):
+        dist[i][i] = 0
+
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        dist[u][v] = min(dist[u][v], w)
+        dist[v][u] = min(dist[v][u], w)
+
+    # 复制
+    f = [row[:] for row in dist]
+
+    ans = INF
+
+    for k in range(1, n + 1):
+        # 枚举经过k的环
+        for i in range(1, k):
+            for j in range(i + 1, k):
+                if dist[i][k] < INF and dist[k][j] < INF and f[i][j] < INF:
+                    ans = min(ans, dist[i][k] + dist[k][j] + f[i][j])
+
+        # Floyd更新
+        for i in range(1, n + 1):
+            for j in range(1, n + 1):
+                if f[i][k] < INF and f[k][j] < INF:
+                    f[i][j] = min(f[i][j], f[i][k] + f[k][j])
+
+    if ans >= INF / 2:
+        print("No cycle")
+    else:
+        print(f"Minimum cycle: {ans}")
+
+solve()
+```
+
+典型例题
+--------
+1. Floyd算法(洛谷P2910): 多源最短路模板
+2. 牛的旅行(洛谷P1522): 求直径的最小值
+3. 最短路(洛谷P1119): Floyd应用
+4. 小融的煎饼(洛谷P1475): 传递闭包问题
+5. 最小环(洛谷P2682): 求最小环问题
+
+注意事项
+--------
+1. Floyd算法时间复杂度O(n³),只适合n ≤ 500的情况
+2. 可以处理负权边,但不能处理负权环
+3. 循环顺序必须是k-i-j,不能改变
+4. 初始化时INF要设置得足够大,避免相加溢出
+5. 路径还原需要额外记录前驱节点
+6. 对于稀疏图,可以考虑跑n次Dijkstra
+
+算法应用场景
+-----------
+1. 需要求所有点对的最短距离
+2. 图的直径:所有点对最短距离的最大值
+3. 图的中心:到所有点最远距离最小的点
+4. 传递闭包:判断图的连通性
+5. 最小环:求图中权值和最小的环
+
+时间复杂度总结
+--------------
+- 时间复杂度:O(n³)
+- 空间复杂度:O(n²)
+- 优点:代码简洁,可以处理负权边
+- 缺点:时间复杂度高,不适合大图
+
+Floyd算法是多源最短路的标准算法,虽然时间复杂度较高,但在n较小时是非常实用的。

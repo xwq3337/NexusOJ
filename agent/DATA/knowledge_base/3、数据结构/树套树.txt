@@ -1,0 +1,330 @@
+树套树（Tree in Tree）
+====================
+
+算法概述
+--------
+树套树是一种嵌套的数据结构，通常指在一棵树中套另一棵树，或者线段树中套平衡树。用于解决复杂的区间查询和修改问题。
+
+核心特点：
+1. 支持复杂的区间操作
+2. 外层树管理区间，内层树维护区间内元素
+3. 时间复杂度O(log^2 n)
+4. 实现复杂，常数较大
+
+核心思想
+--------
+1. 外层用线段树分区间
+2. 内层用平衡树（如Treap、Splay）维护
+3. 查询时合并多个区间的结果
+4. 修改时更新log n个区间
+
+基础模板：线段树套平衡树
+----------------------
+
+C++版本（线段树套Treap）：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 50005;
+
+// Treap节点
+struct TreapNode {
+    int val, prio;
+    int left, right, size;
+} treap[MAXN * 400];
+
+int treap_cnt = 0;
+int treap_root[MAXN * 4];
+
+// Treap操作
+int newTreapNode(int val) {
+    treap_cnt++;
+    treap[treap_cnt].val = val;
+    treap[treap_cnt].prio = rand();
+    treap[treap_cnt].size = 1;
+    treap[treap_cnt].left = treap[treap_cnt].right = 0;
+    return treap_cnt;
+}
+
+void updateTreapSize(int node) {
+    if (node) {
+        treap[node].size = treap[treap[node].left].size +
+                          treap[treap[node].right].size + 1;
+    }
+}
+
+void treapSplit(int node, int key, int& x, int& y) {
+    if (!node) {
+        x = y = 0;
+    } else {
+        if (treap[node].val <= key) {
+            x = node;
+            treapSplit(treap[node].right, key, treap[node].right, y);
+        } else {
+            y = node;
+            treapSplit(treap[node].left, key, x, treap[node].left);
+        }
+        updateTreapSize(node);
+    }
+}
+
+int treapMerge(int x, int y) {
+    if (!x || !y) return x | y;
+
+    if (treap[x].prio > treap[y].prio) {
+        treap[x].right = treapMerge(treap[x].right, y);
+        updateTreapSize(x);
+        return x;
+    } else {
+        treap[y].left = treapMerge(x, treap[y].left);
+        updateTreapSize(y);
+        return y;
+    }
+}
+
+void treapInsert(int& root, int val) {
+    int x, y;
+    treapSplit(root, val, x, y);
+    root = treapMerge(treapMerge(x, newTreapNode(val)), y);
+}
+
+void treapErase(int& root, int val) {
+    int x, y, z;
+    treapSplit(root, val - 1, x, y);
+    treapSplit(y, val, y, z);
+    if (y) {
+        y = treapMerge(treap[y].left, treap[y].right);
+    }
+    root = treapMerge(treapMerge(x, y), z);
+}
+
+int treapQueryRank(int& root, int val) {
+    int x, y;
+    treapSplit(root, val - 1, x, y);
+    int ans = treap[x].size + 1;
+    root = treapMerge(x, y);
+    return ans;
+}
+
+int treapQueryKth(int node, int k) {
+    while (true) {
+        int left_size = treap[treap[node].left].size;
+        if (k <= left_size) {
+            node = treap[node].left;
+        } else if (k == left_size + 1) {
+            return treap[node].val;
+        } else {
+            k -= left_size + 1;
+            node = treap[node].right;
+        }
+    }
+}
+
+// 线段树操作
+void segBuild(int node, int start, int end, vector<int>& arr) {
+    for (int i = start; i <= end; i++) {
+        treapInsert(treap_root[node], arr[i]);
+    }
+
+    if (start == end) return;
+
+    int mid = (start + end) / 2;
+    segBuild(node * 2, start, mid, arr);
+    segBuild(node * 2 + 1, mid + 1, end, arr);
+}
+
+void segUpdate(int node, int start, int end, int idx, int old_val, int new_val) {
+    treapErase(treap_root[node], old_val);
+    treapInsert(treap_root[node], new_val);
+
+    if (start == end) return;
+
+    int mid = (start + end) / 2;
+    if (idx <= mid) {
+        segUpdate(node * 2, start, mid, idx, old_val, new_val);
+    } else {
+        segUpdate(node * 2 + 1, mid + 1, end, idx, old_val, new_val);
+    }
+}
+
+int segQueryRank(int node, int start, int end, int l, int r, int val) {
+    if (r < start || end < l) return 0;
+    if (l <= start && end <= r) {
+        return treapQueryRank(treap_root[node], val) - 1;
+    }
+
+    int mid = (start + end) / 2;
+    return segQueryRank(node * 2, start, mid, l, r, val) +
+           segQueryRank(node * 2 + 1, mid + 1, end, l, r, val);
+}
+
+int segQueryKth(int l, int r, int k) {
+    // 需要二分答案
+    int left = 0, right = 1e8, ans = 0;
+    while (left <= right) {
+        int mid = (left + right) / 2;
+        int cnt = segQueryRank(1, 1, n, l, r, mid);
+        if (cnt < k) {
+            left = mid + 1;
+        } else {
+            ans = mid;
+            right = mid - 1;
+        }
+    }
+    return ans;
+}
+
+int main() {
+    srand(time(0));
+
+    int n, m;
+    cin >> n >> m;
+
+    vector<int> arr(n + 1);
+    for (int i = 1; i <= n; i++) {
+        cin >> arr[i];
+    }
+
+    segBuild(1, 1, n, arr);
+
+    while (m--) {
+        int op;
+        cin >> op;
+
+        if (op == 1) {  // 查询排名
+            int l, r, val;
+            cin >> l >> r >> val;
+            cout << segQueryRank(1, 1, n, l, r, val) + 1 << endl;
+        } else if (op == 2) {  // 查询第k小
+            int l, r, k;
+            cin >> l >> r >> k;
+            cout << segQueryKth(l, r, k) << endl;
+        } else if (op == 3) {  // 修改
+            int pos, val;
+            cin >> pos >> val;
+            segUpdate(1, 1, n, pos, arr[pos], val);
+            arr[pos] = val;
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本（简化版）：
+```python
+import random
+
+class TreapNode:
+    def __init__(self, val):
+        self.val = val
+        self.prio = random.randint(1, 1 << 30)
+        self.left = None
+        self.right = None
+        self.size = 1
+
+class Treap:
+    def __init__(self):
+        self.root = None
+
+    def update_size(self, node):
+        if node:
+            node.size = 1 + (node.left.size if node.left else 0) + (node.right.size if node.right else 0)
+
+    def split(self, node, key):
+        if not node:
+            return (None, None)
+
+        if node.val <= key:
+            right = self.split(node.right, key)
+            node.right = right[0]
+            self.update_size(node)
+            return (node, right[1])
+        else:
+            left = self.split(node.left, key)
+            node.left = left[1]
+            self.update_size(node)
+            return (left[0], node)
+
+    def merge(self, x, y):
+        if not x or not y:
+            return x or y
+
+        if x.prio > y.prio:
+            x.right = self.merge(x.right, y)
+            self.update_size(x)
+            return x
+        else:
+            y.left = self.merge(x, y.left)
+            self.update_size(y)
+            return y
+
+    def insert(self, val):
+        left, right = self.split(self.root, val)
+        self.root = self.merge(self.merge(left, TreapNode(val)), right)
+
+    def query_rank(self, val):
+        left, right = self.split(self.root, val - 1)
+        ans = (left.size if left else 0) + 1
+        self.root = self.merge(left, right)
+        return ans
+
+class SegTreeTreap:
+    def __init__(self, arr):
+        self.n = len(arr)
+        self.treaps = [Treap() for _ in range(4 * self.n)]
+        self.build(1, 0, self.n - 1, arr)
+
+    def build(self, node, start, end, arr):
+        for i in range(start, end + 1):
+            self.treaps[node].insert(arr[i])
+
+        if start == end:
+            return
+
+        mid = (start + end) // 2
+        self.build(node * 2, start, mid, arr)
+        self.build(node * 2 + 1, mid + 1, end, arr)
+
+    def query_rank(self, node, start, end, l, r, val):
+        if r < start or end < l:
+            return 0
+        if l <= start and end <= r:
+            return self.treaps[node].query_rank(val) - 1
+
+        mid = (start + end) // 2
+        return (self.query_rank(node * 2, start, mid, l, r, val) +
+                self.query_rank(node * 2 + 1, mid + 1, end, l, r, val))
+
+# 测试
+n, m = map(int, input().split())
+arr = list(map(int, input().split()))
+
+stt = SegTreeTreap(arr)
+
+for _ in range(m):
+    parts = input().split()
+    op = int(parts[0])
+
+    if op == 1:  # 查询排名
+        l, r, val = int(parts[1]), int(parts[2]), int(parts[3])
+        print(stt.query_rank(1, 0, n - 1, l - 1, r - 1, val) + 1)
+```
+
+典型应用
+--------
+1. 动态区间第K小
+2. 区间前驱后继
+3. 区间排名查询
+
+注意事项
+--------
+1. 空间复杂度O(n log n)
+2. 时间复杂度O(log^2 n)
+3. 常数较大，谨慎使用
+4. 可以用其他数据结构优化
+
+时间复杂度：O(log^2 n)
+
+树套树是解决复杂区间问题的终极武器，但实现复杂，需要谨慎使用。

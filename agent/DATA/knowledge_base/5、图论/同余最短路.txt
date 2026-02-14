@@ -1,0 +1,271 @@
+同余最短路
+==========
+
+算法概述
+--------
+同余最短路是利用同余关系建立图论模型,通过最短路算法解决数论问题的技巧。核心思想是将余数作为节点,通过模运算建立边,转化为图上的最短路问题。
+
+核心思想
+--------
+1. 余数建图:将0到m-1的余数作为节点
+2. 状态转移:通过加减操作建立边
+3. 最短路求解:求最小花费或最大值
+4. 模型转化:数论问题转化为图论问题
+
+应用场景
+--------
+1. 给定n种硬币,求凑出面值x的最少硬币数
+2. 求最大不能表示的数(Frobenius数)
+3. 同余方程求解
+4. 最小步数问题
+
+经典问题:最少的硬币数量
+----------------------
+给定n种面值的硬币,每种硬币无限,求凑出面值x的最少硬币数。
+
+建图方式:
+- 节点:0到m-1的余数(m是某个面值)
+- 边:i→(i+a[j])%m,权值为1
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n;
+int coins[MAXN];
+int m;  // 最大面值
+int dist[MAXN];
+bool visited[MAXN];
+
+void dijkstra() {
+    memset(dist, 0x3f, sizeof(dist));
+    memset(visited, false, sizeof(visited));
+    dist[0] = 0;
+
+    priority_queue<pair<int, int>,
+                   vector<pair<int, int>>,
+                   greater<pair<int, int>>> pq;
+    pq.push({0, 0});
+
+    while (!pq.empty()) {
+        int u = pq.top().second;
+        int d = pq.top().first;
+        pq.pop();
+
+        if (visited[u]) continue;
+        visited[u] = true;
+
+        for (int i = 1; i <= n; i++) {
+            int v = (u + coins[i]) % m;
+            if (dist[u] + 1 < dist[v]) {
+                dist[v] = dist[u] + 1;
+                pq.push({dist[v], v});
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n;
+
+    m = 0;
+    for (int i = 1; i <= n; i++) {
+        cin >> coins[i];
+        m = max(m, coins[i]);
+    }
+
+    dijkstra();
+
+    int q;
+    cin >> q;
+    while (q--) {
+        int x;
+        cin >> x;
+        int r = x % m;
+        if (dist[r] >= 0x3f3f3f3f / 2) {
+            cout << "Cannot make " << x << "\n";
+        } else {
+            int ans = dist[r] + x / m;
+            cout << "Minimum coins for " << x << ": " << ans << "\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+import heapq
+
+def solve():
+    input = sys.stdin.readline
+    n = int(input())
+
+    coins = [0] + list(map(int, input().split()))
+    m = max(coins)
+
+    adj = [[] for _ in range(m)]
+
+    for i in range(m):
+        for j in range(1, n + 1):
+            v = (i + coins[j]) % m
+            adj[i].append((v, 1))
+
+    INF = float('inf')
+    dist = [INF] * m
+    visited = [False] * m
+    dist[0] = 0
+
+    pq = [(0, 0)]
+
+    while pq:
+        d, u = heapq.heappop(pq)
+
+        if visited[u]:
+            continue
+        visited[u] = True
+
+        for v, w in adj[u]:
+            if dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                heapq.heappush(pq, (dist[v], v))
+
+    q = int(input())
+    for _ in range(q):
+        x = int(input())
+        r = x % m
+        if dist[r] >= INF / 2:
+            print(f"Cannot make {x}")
+        else:
+            ans = dist[r] + x // m
+            print(f"Minimum coins for {x}: {ans}")
+
+solve()
+```
+
+最大不能表示的数(Frobenius数)
+---------------------------
+对于两个互质的正整数a和b,最大不能表示为ax+by(x,y≥0)的数为ab-a-b。
+
+推广到多个数的情况使用同余最短路。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int INF = 0x3f3f3f3f;
+
+int n;
+int a[MAXN];
+int min_val;  // 最小的面值
+int dist[MAXN];
+bool visited[MAXN];
+
+int frobenius() {
+    min_val = *min_element(a + 1, a + n + 1);
+
+    memset(dist, 0x3f, sizeof(dist));
+    memset(visited, false, sizeof(visited));
+    dist[0] = 0;
+
+    queue<int> q;
+    q.push(0);
+    visited[0] = true;
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+
+        for (int i = 1; i <= n; i++) {
+            int v = (u + a[i]) % min_val;
+            if (dist[u] + a[i] < dist[v]) {
+                dist[v] = dist[u] + a[i];
+                if (!visited[v]) {
+                    q.push(v);
+                    visited[v] = true;
+                }
+            }
+        }
+    }
+
+    int ans = 0;
+    for (int i = 0; i < min_val; i++) {
+        ans = max(ans, dist[i] - min_val);
+    }
+
+    return ans;
+}
+
+int main() {
+    cin >> n;
+
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+    }
+
+    int ans = frobenius();
+
+    cout << "Maximum Frobenius number: " << ans << "\n";
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n = int(input())
+
+    a = [0] + list(map(int, input().split()))
+    min_val = min(a[1:])
+
+    INF = float('inf')
+    dist = [INF] * min_val
+    visited = [False] * min_val
+    dist[0] = 0
+
+    q = deque([0])
+    visited[0] = True
+
+    while q:
+        u = q.popleft()
+
+        for i in range(1, n + 1):
+            v = (u + a[i]) % min_val
+            if dist[u] + a[i] < dist[v]:
+                dist[v] = dist[u] + a[i]
+                if not visited[v]:
+                    q.append(v)
+                    visited[v] = True
+
+    ans = max(dist[i] - min_val for i in range(min_val))
+
+    print(f"Maximum Frobenius number: {ans}")
+
+solve()
+```
+
+典型例题
+--------
+1. GETRANK(洛谷P2371): 同余最短路模板
+2. [JSOI2010]Group(洛谷P4452): 同余最短路应用
+3. CSUST 2-SAT: 同余问题
+
+注意事项
+--------
+1. 建图时选择最小的数作为模数
+2. 使用SPFA或Dijkstra求解
+3. 注意初始化和边界条件
+4. 理解余数作为节点的意义
+5. 时间复杂度取决于模数大小

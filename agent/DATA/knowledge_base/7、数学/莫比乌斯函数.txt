@@ -1,0 +1,316 @@
+莫比乌斯函数与莫比乌斯反演
+========================
+
+莫比乌斯函数μ(n)
+---------------
+定义：
+- μ(1) = 1
+- 如果n有平方因子（即存在质数p使得p²|n），则μ(n) = 0
+- 如果n是k个不同质数的乘积，则μ(n) = (-1)^k
+
+性质：
+1. μ(n)是积性函数
+2. Σμ(d) = 0（n > 1），其中d|n
+3. Σμ(d) = 1（n = 1）
+
+基础模板：求莫比乌斯函数
+---------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 10000005;
+int mu[MAXN];
+bool is_prime[MAXN];
+vector<int> primes;
+
+// 线性筛求莫比乌斯函数
+void mobius_sieve(int n) {
+    memset(is_prime, true, sizeof(is_prime));
+    mu[1] = 1;
+
+    for (int i = 2; i <= n; i++) {
+        if (is_prime[i]) {
+            primes.push_back(i);
+            mu[i] = -1;
+        }
+
+        for (int p : primes) {
+            if ((long long)i * p > n) break;
+
+            is_prime[i * p] = false;
+
+            if (i % p == 0) {
+                mu[i * p] = 0;
+                break;
+            } else {
+                mu[i * p] = -mu[i];
+            }
+        }
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    mobius_sieve(n);
+
+    for (int i = 1; i <= n; i++) {
+        cout << "μ(" << i << ") = " << mu[i] << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def mobius_sieve(n: int):
+    """线性筛求莫比乌斯函数"""
+    mu = [0] * (n + 1)
+    is_prime = [True] * (n + 1)
+    primes = []
+
+    mu[1] = 1
+    for i in range(2, n + 1):
+        if is_prime[i]:
+            primes.append(i)
+            mu[i] = -1
+
+        for p in primes:
+            if i * p > n:
+                break
+            is_prime[i * p] = False
+
+            if i % p == 0:
+                mu[i * p] = 0
+                break
+            else:
+                mu[i * p] = -mu[i]
+
+    return mu
+
+def solve():
+    n = int(input())
+    mu = mobius_sieve(n)
+
+    for i in range(1, n + 1):
+        print(f"μ({i}) = {mu[i]}")
+
+solve()
+```
+
+莫比乌斯反演
+----------
+定理形式一：
+如果F(n) = Σf(d)，其中d|n
+则f(n) = Σμ(d) × F(n/d)，其中d|n
+
+定理形式二：
+如果F(n) = Σf(d)，其中n|d
+则f(n) = Σμ(d/n) × F(d)，其中n|d
+
+应用一：互质对问题
+----------------
+求有多少对(i, j)满足1 ≤ i ≤ n, 1 ≤ j ≤ m, gcd(i, j) = 1
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+const int MAXN = 50005;
+int mu[MAXN];
+vector<int> primes;
+
+// 线性筛求莫比乌斯函数
+void mobius_sieve(int n) {
+    vector<bool> is_prime(n + 1, true);
+    mu[1] = 1;
+
+    for (int i = 2; i <= n; i++) {
+        if (is_prime[i]) {
+            primes.push_back(i);
+            mu[i] = -1;
+        }
+
+        for (int p : primes) {
+            if ((long long)i * p > n) break;
+            is_prime[i * p] = false;
+
+            if (i % p == 0) {
+                mu[i * p] = 0;
+                break;
+            } else {
+                mu[i * p] = -mu[i];
+            }
+        }
+    }
+}
+
+// 求互质对个数
+ll count_coprime_pairs(int n, int m) {
+    mobius_sieve(min(n, m));
+
+    ll ans = 0;
+    for (int i = 1; i <= min(n, m); i++) {
+        ans += (ll)mu[i] * (n / i) * (m / i);
+    }
+    return ans;
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    cout << "互质对个数：" << count_coprime_pairs(n, m) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def mobius_sieve(n: int):
+    """线性筛求莫比乌斯函数"""
+    mu = [0] * (n + 1)
+    is_prime = [True] * (n + 1)
+    primes = []
+
+    mu[1] = 1
+    for i in range(2, n + 1):
+        if is_prime[i]:
+            primes.append(i)
+            mu[i] = -1
+
+        for p in primes:
+            if i * p > n:
+                break
+            is_prime[i * p] = False
+
+            if i % p == 0:
+                mu[i * p] = 0
+                break
+            else:
+                mu[i * p] = -mu[i]
+
+    return mu
+
+def count_coprime_pairs(n: int, m: int) -> int:
+    """求互质对个数"""
+    mu = mobius_sieve(min(n, m))
+
+    ans = 0
+    for i in range(1, min(n, m) + 1):
+        ans += mu[i] * (n // i) * (m // i)
+
+    return ans
+
+def solve():
+    n, m = map(int, input().split())
+    result = count_coprime_pairs(n, m)
+    print(f"互质对个数：{result}")
+
+solve()
+```
+
+应用二：gcd之和
+-------------
+求Σgcd(i, j)，其中1 ≤ i ≤ n, 1 ≤ j ≤ m
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+const int MAXN = 50005;
+int mu[MAXN];
+vector<int> primes;
+
+void mobius_sieve(int n) {
+    vector<bool> is_prime(n + 1, true);
+    mu[1] = 1;
+
+    for (int i = 2; i <= n; i++) {
+        if (is_prime[i]) {
+            primes.push_back(i);
+            mu[i] = -1;
+        }
+
+        for (int p : primes) {
+            if ((long long)i * p > n) break;
+            is_prime[i * p] = false;
+
+            if (i % p == 0) {
+                mu[i * p] = 0;
+                break;
+            } else {
+                mu[i * p] = -mu[i];
+            }
+        }
+    }
+}
+
+ll gcd_sum(int n, int m) {
+    mobius_sieve(min(n, m));
+
+    ll ans = 0;
+    for (int i = 1; i <= min(n, m); i++) {
+        ll cnt1 = 0, cnt2 = 0;
+        for (int j = 1; j <= n / i; j++) {
+            cnt1 += j;
+        }
+        for (int j = 1; j <= m / i; j++) {
+            cnt2 += j;
+        }
+        ans += mu[i] * cnt1 * cnt2;
+    }
+
+    return ans;
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    cout << "gcd之和：" << gcd_sum(n, m) << '\n';
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 【模板】莫比乌斯函数（洛谷P2522）：基本计算
+2. YY的GCD（洛谷P2257）：莫比乌斯反演
+3. 互质对（洛谷P3455）：基础应用
+
+注意事项
+--------
+1. μ(n)的取值：
+   - μ(1) = 1
+   - μ(n) = 0（有平方因子）
+   - μ(n) = (-1)^k（k个不同质数）
+
+2. 反演技巧：
+   - 确定原函数和目标函数
+   - 正确应用反演公式
+
+3. 常见错误：
+   - 忘记预处理μ
+   - 反演方向搞反
+
+时间复杂度总结
+--------------
+- 预处理μ：O(n)
+- 莫比乌斯反演：O(√n)
+
+莫比乌斯函数是数论的重要工具，
+它在容斥原理、组合计数等领域有广泛应用。

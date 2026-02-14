@@ -1,0 +1,416 @@
+可持久化线段树（Persistent Segment Tree / 主席树）
+====================
+
+算法概述
+--------
+可持久化线段树，又称主席树，是一种支持历史版本查询的线段树。它通过共享节点来节省空间，每次修改只创建新节点而不修改旧节点。
+
+核心特点：
+1. 保留历史版本，可查询任意时刻的状态
+2. 空间复杂度O(n log n)，不是O(mn)
+3. 通过节点复用节省空间
+4. 每次修改创建一条新的路径
+
+核心思想
+--------
+1. 每个版本记录根节点
+2. 修改时只创建新路径上的节点
+3. 未修改的节点共享旧版本的节点
+4. 查询时从对应版本的根节点开始
+
+基础模板：可持久化数组
+-------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int MAXM = MAXN * 40;  // 节点数量：n * log(n)
+
+int tree[MAXM];
+int lChild[MAXM];
+int rChild[MAXM];
+int roots[MAXN];  // 每个版本的根节点
+int node_cnt = 0;
+int n, m;
+
+// 创建新节点
+int newNode(int val) {
+    node_cnt++;
+    tree[node_cnt] = val;
+    lChild[node_cnt] = rChild[node_cnt] = 0;
+    return node_cnt;
+}
+
+// 克隆节点
+int cloneNode(int node) {
+    node_cnt++;
+    tree[node_cnt] = tree[node];
+    lChild[node_cnt] = lChild[node];
+    rChild[node_cnt] = rChild[node];
+    return node_cnt;
+}
+
+// 建树
+int build(int start, int end) {
+    int node = newNode(0);
+    if (start == end) {
+        tree[node] = 0;
+    } else {
+        int mid = (start + end) / 2;
+        lChild[node] = build(start, mid);
+        rChild[node] = build(mid + 1, end);
+    }
+    return node;
+}
+
+// 单点修改，返回新节点
+int update(int node, int start, int end, int idx, int val) {
+    int new_node = cloneNode(node);
+
+    if (start == end) {
+        tree[new_node] = val;
+    } else {
+        int mid = (start + end) / 2;
+        if (idx <= mid) {
+            lChild[new_node] = update(lChild[node], start, mid, idx, val);
+        } else {
+            rChild[new_node] = update(rChild[node], mid + 1, end, idx, val);
+        }
+    }
+
+    return new_node;
+}
+
+// 查询
+int query(int node, int start, int end, int idx) {
+    if (start == end) {
+        return tree[node];
+    }
+
+    int mid = (start + end) / 2;
+    if (idx <= mid) {
+        return query(lChild[node], start, mid, idx);
+    } else {
+        return query(rChild[node], mid + 1, end, idx);
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    roots[0] = build(1, n);
+
+    for (int i = 1; i <= m; i++) {
+        int version, op;
+        cin >> version >> op;
+
+        if (op == 1) {  // 单点修改
+            int idx, val;
+            cin >> idx >> val;
+            roots[i] = update(roots[version], 1, n, idx, val);
+        } else {  // 查询
+            int idx;
+            cin >> idx;
+            cout << query(roots[version], 1, n, idx) << endl;
+            roots[i] = roots[version];  // 新版本继承当前版本
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class PersistentSegmentTree:
+    def __init__(self, n):
+        self.n = n
+        self.tree = []
+        self.lChild = []
+        self.rChild = []
+        self.roots = []
+        self.node_cnt = 0
+
+    def new_node(self, val):
+        """创建新节点"""
+        self.node_cnt += 1
+        self.tree.append(val)
+        self.lChild.append(0)
+        self.rChild.append(0)
+        return self.node_cnt
+
+    def clone_node(self, node):
+        """克隆节点"""
+        self.node_cnt += 1
+        self.tree.append(self.tree[node])
+        self.lChild.append(self.lChild[node])
+        self.rChild.append(self.rChild[node])
+        return self.node_cnt
+
+    def build(self, start, end):
+        """建树"""
+        node = self.new_node(0)
+        if start == end:
+            self.tree[node] = 0
+        else:
+            mid = (start + end) // 2
+            self.lChild[node] = self.build(start, mid)
+            self.rChild[node] = self.build(mid + 1, end)
+        return node
+
+    def update(self, node, start, end, idx, val):
+        """单点修改，返回新节点"""
+        new_node = self.clone_node(node)
+
+        if start == end:
+            self.tree[new_node] = val
+        else:
+            mid = (start + end) // 2
+            if idx <= mid:
+                self.lChild[new_node] = self.update(self.lChild[node], start, mid, idx, val)
+            else:
+                self.rChild[new_node] = self.update(self.rChild[node], mid + 1, end, idx, val)
+
+        return new_node
+
+    def query(self, node, start, end, idx):
+        """查询"""
+        if start == end:
+            return self.tree[node]
+
+        mid = (start + end) // 2
+        if idx <= mid:
+            return self.query(self.lChild[node], start, mid, idx)
+        else:
+            return self.query(self.rChild[node], mid + 1, end, idx)
+
+# 测试
+n, m = map(int, input().split())
+pst = PersistentSegmentTree(n)
+pst.roots.append(pst.build(1, n))
+
+for i in range(1, m + 1):
+    parts = input().split()
+    version = int(parts[0])
+    op = int(parts[1])
+
+    if op == 1:  # 单点修改
+        idx, val = int(parts[2]), int(parts[3])
+        new_root = pst.update(pst.roots[version], 1, n, idx, val)
+        pst.roots.append(new_root)
+    else:  # 查询
+        idx = int(parts[2])
+        result = pst.query(pst.roots[version], 1, n, idx)
+        print(result)
+        pst.roots.append(pst.roots[version])
+```
+
+应用一：第K小数（静态区间第K小）
+----------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int MAXM = MAXN * 40;
+
+int tree[MAXM];
+int lChild[MAXM];
+int rChild[MAXM];
+int roots[MAXN];
+int sorted[MAXN];
+int node_cnt = 0;
+int n, m;
+
+int build(int start, int end) {
+    int node = ++node_cnt;
+    tree[node] = 0;
+    if (start == end) {
+        return node;
+    }
+    int mid = (start + end) / 2;
+    lChild[node] = build(start, mid);
+    rChild[node] = build(mid + 1, end);
+    return node;
+}
+
+int update(int node, int start, int end, int idx) {
+    int new_node = ++node_cnt;
+    tree[new_node] = tree[node] + 1;
+    lChild[new_node] = lChild[node];
+    rChild[new_node] = rChild[node];
+
+    if (start == end) {
+        return new_node;
+    }
+
+    int mid = (start + end) / 2;
+    if (idx <= mid) {
+        lChild[new_node] = update(lChild[node], start, mid, idx);
+    } else {
+        rChild[new_node] = update(rChild[node], mid + 1, end, idx);
+    }
+
+    return new_node;
+}
+
+int query(int left_root, int right_root, int start, int end, int k) {
+    if (start == end) {
+        return start;
+    }
+
+    int mid = (start + end) / 2;
+    int count = tree[lChild[right_root]] - tree[lChild[left_root]];
+
+    if (k <= count) {
+        return query(lChild[left_root], lChild[right_root], start, mid, k);
+    } else {
+        return query(rChild[left_root], rChild[right_root], mid + 1, end, k - count);
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        cin >> sorted[i];
+    }
+
+    // 离散化
+    vector<int> arr(sorted + 1, sorted + n + 1);
+    sort(arr.begin(), arr.end());
+    arr.erase(unique(arr.begin(), arr.end()), arr.end());
+
+    for (int i = 1; i <= n; i++) {
+        sorted[i] = lower_bound(arr.begin(), arr.end(), sorted[i]) - arr.begin() + 1;
+    }
+
+    roots[0] = build(1, arr.size());
+
+    for (int i = 1; i <= n; i++) {
+        roots[i] = update(roots[i - 1], 1, arr.size(), sorted[i]);
+    }
+
+    while (m--) {
+        int l, r, k;
+        cin >> l >> r >> k;
+
+        int idx = query(roots[l - 1], roots[r], 1, arr.size(), k);
+        cout << arr[idx - 1] << endl;
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class ChairmanTree:
+    def __init__(self, n):
+        self.n = n
+        self.tree = [0]
+        self.lChild = [0]
+        self.rChild = [0]
+        self.roots = [0]
+        self.node_cnt = 0
+
+    def build(self, start, end):
+        """建树"""
+        node = self.node_cnt + 1
+        self.node_cnt += 1
+        self.tree.append(0)
+        self.lChild.append(0)
+        self.rChild.append(0)
+
+        if start == end:
+            return node
+
+        mid = (start + end) // 2
+        self.lChild[node] = self.build(start, mid)
+        self.rChild[node] = self.build(mid + 1, end)
+        return node
+
+    def update(self, node, start, end, idx):
+        """插入元素"""
+        new_node = self.node_cnt + 1
+        self.node_cnt += 1
+        self.tree.append(self.tree[node] + 1)
+        self.lChild.append(self.lChild[node])
+        self.rChild.append(self.rChild[node])
+
+        if start == end:
+            return new_node
+
+        mid = (start + end) // 2
+        if idx <= mid:
+            self.lChild[new_node] = self.update(self.lChild[node], start, mid, idx)
+        else:
+            self.rChild[new_node] = self.update(self.rChild[node], mid + 1, end, idx)
+
+        return new_node
+
+    def query(self, left_root, right_root, start, end, k):
+        """查询第K小"""
+        if start == end:
+            return start
+
+        mid = (start + end) // 2
+        count = self.tree[self.lChild[right_root]] - self.tree[self.lChild[left_root]]
+
+        if k <= count:
+            return self.query(self.lChild[left_root], self.lChild[right_root], start, mid, k)
+        else:
+            return self.query(self.rChild[left_root], self.rChild[right_root], mid + 1, end, k - count)
+
+def solve():
+    n, m = map(int, input().split())
+    arr = list(map(int, input().split()))
+
+    # 离散化
+    sorted_arr = sorted(set(arr))
+    rank = {v: i + 1 for i, v in enumerate(sorted_arr)}
+
+    ct = ChairmanTree(n)
+    ct.roots[0] = ct.build(1, len(sorted_arr))
+
+    for i, val in enumerate(arr, 1):
+        new_root = ct.update(ct.roots[i - 1], 1, len(sorted_arr), rank[val])
+        ct.roots.append(new_root)
+
+    for _ in range(m):
+        l, r, k = map(int, input().split())
+        idx = ct.query(ct.roots[l - 1], ct.roots[r], 1, len(sorted_arr), k)
+        print(sorted_arr[idx - 1])
+
+solve()
+```
+
+典型例题
+--------
+1. 静态区间第K小（洛谷P3834）：主席树模板题
+2. K-th Number（POJ 2104）：经典第K小问题
+3. Dynamic Rankings（动态区间第K小）：树套树
+4. 可持久化数组（平衡树）：基础应用
+
+注意事项
+--------
+1. 节点数量要开够：n * log(n)
+2. 离散化是必要的步骤
+3. 查询时用差值计算
+4. 每次版本更新要保存新根
+5. 注意下标从1开始
+6. 空间换时间，用节点复用节省空间
+
+时间复杂度总结
+--------------
+- 建树：O(n log n)
+- 单次修改：O(log n)
+- 单次查询：O(log n)
+- 空间复杂度：O(n log n)
+
+主席树是可持久化数据结构的经典代表，在区间第K小、历史版本查询等问题中应用广泛。

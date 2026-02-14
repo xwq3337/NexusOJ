@@ -1,0 +1,524 @@
+质数（Prime Numbers）
+====================
+
+基本概念
+--------
+质数（素数）是指在大于1的自然数中，除了1和它本身以外不再有其他因数的自然数。
+最小的质数是2，也是唯一的偶质数。
+
+质数的性质
+----------
+1. 质数有无穷多个（欧几里得定理）
+2. 任何大于1的自然数都可以唯一地表示为质数的乘积（算术基本定理）
+3. 质数分布定理：π(n) ~ n / ln(n)
+
+方法一：试除法判定质数
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 试除法判定质数
+bool is_prime(int n) {
+    if (n < 2) return false;
+    if (n == 2) return true;
+    if (n % 2 == 0) return false;
+
+    for (int i = 3; i * i <= n; i += 2) {
+        if (n % i == 0) return false;
+    }
+    return true;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    if (is_prime(n)) {
+        cout << n << "是质数" << '\n';
+    } else {
+        cout << n << "不是质数" << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def is_prime(n: int) -> bool:
+    """试除法判定质数"""
+    if n < 2:
+        return False
+    if n == 2:
+        return True
+    if n % 2 == 0:
+        return False
+
+    i = 3
+    while i * i <= n:
+        if n % i == 0:
+            return False
+        i += 2
+    return True
+
+def solve():
+    n = int(input())
+    if is_prime(n):
+        print(f"{n}是质数")
+    else:
+        print(f"{n}不是质数")
+
+solve()
+```
+
+方法二：埃拉托斯特尼筛法（埃氏筛）
+--------------------------------
+用于高效地筛选出一定范围内的所有质数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 10000005;
+bool is_prime[MAXN];
+vector<int> primes;
+
+// 埃氏筛
+void eratosthenes_sieve(int n) {
+    memset(is_prime, true, sizeof(is_prime));
+    is_prime[0] = is_prime[1] = false;
+
+    for (int i = 2; i <= n; i++) {
+        if (is_prime[i]) {
+            primes.push_back(i);
+            if ((long long)i * i <= n) {
+                for (int j = i * i; j <= n; j += i) {
+                    is_prime[j] = false;
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    eratosthenes_sieve(n);
+
+    cout << "1到" << n << "之间的质数有" << primes.size() << "个" << '\n';
+    for (int p : primes) {
+        cout << p << " ";
+    }
+    cout << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def eratosthenes_sieve(n: int):
+    """埃氏筛"""
+    is_prime = [True] * (n + 1)
+    is_prime[0] = is_prime[1] = False
+    primes = []
+
+    for i in range(2, n + 1):
+        if is_prime[i]:
+            primes.append(i)
+            if i * i <= n:
+                for j in range(i * i, n + 1, i):
+                    is_prime[j] = False
+
+    return primes, is_prime
+
+def solve():
+    n = int(input())
+    primes, is_prime = eratosthenes_sieve(n)
+    print(f"1到{n}之间的质数有{len(primes)}个")
+    print(' '.join(map(str, primes)))
+
+solve()
+```
+
+方法三：欧拉筛（线性筛）
+----------------------
+时间复杂度为O(n)，每个合数只被标记一次。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 10000005;
+bool is_prime[MAXN];
+vector<int> primes;
+
+// 欧拉筛
+void euler_sieve(int n) {
+    memset(is_prime, true, sizeof(is_prime));
+    is_prime[0] = is_prime[1] = false;
+
+    for (int i = 2; i <= n; i++) {
+        if (is_prime[i]) {
+            primes.push_back(i);
+        }
+
+        for (int p : primes) {
+            if ((long long)i * p > n) break;
+            is_prime[i * p] = false;
+
+            if (i % p == 0) break;  // 关键：保证每个合数只被标记一次
+        }
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    euler_sieve(n);
+
+    cout << "1到" << n << "之间的质数有" << primes.size() << "个" << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def euler_sieve(n: int):
+    """欧拉筛"""
+    is_prime = [True] * (n + 1)
+    is_prime[0] = is_prime[1] = False
+    primes = []
+
+    for i in range(2, n + 1):
+        if is_prime[i]:
+            primes.append(i)
+
+        for p in primes:
+            if i * p > n:
+                break
+            is_prime[i * p] = False
+            if i % p == 0:
+                break  # 关键
+
+    return primes, is_prime
+
+def solve():
+    n = int(input())
+    primes, is_prime = euler_sieve(n)
+    print(f"1到{n}之间的质数有{len(primes)}个")
+
+solve()
+```
+
+方法四：Miller-Rabin素性测试
+---------------------------
+用于快速判定大数是否为质数，基于费马小定理。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 快速幂
+ll pow_mod(ll a, ll b, ll mod) {
+    ll res = 1;
+    a %= mod;
+    while (b > 0) {
+        if (b & 1) res = __int128(res) * a % mod;
+        a = __int128(a) * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// Miller-Rabin测试
+bool miller_rabin(ll n) {
+    if (n < 2) return false;
+    if (n == 2) return true;
+    if (n % 2 == 0) return false;
+
+    // 将n-1分解为 d × 2^s
+    ll d = n - 1;
+    int s = 0;
+    while (d % 2 == 0) {
+        d /= 2;
+        s++;
+    }
+
+    // 测试基数
+    vector<ll> bases = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37};
+    for (ll a : bases) {
+        if (a >= n) continue;
+
+        ll x = pow_mod(a, d, n);
+        if (x == 1 || x == n - 1) continue;
+
+        bool composite = true;
+        for (int i = 0; i < s - 1; i++) {
+            x = __int128(x) * x % n;
+            if (x == n - 1) {
+                composite = false;
+                break;
+            }
+        }
+        if (composite) return false;
+    }
+    return true;
+}
+
+int main() {
+    ll n;
+    cin >> n;
+
+    if (miller_rabin(n)) {
+        cout << n << "是质数" << '\n';
+    } else {
+        cout << n << "不是质数" << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import random
+
+def pow_mod(a: int, b: int, mod: int) -> int:
+    """快速幂"""
+    res = 1
+    a %= mod
+    while b > 0:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def miller_rabin(n: int) -> bool:
+    """Miller-Rabin素性测试"""
+    if n < 2:
+        return False
+    if n == 2:
+        return True
+    if n % 2 == 0:
+        return False
+
+    # 将n-1分解为 d × 2^s
+    d = n - 1
+    s = 0
+    while d % 2 == 0:
+        d //= 2
+        s += 1
+
+    # 测试基数
+    bases = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37]
+    for a in bases:
+        if a >= n:
+            continue
+
+        x = pow_mod(a, d, n)
+        if x == 1 or x == n - 1:
+            continue
+
+        composite = True
+        for _ in range(s - 1):
+            x = x * x % n
+            if x == n - 1:
+                composite = False
+                break
+        if composite:
+            return False
+    return True
+
+def solve():
+    n = int(input())
+    if miller_rabin(n):
+        print(f"{n}是质数")
+    else:
+        print(f"{n}不是质数")
+
+solve()
+```
+
+应用一：质因数分解
+----------------
+将一个数分解为质数的乘积。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 质因数分解
+vector<pair<int, int>> prime_factorization(int n) {
+    vector<pair<int, int>> factors;
+
+    for (int i = 2; i * i <= n; i++) {
+        if (n % i == 0) {
+            int cnt = 0;
+            while (n % i == 0) {
+                n /= i;
+                cnt++;
+            }
+            factors.push_back({i, cnt});
+        }
+    }
+
+    if (n > 1) {
+        factors.push_back({n, 1});
+    }
+
+    return factors;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    auto factors = prime_factorization(n);
+
+    cout << n << " = ";
+    for (int i = 0; i < factors.size(); i++) {
+        cout << factors[i].first;
+        if (factors[i].second > 1) {
+            cout << "^" << factors[i].second;
+        }
+        if (i < factors.size() - 1) {
+            cout << " × ";
+        }
+    }
+    cout << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List, Tuple
+
+def prime_factorization(n: int) -> List[Tuple[int, int]]:
+    """质因数分解"""
+    factors = []
+
+    i = 2
+    while i * i <= n:
+        if n % i == 0:
+            cnt = 0
+            while n % i == 0:
+                n //= i
+                cnt += 1
+            factors.append((i, cnt))
+        i += 1
+
+    if n > 1:
+        factors.append((n, 1))
+
+    return factors
+
+def solve():
+    n = int(input())
+    factors = prime_factorization(n)
+
+    print(f"{n} = ", end='')
+    for i, (p, cnt) in enumerate(factors):
+        print(p, end='')
+        if cnt > 1:
+            print(f"^{cnt}", end='')
+        if i < len(factors) - 1:
+            print(" × ", end='')
+    print()
+
+solve()
+```
+
+应用二：求区间内质数个数
+----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 10000005;
+bool is_prime[MAXN];
+int prime_count[MAXN];
+
+void sieve(int n) {
+    memset(is_prime, true, sizeof(is_prime));
+    is_prime[0] = is_prime[1] = false;
+
+    for (int i = 2; i <= n; i++) {
+        if (is_prime[i]) {
+            for (int j = i * 2; j <= n; j += i) {
+                is_prime[j] = false;
+            }
+        }
+        prime_count[i] = prime_count[i - 1] + (is_prime[i] ? 1 : 0);
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    sieve(n);
+
+    int l, r;
+    cin >> l >> r;
+    cout << "区间[" << l << ", " << r << "]内的质数个数："
+         << prime_count[r] - prime_count[l - 1] << '\n';
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 【模板】质数判定（洛谷P5736）：试除法
+2. 【模板】埃氏筛（洛谷P3383）：筛法求质数
+3. 【模板】欧拉筛（洛谷P3383）：线性筛
+4. 【模板】Miller-Rabin（洛谷P4879）：大数质数判定
+5. 质因数分解（洛谷P2045）：分解质因数
+
+注意事项
+--------
+1. 方法选择：
+   - 小范围判定：试除法
+   - 筛选质数：欧拉筛
+   - 大数判定：Miller-Rabin
+
+2. 优化技巧：
+   - 只筛到√n
+   - 跳过偶数
+   - 使用位运算优化
+
+3. 边界情况：
+   - n = 1不是质数
+   - n = 2是最小的质数
+
+4. 常见错误：
+   - 忘记处理n = 1
+   - 筛法范围不够
+   - 数组越界
+
+时间复杂度总结
+--------------
+- 试除法：O(√n)
+- 埃氏筛：O(n log log n)
+- 欧拉筛：O(n)
+- Miller-Rabin：O(k log³ n)
+
+质数是数论的基础，掌握质数相关的算法对解决很多数学问题都很重要。

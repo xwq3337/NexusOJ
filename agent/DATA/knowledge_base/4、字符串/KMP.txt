@@ -1,0 +1,746 @@
+KMP算法（Knuth-Morris-Pratt Algorithm）
+======================================
+
+算法概述
+--------
+KMP算法是一种高效的字符串匹配算法，用于在主文本中查找模式串的出现位置。它通过预处理模式串，构建next数组（也叫失配函数或前缀函数），在匹配失败时跳过不必要的比较，将时间复杂度从朴素算法的O(n*m)优化到O(n+m)。
+
+核心思想
+--------
+1. 利用已经匹配过的信息，避免从头开始匹配
+2. 当匹配失败时，模式串向右滑动到尽可能远的位置
+3. next数组：记录模式串每个位置之前的字符串中，最长相等前后缀的长度
+
+算法原理
+--------
+1. 前缀函数（next数组）：
+   - next[i]表示模式串[0, i-1]中，最长相等真前缀和真后缀的长度
+   - 真前缀/真后缀：不包含整个字符串本身
+   - 例如：对于"abab"，next[3] = 2（"ab"既是前缀也是后缀）
+
+2. 匹配过程：
+   - i指向文本串，j指向模式串
+   - 如果匹配，i++，j++
+   - 如果失配且j > 0，j = next[j]
+   - 如果失配且j = 0，i++
+
+3. KMP的关键优化：
+   - 失配时不需要回退i，只需要移动j
+   - 利用next数组直接跳到下一个可能匹配的位置
+
+基础模板：next数组构建
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1000005;
+
+char pattern[MAXN];
+int nxt[MAXN];  // next数组（nxt是C++关键字，所以用nxt）
+
+// 构建next数组
+void build_next() {
+    int m = strlen(pattern);
+    nxt[0] = 0;  // 第一个字符的next值是0
+
+    // j表示前一个位置的next值
+    int j = 0;
+    for (int i = 1; i < m; i++) {
+        // 当不匹配时，回退到前一个位置的next
+        while (j > 0 && pattern[i] != pattern[j]) {
+            j = nxt[j - 1];
+        }
+
+        // 如果匹配，next值增加
+        if (pattern[i] == pattern[j]) {
+            j++;
+        }
+
+        nxt[i] = j;
+    }
+}
+
+int main() {
+    scanf("%s", pattern);
+    build_next();
+
+    int m = strlen(pattern);
+    printf("Next array:\n");
+    for (int i = 0; i < m; i++) {
+        printf("next[%d] = %d\n", i, nxt[i]);
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+def build_next(pattern):
+    m = len(pattern)
+    nxt = [0] * m
+
+    j = 0
+    for i in range(1, m):
+        while j > 0 and pattern[i] != pattern[j]:
+            j = nxt[j - 1]
+
+        if pattern[i] == pattern[j]:
+            j += 1
+
+        nxt[i] = j
+
+    return nxt
+
+def solve():
+    input = sys.stdin.readline
+    pattern = input().strip()
+
+    nxt = build_next(pattern)
+
+    print("Next array:")
+    for i, val in enumerate(nxt):
+        print(f"next[{i}] = {val}")
+
+solve()
+```
+
+完整KMP模板
+-----------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1000005;
+
+char text[MAXN];
+char pattern[MAXN];
+int nxt[MAXN];
+
+// 构建next数组
+void build_next() {
+    int m = strlen(pattern);
+    nxt[0] = 0;
+
+    int j = 0;
+    for (int i = 1; i < m; i++) {
+        while (j > 0 && pattern[i] != pattern[j]) {
+            j = nxt[j - 1];
+        }
+
+        if (pattern[i] == pattern[j]) {
+            j++;
+        }
+
+        nxt[i] = j;
+    }
+}
+
+// KMP匹配，返回所有匹配位置
+vector<int> kmp_search() {
+    int n = strlen(text);
+    int m = strlen(pattern);
+
+    vector<int> positions;
+    int j = 0;
+
+    for (int i = 0; i < n; i++) {
+        while (j > 0 && text[i] != pattern[j]) {
+            j = nxt[j - 1];
+        }
+
+        if (text[i] == pattern[j]) {
+            j++;
+        }
+
+        if (j == m) {
+            // 找到完整匹配
+            positions.push_back(i - m + 1);
+            j = nxt[j - 1];  // 继续查找下一个匹配
+        }
+    }
+
+    return positions;
+}
+
+int main() {
+    scanf("%s%s", text, pattern);
+
+    build_next();
+    vector<int> positions = kmp_search();
+
+    printf("Found %d occurrences:\n", (int)positions.size());
+    for (int pos : positions) {
+        printf("%d\n", pos);
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+def build_next(pattern):
+    m = len(pattern)
+    nxt = [0] * m
+
+    j = 0
+    for i in range(1, m):
+        while j > 0 and pattern[i] != pattern[j]:
+            j = nxt[j - 1]
+
+        if pattern[i] == pattern[j]:
+            j += 1
+
+        nxt[i] = j
+
+    return nxt
+
+def kmp_search(text, pattern, nxt):
+    n, m = len(text), len(pattern)
+    positions = []
+    j = 0
+
+    for i in range(n):
+        while j > 0 and text[i] != pattern[j]:
+            j = nxt[j - 1]
+
+        if text[i] == pattern[j]:
+            j += 1
+
+        if j == m:
+            positions.append(i - m + 1)
+            j = nxt[j - 1]
+
+    return positions
+
+def solve():
+    input = sys.stdin.readline
+    text = input().strip()
+    pattern = input().strip()
+
+    nxt = build_next(pattern)
+    positions = kmp_search(text, pattern, nxt)
+
+    print(f"Found {len(positions)} occurrences:")
+    for pos in positions:
+        print(pos)
+
+solve()
+```
+
+应用一：统计模式串出现次数
+------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1000005;
+
+char text[MAXN];
+char pattern[MAXN];
+int nxt[MAXN];
+
+void build_next() {
+    int m = strlen(pattern);
+    nxt[0] = 0;
+
+    int j = 0;
+    for (int i = 1; i < m; i++) {
+        while (j > 0 && pattern[i] != pattern[j]) {
+            j = nxt[j - 1];
+        }
+
+        if (pattern[i] == pattern[j]) {
+            j++;
+        }
+
+        nxt[i] = j;
+    }
+}
+
+int count_occurrences() {
+    int n = strlen(text);
+    int m = strlen(pattern);
+
+    int count = 0;
+    int j = 0;
+
+    for (int i = 0; i < n; i++) {
+        while (j > 0 && text[i] != pattern[j]) {
+            j = nxt[j - 1];
+        }
+
+        if (text[i] == pattern[j]) {
+            j++;
+        }
+
+        if (j == m) {
+            count++;
+            j = nxt[j - 1];
+        }
+    }
+
+    return count;
+}
+
+int main() {
+    scanf("%s%s", text, pattern);
+
+    build_next();
+    int count = count_occurrences();
+
+    printf("Pattern occurs %d times\n", count);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+def build_next(pattern):
+    m = len(pattern)
+    nxt = [0] * m
+
+    j = 0
+    for i in range(1, m):
+        while j > 0 and pattern[i] != pattern[j]:
+            j = nxt[j - 1]
+
+        if pattern[i] == pattern[j]:
+            j += 1
+
+        nxt[i] = j
+
+    return nxt
+
+def count_occurrences(text, pattern, nxt):
+    n, m = len(text), len(pattern)
+    count = 0
+    j = 0
+
+    for i in range(n):
+        while j > 0 and text[i] != pattern[j]:
+            j = nxt[j - 1]
+
+        if text[i] == pattern[j]:
+            j += 1
+
+        if j == m:
+            count += 1
+            j = nxt[j - 1]
+
+    return count
+
+def solve():
+    input = sys.stdin.readline
+    text = input().strip()
+    pattern = input().strip()
+
+    nxt = build_next(pattern)
+    count = count_occurrences(text, pattern, nxt)
+
+    print(f"Pattern occurs {count} times")
+
+solve()
+```
+
+应用二：循环串问题
+----------------
+判断一个字符串是否可以由另一个子串重复多次构成。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1000005;
+
+char s[MAXN];
+int nxt[MAXN];
+
+void build_next() {
+    int n = strlen(s);
+    nxt[0] = 0;
+
+    int j = 0;
+    for (int i = 1; i < n; i++) {
+        while (j > 0 && s[i] != s[j]) {
+            j = nxt[j - 1];
+        }
+
+        if (s[i] == s[j]) {
+            j++;
+        }
+
+        nxt[i] = j;
+    }
+}
+
+bool is_repeated_substring() {
+    int n = strlen(s);
+    int len = nxt[n - 1];  // 最长相等前后缀长度
+
+    // 如果能整除，说明是循环串
+    if (len > 0 && n % (n - len) == 0) {
+        return true;
+    }
+    return false;
+}
+
+int main() {
+    scanf("%s", s);
+    build_next();
+
+    if (is_repeated_substring()) {
+        int n = strlen(s);
+        int cycle_len = n - nxt[n - 1];
+        printf("Yes, cycle length: %d\n", cycle_len);
+    } else {
+        printf("No\n");
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+def build_next(s):
+    n = len(s)
+    nxt = [0] * n
+
+    j = 0
+    for i in range(1, n):
+        while j > 0 and s[i] != s[j]:
+            j = nxt[j - 1]
+
+        if s[i] == s[j]:
+            j += 1
+
+        nxt[i] = j
+
+    return nxt
+
+def is_repeated_substring(s, nxt):
+    n = len(s)
+    length = nxt[-1]
+
+    if length > 0 and n % (n - length) == 0:
+        return True, n - length
+    return False, n
+
+def solve():
+    input = sys.stdin.readline
+    s = input().strip()
+
+    nxt = build_next(s)
+    is_repeated, cycle_len = is_repeated_substring(s, nxt)
+
+    if is_repeated:
+        print(f"Yes, cycle length: {cycle_len}")
+    else:
+        print("No")
+
+solve()
+```
+
+应用三：字符串最小周期
+--------------------
+求字符串的最小周期长度。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1000005;
+
+char s[MAXN];
+int nxt[MAXN];
+
+void build_next() {
+    int n = strlen(s);
+    nxt[0] = 0;
+
+    int j = 0;
+    for (int i = 1; i < n; i++) {
+        while (j > 0 && s[i] != s[j]) {
+            j = nxt[j - 1];
+        }
+
+        if (s[i] == s[j]) {
+            j++;
+        }
+
+        nxt[i] = j;
+    }
+}
+
+int get_min_period() {
+    int n = strlen(s);
+    int len = nxt[n - 1];
+
+    if (n % (n - len) == 0) {
+        return n - len;
+    }
+    return n;  // 不能循环，周期就是字符串本身
+}
+
+int main() {
+    int t;
+    scanf("%d", &t);
+
+    while (t--) {
+        scanf("%s", s);
+        build_next();
+        printf("%d\n", get_min_period());
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+def build_next(s):
+    n = len(s)
+    nxt = [0] * n
+
+    j = 0
+    for i in range(1, n):
+        while j > 0 and s[i] != s[j]:
+            j = nxt[j - 1]
+
+        if s[i] == s[j]:
+            j += 1
+
+        nxt[i] = j
+
+    return nxt
+
+def get_min_period(s, nxt):
+    n = len(s)
+    length = nxt[-1]
+
+    if n % (n - length) == 0:
+        return n - length
+    return n
+
+def solve():
+    input = sys.stdin.readline
+    t = int(input())
+
+    for _ in range(t):
+        s = input().strip()
+        nxt = build_next(s)
+        print(get_min_period(s, nxt))
+
+solve()
+```
+
+应用四：字符串覆盖问题
+--------------------
+求需要多少个模式串才能覆盖文本串。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1000005;
+
+char text[MAXN];
+char pattern[MAXN];
+int nxt[MAXN];
+int dp[MAXN];  // dp[i]: 覆盖text[0..i]所需的最少模式串数量
+
+void build_next() {
+    int m = strlen(pattern);
+    nxt[0] = 0;
+
+    int j = 0;
+    for (int i = 1; i < m; i++) {
+        while (j > 0 && pattern[i] != pattern[j]) {
+            j = nxt[j - 1];
+        }
+
+        if (pattern[i] == pattern[j]) {
+            j++;
+        }
+
+        nxt[i] = j;
+    }
+}
+
+int min_coverage() {
+    int n = strlen(text);
+    int m = strlen(pattern);
+
+    for (int i = 0; i <= n; i++) {
+        dp[i] = INT_MAX;
+    }
+    dp[0] = 0;
+
+    int j = 0;
+    for (int i = 0; i < n; i++) {
+        while (j > 0 && text[i] != pattern[j]) {
+            j = nxt[j - 1];
+        }
+
+        if (text[i] == pattern[j]) {
+            j++;
+        }
+
+        if (j == m) {
+            // 匹配成功
+            int start = i - m + 1;
+            if (dp[start] != INT_MAX) {
+                dp[i + 1] = min(dp[i + 1], dp[start] + 1);
+            }
+            j = nxt[j - 1];
+        }
+
+        // 不使用当前匹配
+        if (dp[i] != INT_MAX) {
+            dp[i + 1] = min(dp[i + 1], dp[i]);
+        }
+    }
+
+    return dp[n] == INT_MAX ? -1 : dp[n];
+}
+
+int main() {
+    scanf("%s%s", text, pattern);
+
+    build_next();
+    int result = min_coverage();
+
+    if (result == -1) {
+        printf("Cannot cover\n");
+    } else {
+        printf("Minimum coverage: %d\n", result);
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+def build_next(pattern):
+    m = len(pattern)
+    nxt = [0] * m
+
+    j = 0
+    for i in range(1, m):
+        while j > 0 and pattern[i] != pattern[j]:
+            j = nxt[j - 1]
+
+        if pattern[i] == pattern[j]:
+            j += 1
+
+        nxt[i] = j
+
+    return nxt
+
+def min_coverage(text, pattern, nxt):
+    n, m = len(text), len(pattern)
+    dp = [float('inf')] * (n + 1)
+    dp[0] = 0
+
+    j = 0
+    for i in range(n):
+        while j > 0 and text[i] != pattern[j]:
+            j = nxt[j - 1]
+
+        if text[i] == pattern[j]:
+            j += 1
+
+        if j == m:
+            start = i - m + 1
+            if dp[start] != float('inf'):
+                dp[i + 1] = min(dp[i + 1], dp[start] + 1)
+            j = nxt[j - 1]
+
+        if dp[i] != float('inf'):
+            dp[i + 1] = min(dp[i + 1], dp[i])
+
+    return dp[n] if dp[n] != float('inf') else -1
+
+def solve():
+    input = sys.stdin.readline
+    text = input().strip()
+    pattern = input().strip()
+
+    nxt = build_next(pattern)
+    result = min_coverage(text, pattern, nxt)
+
+    if result == -1:
+        print("Cannot cover")
+    else:
+        print(f"Minimum coverage: {result}")
+
+solve()
+```
+
+典型例题
+--------
+1. KMP模板题（洛谷P3375）：在文本串中查找模式串所有出现位置
+2. 前缀函数（洛谷P5287）：计算next数组
+3. 循环串（洛谷P4391）：判断字符串是否由子串重复构成
+4. 字符串覆盖（洛谷P4824）：用模式串覆盖文本串的最少次数
+5. 最小周期（POJ 2406）：求字符串的最小周期
+
+注意事项
+--------
+1. next数组的定义：
+   - next[i]表示pattern[0..i-1]的最长相等前后缀长度
+   - next[0]始终为0
+   - 也有版本定义next[i]为失配后应该跳到的位置
+
+2. 数组下标：
+   - C++中字符串从0开始
+   - Python中字符串从0开始
+   - 注意处理边界情况
+
+3. 匹配成功后的处理：
+   - 找到完整匹配后，需要继续查找
+   - j = nxt[j-1] 继续匹配可能的重叠部分
+
+4. 时间复杂度：
+   - 构建next数组：O(m)
+   - 匹配过程：O(n)
+   - 总时间复杂度：O(n + m)
+
+5. 空间复杂度：
+   - next数组：O(m)
+   - 总空间复杂度：O(m)
+
+时间复杂度总结
+--------------
+- 预处理next数组：O(m)
+- KMP匹配：O(n)
+- 总时间复杂度：O(n + m)
+- 空间复杂度：O(m)
+
+KMP算法的核心在于理解next数组的含义和构建过程，掌握它对解决各种字符串匹配问题都很有帮助。

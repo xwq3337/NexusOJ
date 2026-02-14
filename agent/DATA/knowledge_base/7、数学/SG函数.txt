@@ -1,0 +1,446 @@
+SG函数（Sprague-Grundy Function）
+==================================
+
+基本概念
+--------
+SG函数是博弈论中的重要工具，用于分析公平组合游戏。
+SG值（Grundy数）表示游戏局面的特征。
+
+定义：
+- 终局（无法移动）的SG值为0
+- 非终局的SG值为mex{后继局面的SG值}
+
+其中mex（minimum excludant）是不属于集合的最小非负整数。
+
+SG定理
+------
+一个游戏局面的SG值等于其各个子游戏SG值的异或和：
+    SG(局面) = SG(子游戏1) ⊕ SG(子游戏2) ⊕ ... ⊕ SG(子游戏n)
+
+胜负判定：
+- SG值 = 0：必败态
+- SG值 ≠ 0：必胜态
+
+基础模板
+--------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 10005;
+
+// 计算SG值
+int calc_sg(vector<int>& moves, vector<int>& sg, int n) {
+    if (sg[n] != -1) {
+        return sg[n];
+    }
+
+    set<int> s;
+    for (int move : moves) {
+        if (n >= move) {
+            s.insert(calc_sg(moves, sg, n - move));
+        }
+    }
+
+    // 计算mex
+    int mex = 0;
+    while (s.count(mex)) {
+        mex++;
+    }
+
+    return sg[n] = mex;
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    vector<int> moves(m);
+    for (int i = 0; i < m; i++) {
+        cin >> moves[i];
+    }
+
+    vector<int> sg(n + 1, -1);
+    sg[0] = 0;  // 终局
+
+    int sg_value = calc_sg(moves, sg, n);
+
+    if (sg_value != 0) {
+        cout << "先手必胜，SG值：" << sg_value << '\n';
+    } else {
+        cout << "后手必胜，SG值：" << sg_value << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List, Set
+
+def calc_sg(moves: List[int], sg: List[int], n: int) -> int:
+    """计算SG值"""
+    if sg[n] != -1:
+        return sg[n]
+
+    s = set()
+    for move in moves:
+        if n >= move:
+            s.add(calc_sg(moves, sg, n - move))
+
+    # 计算mex
+    mex = 0
+    while mex in s:
+        mex += 1
+
+    sg[n] = mex
+    return mex
+
+def solve():
+    n, m = map(int, input().split())
+    moves = list(map(int, input().split()))
+
+    sg = [-1] * (n + 1)
+    sg[0] = 0  # 终局
+
+    sg_value = calc_sg(moves, sg, n)
+
+    if sg_value != 0:
+        print(f"先手必胜，SG值：{sg_value}")
+    else:
+        print(f"后手必胜，SG值：{sg_value}")
+
+solve()
+```
+
+应用一：取石子游戏
+----------------
+每次可以取a1, a2, ..., ak个石子。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+
+int sg[MAXN];
+
+void precompute_sg(vector<int>& moves, int max_n) {
+    memset(sg, 0, sizeof(sg));
+
+    for (int i = 1; i <= max_n; i++) {
+        set<int> s;
+        for (int move : moves) {
+            if (i >= move) {
+                s.insert(sg[i - move]);
+            }
+        }
+
+        int mex = 0;
+        while (s.count(mex)) {
+            mex++;
+        }
+        sg[i] = mex;
+    }
+}
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+
+    vector<int> moves(k);
+    for (int i = 0; i < k; i++) {
+        cin >> moves[i];
+    }
+
+    precompute_sg(moves, n);
+
+    int sg_value = sg[n];
+
+    if (sg_value != 0) {
+        cout << "先手必胜，SG值：" << sg_value << '\n';
+    } else {
+        cout << "后手必胜，SG值：" << sg_value << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def precompute_sg(moves: list, max_n: int):
+    """预处理SG值"""
+    sg = [0] * (max_n + 1)
+
+    for i in range(1, max_n + 1):
+        s = set()
+        for move in moves:
+            if i >= move:
+                s.add(sg[i - move])
+
+        mex = 0
+        while mex in s:
+            mex += 1
+        sg[i] = mex
+
+    return sg
+
+def solve():
+    n, k = map(int, input().split())
+    moves = list(map(int, input().split()))
+
+    sg = precompute_sg(moves, n)
+    sg_value = sg[n]
+
+    if sg_value != 0:
+        print(f"先手必胜，SG值：{sg_value}")
+    else:
+        print(f"后手必胜，SG值：{sg_value}")
+
+solve()
+```
+
+应用二：多堆石子（Nim游戏的SG证明）
+----------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// Nim游戏的SG值就是石子数本身
+bool nim_game(vector<ll>& piles) {
+    ll xor_sum = 0;
+    for (ll pile : piles) {
+        xor_sum ^= pile;  // SG值 = 石子数
+    }
+    return xor_sum != 0;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<ll> piles(n);
+    for (int i = 0; i < n; i++) {
+        cin >> piles[i];
+    }
+
+    if (nim_game(piles)) {
+        cout << "先手必胜" << '\n';
+    } else {
+        cout << "后手必胜" << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def nim_game(piles: list) -> bool:
+    """Nim游戏的SG值就是石子数本身"""
+    xor_sum = 0
+    for pile in piles:
+        xor_sum ^= pile  # SG值 = 石子数
+    return xor_sum != 0
+
+def solve():
+    n = int(input())
+    piles = list(map(int, input().split()))
+
+    if nim_game(piles):
+        print("先手必胜")
+    else:
+        print("后手必胜")
+
+solve()
+```
+
+应用三：图博弈
+-------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+vector<int> adj[MAXN];
+int sg[MAXN];
+
+// 在图中移动的博弈
+int calc_sg_graph(int u, int parent) {
+    if (sg[u] != -1) {
+        return sg[u];
+    }
+
+    set<int> s;
+    for (int v : adj[u]) {
+        if (v != parent) {
+            s.insert(calc_sg_graph(v, u));
+        }
+    }
+
+    int mex = 0;
+    while (s.count(mex)) {
+        mex++;
+    }
+
+    return sg[u] = mex;
+}
+
+int main() {
+    int n, root;
+    cin >> n >> root;
+
+    for (int i = 0; i < n - 1; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    memset(sg, -1, sizeof(sg));
+    int sg_value = calc_sg_graph(root, -1);
+
+    if (sg_value != 0) {
+        cout << "先手必胜，SG值：" << sg_value << '\n';
+    } else {
+        cout << "后手必胜，SG值：" << sg_value << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List, Set
+
+def calc_sg_graph(u: int, parent: int, adj: List[List[int]], sg: List[int]) -> int:
+    """在图中移动的博弈"""
+    if sg[u] != -1:
+        return sg[u]
+
+    s = set()
+    for v in adj[u]:
+        if v != parent:
+            s.add(calc_sg_graph(v, u, adj, sg))
+
+    mex = 0
+    while mex in s:
+        mex += 1
+
+    sg[u] = mex
+    return mex
+
+def solve():
+    n, root = map(int, input().split())
+    adj = [[] for _ in range(n + 1)]
+
+    for _ in range(n - 1):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    sg = [-1] * (n + 1)
+    sg_value = calc_sg_graph(root, -1, adj, sg)
+
+    if sg_value != 0:
+        print(f"先手必胜，SG值：{sg_value}")
+    else:
+        print(f"后手必胜，SG值：{sg_value}")
+
+solve()
+```
+
+应用四：二维游戏
+--------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 105;
+int sg[MAXN][MAXN];
+
+// 二维游戏：每次可以向左、向上或向左上移动
+void precompute_sg_2d(int max_n, int max_m) {
+    for (int i = 0; i <= max_n; i++) {
+        for (int j = 0; j <= max_m; j++) {
+            set<int> s;
+
+            if (i > 0) s.insert(sg[i-1][j]);
+            if (j > 0) s.insert(sg[i][j-1]);
+            if (i > 0 && j > 0) s.insert(sg[i-1][j-1]);
+
+            int mex = 0;
+            while (s.count(mex)) {
+                mex++;
+            }
+            sg[i][j] = mex;
+        }
+    }
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    precompute_sg_2d(n, m);
+
+    int sg_value = sg[n][m];
+
+    if (sg_value != 0) {
+        cout << "先手必胜，SG值：" << sg_value << '\n';
+    } else {
+        cout << "后手必胜，SG值：" << sg_value << '\n';
+    }
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 【模板】SG函数（洛谷P2197）：基本应用
+2. 取石子游戏（洛谷P1248）：经典问题
+3. 公平游戏（洛谷P2148）：图博弈
+
+注意事项
+--------
+1. SG值计算：
+   - 终局SG值为0
+   - 使用mex计算非终局SG值
+
+2. SG定理：
+   - 复合游戏的SG值等于子游戏SG值的异或和
+   - SG值=0必败，≠0必胜
+
+3. 计算技巧：
+   - 记忆化搜索
+   - 预处理SG表
+   - 找规律优化
+
+4. 常见错误：
+   - mex计算错误
+   - 忘记记忆化
+   - SG定理应用错误
+
+时间复杂度总结
+--------------
+- 单次计算（记忆化）：O(n × m)，m是移动选项数
+- 预处理：O(max_n × m)
+- 查询：O(1)
+
+SG函数是博弈论的核心工具，
+掌握它对解决各种博弈问题都有很大帮助。

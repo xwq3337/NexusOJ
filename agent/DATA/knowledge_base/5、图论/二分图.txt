@@ -1,0 +1,323 @@
+二分图
+====
+
+算法概述
+--------
+二分图(Bipartite Graph)是一种特殊的图,其顶点集可以分割成两个互不相交的子集,使得图中每条边的两个端点分别属于不同的子集。二分图判定和匹配是图论中的重要问题。
+
+核心概念
+--------
+1. 二分图:顶点可分为两集,边不连接同集内的点
+2. 染色法:用两种颜色给顶点染色,相邻点颜色不同
+3. 匈牙利算法:求二分图最大匹配
+4. 完美匹配:所有点都被匹配
+5. 最大匹配:边数最多的匹配
+
+二分图判定(染色法)
+------------------
+时间复杂度:O(n+m)
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+int color[MAXN];  // 0:未染色, 1/2:两种颜色
+
+bool is_bipartite = true;
+
+void dfs(int u, int c) {
+    color[u] = c;
+    for (int v : adj[u]) {
+        if (color[v] == 0) {
+            dfs(v, 3 - c);  // 染成不同颜色
+        } else if (color[v] == c) {
+            is_bipartite = false;
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    for (int i = 1; i <= n; i++) {
+        if (color[i] == 0) {
+            dfs(i, 1);
+        }
+    }
+
+    if (is_bipartite) {
+        cout << "Bipartite graph\n";
+    } else {
+        cout << "Not bipartite\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    color = [0] * (n + 1)
+    is_bipartite = True
+
+    def dfs(u, c):
+        nonlocal is_bipartite
+        color[u] = c
+        for v in adj[u]:
+            if color[v] == 0:
+                dfs(v, 3 - c)
+            elif color[v] == c:
+                is_bipartite = False
+
+    for i in range(1, n + 1):
+        if color[i] == 0:
+            dfs(i, 1)
+
+    print("Bipartite graph" if is_bipartite else "Not bipartite")
+
+solve()
+```
+
+匈牙利算法:求最大匹配
+-------------------
+时间复杂度:O(nm)
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 505;
+
+int n, m, k;
+vector<int> adj[MAXN];
+int match[MAXN];  // match[v]: 右侧点v匹配的左侧点
+bool visited[MAXN];
+
+bool dfs(int u) {
+    for (int v : adj[u]) {
+        if (visited[v]) continue;
+        visited[v] = true;
+
+        if (match[v] == 0 || dfs(match[v])) {
+            match[v] = u;
+            return true;
+        }
+    }
+    return false;
+}
+
+int hungarian() {
+    int result = 0;
+    for (int i = 1; i <= n; i++) {
+        memset(visited, false, sizeof(visited));
+        if (dfs(i)) {
+            result++;
+        }
+    }
+    return result;
+}
+
+int main() {
+    cin >> n >> m >> k;
+
+    for (int i = 1; i <= k; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+    }
+
+    int ans = hungarian();
+
+    cout << "Maximum matching: " << ans << "\n";
+    cout << "Matched pairs:\n";
+    for (int v = 1; v <= m; v++) {
+        if (match[v] != 0) {
+            cout << match[v] << " - " << v << "\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m, k = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+
+    for _ in range(k):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+
+    match = [0] * (m + 1)
+
+    def dfs(u):
+        for v in adj[u]:
+            if visited[v]:
+                continue
+            visited[v] = True
+            if match[v] == 0 or dfs(match[v]):
+                match[v] = u
+                return True
+        return False
+
+    result = 0
+    for i in range(1, n + 1):
+        visited = [False] * (m + 1)
+        if dfs(i):
+            result += 1
+
+    print(f"Maximum matching: {result}")
+    print("Matched pairs:")
+    for v in range(1, m + 1):
+        if match[v] != 0:
+            print(f"{match[v]} - {v}")
+
+solve()
+```
+
+KM算法:带权最大匹配(完美匹配)
+---------------------------
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 505;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+int g[MAXN][MAXN];  // 权值矩阵
+int lx[MAXN], ly[MAXN];  // 左右顶点的标号
+int match[MAXN];  // 右侧点的匹配
+bool visx[MAXN], visy[MAXN];
+int slack[MAXN];
+
+bool dfs(int x) {
+    visx[x] = true;
+    for (int y = 1; y <= m; y++) {
+        if (visy[y]) continue;
+        int t = lx[x] + ly[y] - g[x][y];
+        if (t == 0) {
+            visy[y] = true;
+            if (match[y] == -1 || dfs(match[y])) {
+                match[y] = x;
+                return true;
+            }
+        } else if (slack[y] > t) {
+            slack[y] = t;
+        }
+    }
+    return false;
+}
+
+int km() {
+    memset(match, -1, sizeof(match));
+    memset(ly, 0, sizeof(ly));
+
+    for (int i = 1; i <= n; i++) {
+        lx[i] = -INF;
+        for (int j = 1; j <= m; j++) {
+            lx[i] = max(lx[i], g[i][j]);
+        }
+    }
+
+    for (int x = 1; x <= n; x++) {
+        fill(slack, slack + m + 1, INF);
+
+        while (true) {
+            memset(visx, false, sizeof(visx));
+            memset(visy, false, sizeof(visy));
+
+            if (dfs(x)) break;
+
+            int d = INF;
+            for (int i = 1; i <= m; i++) {
+                if (!visy[i] && d > slack[i]) {
+                    d = slack[i];
+                }
+            }
+
+            for (int i = 1; i <= n; i++) {
+                if (visx[i]) lx[i] -= d;
+            }
+            for (int i = 1; i <= m; i++) {
+                if (visy[i]) ly[i] += d;
+                else slack[i] -= d;
+            }
+        }
+    }
+
+    int result = 0;
+    for (int i = 1; i <= m; i++) {
+        if (match[i] != -1) {
+            result += g[match[i]][i];
+        }
+    }
+    return result;
+}
+
+int main() {
+    cin >> n >> m;
+
+    memset(g, 0xcf, sizeof(g));  // 初始化为负无穷
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            cin >> g[i][j];
+        }
+    }
+
+    int ans = km();
+
+    cout << "Maximum weight matching: " << ans << "\n";
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 二分图判定(洛谷P1330): 染色法判定二分图
+2. 二分图匹配(洛谷P3386): 匈牙利算法模板
+3. 飞行员配对(洛谷P2071): 二分图匹配应用
+4. KM算法(洛谷P6587): 带权匹配
+
+注意事项
+--------
+1. 二分图不一定连通,需要对每个连通块染色
+2. 染色冲突说明不是二分图
+3. 匈牙利算法求最大匹配
+4. KM算法求最大权完美匹配
+5. 时间复杂度:染色O(n+m),匈牙利O(nm),KM O(n³)

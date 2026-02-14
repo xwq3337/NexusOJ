@@ -1,0 +1,289 @@
+带花树算法(一般图最大匹配)
+======================
+
+算法概述
+--------
+带花树算法(Blossom Algorithm)由Jack Edmonds提出,用于求解一般图(非二分图)的最大匹配问题。算法通过识别并收缩"花"(Blossom,奇环)来处理一般图中的复杂情况。
+
+核心概念
+--------
+1. 匹配:边的集合,任意两条边无公共顶点
+2. 最大匹配:边数最多的匹配
+3. 交替路:匹配边和非匹配边交替出现的路径
+4. 增广路:起点和终点都未匹配的交替路
+5. 花:奇数长度的环,阻碍增广路查找
+
+算法思想
+--------
+1. 寻找未匹配点作为起点
+2. BFS寻找增广路
+3. 遇到奇环(花)时收缩
+4. 继续寻找增广路
+5. 找到增广路后进行增广
+6. 展开收缩的花
+
+基础实现(简化版)
+---------------
+时间复杂度:O(n³)
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 505;
+
+int n, m;
+vector<int> adj[MAXN];
+int match[MAXN];  // 匹配 partner
+int p[MAXN];      // 父节点
+int base[MAXN];   // 花的根
+bool used[MAXN];
+bool blossom[MAXN];
+
+int lca(int a, int b) {
+    vector<bool> vis(n + 1, false);
+    while (true) {
+        a = base[a];
+        vis[a] = true;
+        if (match[a] == -1) break;
+        a = p[match[a]];
+    }
+    while (true) {
+        b = base[b];
+        if (vis[b]) return b;
+        b = p[match[b]];
+    }
+}
+
+void mark_path(int v, int b, int child) {
+    while (base[v] != b) {
+        blossom[base[v]] = blossom[base[match[v]]] = true;
+        p[v] = child;
+        child = match[v];
+        v = p[match[v]];
+    }
+}
+
+int find_path(int root) {
+    memset(used, false, sizeof(used));
+    memset(p, -1, sizeof(p));
+
+    for (int i = 1; i <= n; i++) {
+        base[i] = i;
+    }
+
+    used[root] = true;
+    queue<int> q;
+    q.push(root);
+
+    while (!q.empty()) {
+        int v = q.front();
+        q.pop();
+
+        for (int to : adj[v]) {
+            if (base[v] == base[to] || match[v] == to) continue;
+
+            if (to == root || (match[to] != -1 && p[match[to]] != -1)) {
+                // 找到花
+                int curbase = lca(v, to);
+                memset(blossom, false, sizeof(blossom));
+                mark_path(v, curbase, to);
+                mark_path(to, curbase, v);
+
+                for (int i = 1; i <= n; i++) {
+                    if (blossom[base[i]]) {
+                        base[i] = curbase;
+                        if (!used[i]) {
+                            used[i] = true;
+                            q.push(i);
+                        }
+                    }
+                }
+            } else if (p[to] == -1) {
+                p[to] = v;
+                if (match[to] == -1) {
+                    return to;
+                }
+                to = match[to];
+                used[to] = true;
+                q.push(to);
+            }
+        }
+    }
+    return -1;
+}
+
+int edmonds() {
+    memset(match, -1, sizeof(match));
+    int result = 0;
+
+    for (int i = 1; i <= n; i++) {
+        if (match[i] == -1) {
+            int v = find_path(i);
+            if (v != -1) {
+                result++;
+                while (v != -1) {
+                    int pv = p[v];
+                    int ppv = match[pv];
+                    match[v] = pv;
+                    match[pv] = v;
+                    v = ppv;
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    int max_matching = edmonds();
+
+    cout << "Maximum matching: " << max_matching << "\n";
+    cout << "Matched pairs:\n";
+    for (int i = 1; i <= n; i++) {
+        if (match[i] != -1 && i < match[i]) {
+            cout << i << " - " << match[i] << "\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    match = [-1] * (n + 1)
+    p = [-1] * (n + 1)
+    base = list(range(n + 1))
+    used = [False] * (n + 1)
+
+    def lca(a, b):
+        vis = [False] * (n + 1)
+        while True:
+            a = base[a]
+            vis[a] = True
+            if match[a] == -1:
+                break
+            a = p[match[a]]
+        while True:
+            b = base[b]
+            if vis[b]:
+                return b
+            b = p[match[b]]
+
+    blossom = [False] * (n + 1)
+
+    def mark_path(v, b, child):
+        while base[v] != b:
+            blossom[base[v]] = blossom[base[match[v]]] = True
+            p[v] = child
+            child = match[v]
+            v = p[match[v]]
+
+    def find_path(root):
+        nonlocal base, used
+        used = [False] * (n + 1)
+        p[:] = [-1] * (n + 1)
+        base = list(range(n + 1))
+
+        used[root] = True
+        q = deque([root])
+
+        while q:
+            v = q.popleft()
+
+            for to in adj[v]:
+                if base[v] == base[to] or match[v] == to:
+                    continue
+
+                if to == root or (match[to] != -1 and p[match[to]] != -1):
+                    curbase = lca(v, to)
+                    blossom[:] = [False] * (n + 1)
+                    mark_path(v, curbase, to)
+                    mark_path(to, curbase, v)
+
+                    for i in range(1, n + 1):
+                        if blossom[base[i]]:
+                            base[i] = curbase
+                            if not used[i]:
+                                used[i] = True
+                                q.append(i)
+
+                elif p[to] == -1:
+                    p[to] = v
+                    if match[to] == -1:
+                        return to
+                    to = match[to]
+                    used[to] = True
+                    q.append(to)
+
+        return -1
+
+    def edmonds():
+        result = 0
+        for i in range(1, n + 1):
+            if match[i] == -1:
+                v = find_path(i)
+                if v != -1:
+                    result += 1
+                    while v != -1:
+                        pv = p[v]
+                        ppv = match[pv]
+                        match[v] = pv
+                        match[pv] = v
+                        v = ppv
+        return result
+
+    max_matching = edmonds()
+
+    print(f"Maximum matching: {max_matching}")
+    print("Matched pairs:")
+    for i in range(1, n + 1):
+        if match[i] != -1 and i < match[i]:
+            print(f"{i} - {match[i]}")
+
+solve()
+```
+
+典型例题
+--------
+1. 一般图最大匹配(洛谷P6113): 带花树模板
+2. UVA 11439: 最大匹配应用
+3. 手办(洛谷P4608): 带花树问题
+
+注意事项
+--------
+1. 带花树算法实现复杂,建议使用模板
+2. 时间复杂度O(n³),不适合大图
+3. 二分图匹配用匈牙利算法更高效
+4. 理解花的收缩和展开是关键
+5. 实际竞赛中可能需要使用优化版本
+
+总结
+----
+带花树算法是一般图最大匹配的标准算法,虽然实现复杂,但在处理非二分图匹配问题时是必要的。掌握该算法对解决复杂的匹配问题很有帮助。

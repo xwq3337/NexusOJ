@@ -1,0 +1,716 @@
+舞蹈链算法（Dancing Links, DLX）
+================================
+
+算法概述
+--------
+舞蹈链算法（Dancing Links, DLX）是由Donald Knuth提出的用于精确覆盖问题的高效算法。
+它使用双向十字链表（Doubly Linked List）的数据结构，配合回溯法（Algorithm X）来求解精确覆盖问题。
+DLX算法通过高效的数据结构实现了快速的插入、删除和恢复操作，特别适合解决数独、N皇后、精确覆盖等组合问题。
+
+核心思想
+--------
+1. 使用双向十字链表表示稀疏矩阵
+2. 每行代表一个选择方案，每列代表一个约束条件
+3. 算法流程：
+   - 如果所有列都被覆盖，找到解
+   - 选择列（通常选择节点最少的列）
+   - 选择该列的某一行
+   - 删除该行及其覆盖的列
+   - 递归求解
+   - 恢复删除的行和列（回溯）
+
+4. 时间复杂度：取决于问题规模，通常远优于暴力搜索
+5. 空间复杂度：O(n×m)，n为行数，m为列数
+
+数据结构设计
+------------
+```cpp
+// DLX节点结构
+struct Node {
+    int left, right, up, down;  // 四个方向的指针
+    int row, col;               // 所在行和列
+};
+
+// 全局变量
+Node nodes[MAXSIZE];           // 节点数组
+int row_head[MAXROWS];         // 每行的头节点
+int col_head[MAXCOLS];         // 每列的头节点
+int col_size[MAXCOLS];         // 每列的节点数
+int node_count;                // 节点总数
+```
+
+基础模板：DLX精确覆盖
+-------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+struct DLX {
+    int L[MAXN], R[MAXN], U[MAXN], D[MAXN];
+    int row[MAXN], col[MAXN];
+    int head[MAXN], sz[MAXN];
+    int n, m, tot, ans;
+
+    void init(int n, int m) {
+        this->n = n;
+        this->m = m;
+        tot = m;
+
+        // 初始化列头节点
+        for (int i = 0; i <= m; i++) {
+            L[i] = i - 1;
+            R[i] = i + 1;
+            U[i] = D[i] = i;
+            sz[i] = 0;
+        }
+        L[0] = m;
+        R[m] = 0;
+
+        // 初始化行头节点
+        for (int i = 1; i <= n; i++) {
+            head[i] = -1;
+        }
+    }
+
+    void add(int r, int c) {
+        // 添加节点(r, c)
+        tot++;
+        col[tot] = c;
+        row[tot] = r;
+
+        // 插入到列链表
+        U[tot] = U[c];
+        D[tot] = c;
+        D[U[c]] = tot;
+        U[c] = tot;
+
+        // 插入到行链表
+        if (head[r] == -1) {
+            head[r] = tot;
+            L[tot] = R[tot] = tot;
+        } else {
+            L[tot] = L[head[r]];
+            R[tot] = head[r];
+            R[L[head[r]]] = tot;
+            L[head[r]] = tot;
+        }
+
+        sz[c]++;
+    }
+
+    void remove(int c) {
+        // 删除列c
+        L[R[c]] = L[c];
+        R[L[c]] = R[c];
+
+        // 删除列c的所有行
+        for (int i = D[c]; i != c; i = D[i]) {
+            for (int j = R[i]; j != i; j = R[j]) {
+                U[D[j]] = U[j];
+                D[U[j]] = D[j];
+                sz[col[j]]--;
+            }
+        }
+    }
+
+    void resume(int c) {
+        // 恢复列c
+        for (int i = U[c]; i != c; i = U[i]) {
+            for (int j = L[i]; j != i; j = L[j]) {
+                U[D[j]] = D[U[j]] = j;
+                sz[col[j]]++;
+            }
+        }
+        L[R[c]] = R[L[c]] = c;
+    }
+
+    bool dance(int depth) {
+        // 如果没有列了，找到解
+        if (R[0] == 0) {
+            ans = depth;
+            return true;
+        }
+
+        // 选择节点数最少的列
+        int c = R[0];
+        for (int i = R[0]; i != 0; i = R[i]) {
+            if (sz[i] < sz[c]) {
+                c = i;
+            }
+        }
+
+        remove(c);
+
+        // 枚举列c的每一行
+        for (int i = D[c]; i != c; i = D[i]) {
+            // 选择行i
+            for (int j = R[i]; j != i; j = R[j]) {
+                remove(col[j]);
+            }
+
+            if (dance(depth + 1)) {
+                return true;
+            }
+
+            // 恢复
+            for (int j = L[i]; j != i; j = L[j]) {
+                resume(col[j]);
+            }
+        }
+
+        resume(c);
+        return false;
+    }
+};
+
+int main() {
+    DLX dlx;
+
+    // 示例：精确覆盖问题
+    int n, m;
+    cin >> n >> m;
+
+    dlx.init(n, m);
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            int x;
+            cin >> x;
+            if (x == 1) {
+                dlx.add(i, j);
+            }
+        }
+    }
+
+    if (dlx.dance(0)) {
+        cout << "找到解，需要 " << dlx.ans << " 行\n";
+    } else {
+        cout << "无解\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class DLX:
+    def __init__(self, n, m):
+        self.n = n  # 行数
+        self.m = m  # 列数
+        self.tot = m
+        self.L = [0] * (n * m + m + 10)
+        self.R = [0] * (n * m + m + 10)
+        self.U = [0] * (n * m + m + 10)
+        self.D = [0] * (n * m + m + 10)
+        self.row = [0] * (n * m + m + 10)
+        self.col = [0] * (n * m + m + 10)
+        self.head = [-1] * (n + 10)
+        self.sz = [0] * (m + 10)
+        self.ans = 0
+
+        # 初始化列头节点
+        for i in range(m + 1):
+            self.L[i] = i - 1 if i > 0 else m
+            self.R[i] = i + 1 if i < m else 0
+            self.U[i] = self.D[i] = i
+            self.sz[i] = 0
+
+        # 初始化行头节点
+        for i in range(1, n + 1):
+            self.head[i] = -1
+
+    def add(self, r, c):
+        """添加节点(r, c)"""
+        self.tot += 1
+        self.col[self.tot] = c
+        self.row[self.tot] = r
+
+        # 插入到列链表
+        self.U[self.tot] = self.U[c]
+        self.D[self.tot] = c
+        self.D[self.U[c]] = self.tot
+        self.U[c] = self.tot
+
+        # 插入到行链表
+        if self.head[r] == -1:
+            self.head[r] = self.tot
+            self.L[self.tot] = self.R[self.tot] = self.tot
+        else:
+            self.L[self.tot] = self.L[self.head[r]]
+            self.R[self.tot] = self.head[r]
+            self.R[self.L[self.head[r]]] = self.tot
+            self.L[self.head[r]] = self.tot
+
+        self.sz[c] += 1
+
+    def remove(self, c):
+        """删除列c"""
+        self.R[self.L[c]] = self.R[c]
+        self.L[self.R[c]] = self.L[c]
+
+        # 删除列c的所有行
+        i = self.D[c]
+        while i != c:
+            j = self.R[i]
+            while j != i:
+                self.U[self.D[j]] = self.U[j]
+                self.D[self.U[j]] = self.D[j]
+                self.sz[self.col[j]] -= 1
+                j = self.R[j]
+            i = self.D[i]
+
+    def resume(self, c):
+        """恢复列c"""
+        i = self.U[c]
+        while i != c:
+            j = self.L[i]
+            while j != i:
+                self.U[self.D[j]] = self.D[self.U[j]] = j
+                self.sz[self.col[j]] += 1
+                j = self.L[j]
+            i = self.U[i]
+
+        self.R[self.L[c]] = self.L[self.R[c]] = c
+
+    def dance(self, depth=0):
+        """DLX主算法"""
+        # 如果没有列了，找到解
+        if self.R[0] == 0:
+            self.ans = depth
+            return True
+
+        # 选择节点数最少的列
+        c = self.R[0]
+        i = self.R[0]
+        while i != 0:
+            if self.sz[i] < self.sz[c]:
+                c = i
+            i = self.R[i]
+
+        self.remove(c)
+
+        # 枚举列c的每一行
+        i = self.D[c]
+        while i != c:
+            # 选择行i
+            j = self.R[i]
+            while j != i:
+                self.remove(self.col[j])
+                j = self.R[j]
+
+            if self.dance(depth + 1):
+                return True
+
+            # 恢复
+            j = self.L[i]
+            while j != i:
+                self.resume(self.col[j])
+                j = self.L[j]
+
+            i = self.D[i]
+
+        self.resume(c)
+        return False
+
+def main():
+    n, m = map(int, input().split())
+
+    dlx = DLX(n, m)
+
+    for i in range(1, n + 1):
+        row = list(map(int, input().split()))
+        for j, val in enumerate(row, 1):
+            if val == 1:
+                dlx.add(i, j)
+
+    if dlx.dance():
+        print(f"找到解，需要 {dlx.ans} 行")
+    else:
+        print("无解")
+
+if __name__ == "__main__":
+    main()
+```
+
+应用一：数独问题（DLX）
+--------------------
+数独问题可以转化为精确覆盖问题：每个格子填入数字必须满足行、列、宫不重复。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+struct DLX {
+    // ... 同上 ...
+
+    // 记录选择的行
+    vector<int> solution;
+
+    bool dance(int depth) {
+        if (R[0] == 0) {
+            return true;
+        }
+
+        int c = R[0];
+        for (int i = R[0]; i != 0; i = R[i]) {
+            if (sz[i] < sz[c]) {
+                c = i;
+            }
+        }
+
+        remove(c);
+
+        for (int i = D[c]; i != c; i = D[i]) {
+            solution.push_back(row[i]);
+
+            for (int j = R[i]; j != i; j = R[j]) {
+                remove(col[j]);
+            }
+
+            if (dance(depth + 1)) {
+                return true;
+            }
+
+            solution.pop_back();
+
+            for (int j = L[i]; j != i; j = L[j]) {
+                resume(col[j]);
+            }
+        }
+
+        resume(c);
+        return false;
+    }
+};
+
+dlx solver;
+
+// 将数独问题转化为精确覆盖问题
+void build_sudoku() {
+    // 数独有9x9=81个格子，每个格子可以填1-9
+    // 总共有81*9=729种填法
+
+    // 约束条件：
+    // 1. 每个格子必须填一个数 (81列)
+    // 2. 每行每个数字只能出现一次 (81列)
+    // 3. 每列每个数字只能出现一次 (81列)
+    // 4. 每宫每个数字只能出现一次 (81列)
+    // 总共324列
+
+    solver.init(729, 324);
+
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            for (int k = 1; k <= 9; k++) {
+                int row = i * 9 + j + 1;  // 当前格子编号
+                int num = k;              // 填入的数字
+
+                // 行的编号
+                int r = (i * 9 + j) * 9 + k;
+
+                // 约束1：格子(i,j)填了数字
+                solver.add(r, i * 9 + j + 1);
+
+                // 约束2：第i行填了数字k
+                solver.add(r, 81 + i * 9 + k);
+
+                // 约束3：第j列填了数字k
+                solver.add(r, 81 * 2 + j * 9 + k);
+
+                // 约束4：第(i/3,j/3)宫填了数字k
+                int block = (i / 3) * 3 + (j / 3);
+                solver.add(r, 81 * 3 + block * 9 + k);
+            }
+        }
+    }
+}
+
+int main() {
+    build_sudoku();
+
+    char board[9][9];
+    cout << "输入数独（0表示空格）:\n";
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            cin >> board[i][j];
+        }
+    }
+
+    // 处理已知的数字
+    for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+            if (board[i][j] != '0') {
+                int k = board[i][j] - '0';
+                int r = (i * 9 + j) * 9 + k;
+
+                // 删除这一行之外的所有行
+                solver.remove(r);
+
+                // 删除相关列
+                for (int x = solver.D[r]; x != r; x = solver.D[x]) {
+                    for (int y = solver.R[x]; y != x; y = solver.R[y]) {
+                        if (solver.col[y] != solver.col[r]) {
+                            solver.remove(solver.col[y]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (solver.dance(0)) {
+        cout << "\n解:\n";
+        for (int r : solver.solution) {
+            int cell = (r - 1) / 9;
+            int num = (r - 1) % 9 + 1;
+            int i = cell / 9;
+            int j = cell % 9;
+            board[i][j] = '0' + num;
+        }
+
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+                cout << board[i][j] << " ";
+            }
+            cout << '\n';
+        }
+    } else {
+        cout << "无解\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class SudokuDLX:
+    def __init__(self):
+        self.solution = []
+
+    def solve(self, board):
+        """使用DLX求解数独"""
+        # 构建DLX矩阵
+        # 729行（每个格子的每个数字）x 324列（约束条件）
+        n_rows = 729
+        n_cols = 324
+
+        dlx = DLX(n_rows, n_cols)
+
+        # 构建矩阵
+        for i in range(9):
+            for j in range(9):
+                for k in range(1, 10):
+                    row = (i * 9 + j) * 9 + k
+
+                    # 约束1：格子(i,j)填了数字
+                    dlx.add(row, i * 9 + j + 1)
+
+                    # 约束2：第i行填了数字k
+                    dlx.add(row, 81 + i * 9 + k)
+
+                    # 约束3：第j列填了数字k
+                    dlx.add(row, 162 + j * 9 + k)
+
+                    # 约束4：第宫填了数字k
+                    block = (i // 3) * 3 + (j // 3)
+                    dlx.add(row, 243 + block * 9 + k)
+
+        # 处理已知的数字（简化版）
+        # 实际实现需要更复杂的处理
+
+        if dlx.dance():
+            # 恢复数独解
+            for r in dlx.solution:
+                cell = (r - 1) // 9
+                num = (r - 1) % 9 + 1
+                i = cell // 9
+                j = cell % 9
+                board[i][j] = str(num)
+            return True
+        return False
+
+def main():
+    print("输入数独（0表示空格）:")
+    board = []
+    for _ in range(9):
+        row = input().strip().split()
+        board.append(row)
+
+    solver = SudokuDLX()
+    if solver.solve(board):
+        print("\n解:")
+        for row in board:
+            print(' '.join(row))
+    else:
+        print("无解")
+
+if __name__ == "__main__":
+    main()
+```
+
+应用二：N皇后问题（DLX）
+---------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// ... DLX结构定义同上 ...
+
+DLX solver;
+
+void build_n_queens(int n) {
+    // N皇后问题转化为精确覆盖问题
+    // 行：每行放一个皇后，有n种放法
+    // 总共n^2行（每个格子放皇后）
+
+    // 约束条件：
+    // 1. 每行恰好放一个皇后 (n列)
+    // 2. 每列恰好放一个皇后 (n列)
+    // 3. 每条对角线恰好放一个皇后 (2n-1列)
+    // 4. 每条反对角线恰好放一个皇后 (2n-1列)
+
+    int n_rows = n * n;
+    int n_cols = n + n + (2 * n - 1) + (2 * n - 1);
+
+    solver.init(n_rows, n_cols);
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            int row = i * n + j + 1;
+
+            // 约束1：第i行放皇后
+            solver.add(row, i + 1);
+
+            // 约束2：第j列放皇后
+            solver.add(row, n + j + 1);
+
+            // 约束3：对角线 i-j
+            int diag = i - j + n - 1;
+            solver.add(row, 2 * n + diag + 1);
+
+            // 约束4：反对角线 i+j
+            int anti_diag = i + j;
+            solver.add(row, 2 * n + (2 * n - 1) + anti_diag + 1);
+        }
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    build_n_queens(n);
+
+    if (solver.dance(0)) {
+        cout << "找到解，需要 " << solver.ans << " 个皇后\n";
+        // 输出解...
+    } else {
+        cout << "无解\n";
+    }
+
+    return 0;
+}
+```
+
+应用三：精确覆盖问题
+-----------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// ... DLX结构定义同上 ...
+
+DLX solver;
+
+int main() {
+    // 示例：经典的精确覆盖问题
+    // 给定一个01矩阵，选择若干行，使得每列恰好有1个1
+
+    int n, m;
+    cin >> n >> m;
+
+    solver.init(n, m);
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            int x;
+            cin >> x;
+            if (x == 1) {
+                solver.add(i, j);
+            }
+        }
+    }
+
+    if (solver.dance(0)) {
+        cout << "找到解，需要选择 " << solver.ans << " 行\n";
+    } else {
+        cout << "无解\n";
+    }
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 数独（LeetCode37）：使用DLX求解
+2. N皇后问题（LeetCode51）：精确覆盖模型
+3. 精确覆盖问题（经典问题）：DLX的标准应用
+4. 骑士巡游问题：转化为精确覆盖
+5. 拼图问题：DLX应用
+
+注意事项
+--------
+1. DLX的优势：
+   - 高效的数据结构
+   - 快速的插入删除恢复
+   - 适合大规模精确覆盖问题
+   - 可以处理复约束
+
+2. DLX的劣势：
+   - 实现复杂
+   - 内存消耗较大
+   - 对于简单问题可能过重
+
+3. 优化技巧：
+   - 选择节点数最少的列
+   - 良好的行列顺序
+   - 预处理和剪枝
+
+4. 应用场景：
+   - 精确覆盖问题
+   - 数独、N皇后
+   - 组合优化问题
+   - 约束满足问题
+
+DLX vs 回溯法
+--------------
+| 特性 | DLX | 回溯法 |
+|------|-----|--------|
+| 数据结构 | 双向链表 | 数组/递归 |
+| 效率 | 很高 | 中等 |
+| 实现 | 复杂 | 简单 |
+| 适用 | 精确覆盖 | 通用搜索 |
+
+时间复杂度总结
+--------------
+- 最坏情况：指数级
+- 平均情况：远优于暴力
+- 取决于问题的稀疏程度
+- 空间复杂度：O(n×m)
+
+DLX算法是解决精确覆盖问题的终极武器，虽然在实现上较为复杂，
+但其高效的性能使其成为处理大规模约束满足问题的首选算法。

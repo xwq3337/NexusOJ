@@ -1,0 +1,518 @@
+二进制与位运算
+==============
+
+概述
+----
+位运算直接对整数在内存中的二进制位进行操作，具有极高的效率。在算法竞赛中，位运算常用于：
+1. 优化算法性能
+2. 状态压缩（状态压缩DP）
+3. 快速判断和操作
+4. 替代某些数学运算
+
+基础位运算符
+-----------
+
+1. 按位与（&）：两个对应位都为1时结果为1
+   示例：5 & 3 = (101) & (011) = (001) = 1
+
+2. 按位或（|）：两个对应位有一个为1时结果为1
+   示例：5 | 3 = (101) | (011) = (111) = 7
+
+3. 按位异或（^）：两个对应位不同时结果为1
+   示例：5 ^ 3 = (101) ^ (011) = (110) = 6
+
+4. 按位取反（~）：对每一位取反
+   示例：~5 = ~(101) = (111...010) = -6（补码表示）
+
+5. 左移（<<）：各位左移，低位补0
+   示例：5 << 2 = (101) << 2 = (10100) = 20
+
+6. 右移（>>）：各位右移，正数高位补0，负数高位补1
+   示例：5 >> 1 = (101) >> 1 = (010) = 2
+
+C++示例：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    int a = 5, b = 3;
+
+    cout << "a & b = " << (a & b) << '\n';  // 1
+    cout << "a | b = " << (a | b) << '\n';  // 7
+    cout << "a ^ b = " << (a ^ b) << '\n';  // 6
+    cout << "~a = " << (~a) << '\n';        // -6
+    cout << "a << 2 = " << (a << 2) << '\n'; // 20
+    cout << "a >> 1 = " << (a >> 1) << '\n'; // 2
+
+    return 0;
+}
+```
+
+Python示例：
+```python
+a, b = 5, 3
+
+print(f"a & b = {a & b}")  # 1
+print(f"a | b = {a | b}")  # 7
+print(f"a ^ b = {a ^ b}")  # 6
+print(f"~a = {~a}")        # -6
+print(f"a << 2 = {a << 2}") # 20
+print(f"a >> 1 = {a >> 1}") # 2
+```
+
+常用位运算技巧
+-------------
+
+1. 判断奇偶
+   C++: if (n & 1) // 奇数
+   Python: if n & 1
+
+2. 交换两个数（无需临时变量）
+   C++:
+   ```cpp
+   void swap(int &a, int &b) {
+       a ^= b;
+       b ^= a;
+       a ^= b;
+   }
+   ```
+
+3. 获取最后一个1（lowbit）
+   C++: int lowbit = x & (-x);
+   Python: lowbit = x & (-x)
+   示例：x = 12 (1100), lowbit = 4 (100)
+
+4. 去掉最后一个1
+   C++: x = x & (x - 1);
+   Python: x &= x - 1
+   示例：x = 12 (1100) -> 8 (1000)
+
+5. 判断是否为2的幂
+   C++:
+   ```cpp
+   bool isPowerOfTwo(int n) {
+       return n > 0 && (n & (n - 1)) == 0;
+   }
+   ```
+   Python:
+   ```python
+   def is_power_of_two(n):
+       return n > 0 and (n & (n - 1)) == 0
+   ```
+
+6. 获取二进制第k位（从0开始）
+   C++: int bit = (n >> k) & 1;
+   Python: bit = (n >> k) & 1
+
+7. 将二进制第k位设为1
+   C++: n |= (1 << k);
+   Python: n |= (1 << k)
+
+8. 将二进制第k位设为0
+   C++: n &= ~(1 << k);
+   Python: n &= ~(1 << k)
+
+9. 翻转二进制第k位
+   C++: n ^= (1 << k);
+   Python: n ^= (1 << k)
+
+完整示例代码：
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 判断奇偶
+bool isOdd(int n) {
+    return n & 1;
+}
+
+// 交换两个数
+void bitSwap(int &a, int &b) {
+    if (a != b) {  // 防止a和b相等时异或为0
+        a ^= b;
+        b ^= a;
+        a ^= b;
+    }
+}
+
+// 获取lowbit
+int lowbit(int x) {
+    return x & (-x);
+}
+
+// 去掉最后一个1
+void removeLastOne(int &x) {
+    x &= (x - 1);
+}
+
+// 判断是否为2的幂
+bool isPowerOfTwo(int n) {
+    return n > 0 && (n & (n - 1)) == 0;
+}
+
+// 获取第k位
+int getBit(int n, int k) {
+    return (n >> k) & 1;
+}
+
+// 设置第k位为1
+void setBit(int &n, int k) {
+    n |= (1 << k);
+}
+
+// 设置第k位为0
+void clearBit(int &n, int k) {
+    n &= ~(1 << k);
+}
+
+// 翻转第k位
+void toggleBit(int &n, int k) {
+    n ^= (1 << k);
+}
+
+// 统计二进制中1的个数
+int countOnes(int n) {
+    int cnt = 0;
+    while (n) {
+        n &= (n - 1);  // 去掉最后一个1
+        cnt++;
+    }
+    return cnt;
+}
+
+// 判断二进制是否只有一个1
+bool hasOnlyOneBit(int n) {
+    return n > 0 && (n & (n - 1)) == 0;
+}
+
+int main() {
+    int n = 13;  // 二进制: 1101
+
+    cout << "n = " << n << " (二进制: " << bitset<8>(n) << ")\n";
+    cout << "是否为奇数: " << (isOdd(n) ? "是" : "否") << '\n';
+    cout << "lowbit: " << lowbit(n) << '\n';
+    cout << "是否为2的幂: " << (isPowerOfTwo(n) ? "是" : "否") << '\n';
+    cout << "二进制中1的个数: " << countOnes(n) << '\n';
+
+    // 测试位操作
+    for (int i = 0; i < 4; i++) {
+        cout << "第" << i << "位: " << getBit(n, i) << '\n';
+    }
+
+    // 测试setBit
+    int m = 5;  // 101
+    cout << "\n原始m = " << m << " (二进制: " << bitset<8>(m) << ")\n";
+    setBit(m, 1);
+    cout << "设置第1位后m = " << m << " (二进制: " << bitset<8>(m) << ")\n";
+
+    // 测试clearBit
+    clearBit(m, 0);
+    cout << "清除第0位后m = " << m << " (二进制: " << bitset<8>(m) << ")\n";
+
+    // 测试swap
+    int a = 3, b = 5;
+    cout << "\n交换前: a = " << a << ", b = " << b << '\n';
+    bitSwap(a, b);
+    cout << "交换后: a = " << a << ", b = " << b << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def is_odd(n):
+    """判断奇偶"""
+    return n & 1 == 1
+
+def bit_swap(a, b):
+    """交换两个数"""
+    if a != b:  # 防止a和b相等时异或为0
+        a ^= b
+        b ^= a
+        a ^= b
+    return a, b
+
+def lowbit(x):
+    """获取lowbit"""
+    return x & (-x)
+
+def remove_last_one(x):
+    """去掉最后一个1"""
+    return x & (x - 1)
+
+def is_power_of_two(n):
+    """判断是否为2的幂"""
+    return n > 0 and (n & (n - 1)) == 0
+
+def get_bit(n, k):
+    """获取第k位"""
+    return (n >> k) & 1
+
+def set_bit(n, k):
+    """设置第k位为1"""
+    return n | (1 << k)
+
+def clear_bit(n, k):
+    """设置第k位为0"""
+    return n & ~(1 << k)
+
+def toggle_bit(n, k):
+    """翻转第k位"""
+    return n ^ (1 << k)
+
+def count_ones(n):
+    """统计二进制中1的个数"""
+    cnt = 0
+    while n:
+        n &= n - 1  # 去掉最后一个1
+        cnt += 1
+    return cnt
+
+def has_only_one_bit(n):
+    """判断二进制是否只有一个1"""
+    return n > 0 and (n & (n - 1)) == 0
+
+# 测试代码
+if __name__ == "__main__":
+    n = 13  # 二进制: 1101
+    print(f"n = {n} (二进制: {bin(n)})")
+    print(f"是否为奇数: {'是' if is_odd(n) else '否'}")
+    print(f"lowbit: {lowbit(n)}")
+    print(f"是否为2的幂: {'是' if is_power_of_two(n) else '否'}")
+    print(f"二进制中1的个数: {count_ones(n)}")
+
+    # 测试位操作
+    for i in range(4):
+        print(f"第{i}位: {get_bit(n, i)}")
+
+    # 测试set_bit
+    m = 5  # 101
+    print(f"\n原始m = {m} (二进制: {bin(m)})")
+    m = set_bit(m, 1)
+    print(f"设置第1位后m = {m} (二进制: {bin(m)})")
+
+    # 测试clear_bit
+    m = clear_bit(m, 0)
+    print(f"清除第0位后m = {m} (二进制: {bin(m)})")
+
+    # 测试swap
+    a, b = 3, 5
+    print(f"\n交换前: a = {a}, b = {b}")
+    a, b = bit_swap(a, b)
+    print(f"交换后: a = {a}, b = {b}")
+```
+
+高级应用：状态压缩
+----------------
+
+状态压缩是位运算的重要应用，常用于DP问题。
+
+示例：求集合的所有子集
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+void printSubsets(int n) {
+    // n表示集合大小，从0到2^n-1枚举所有子集
+    for (int mask = 0; mask < (1 << n); mask++) {
+        cout << "{ ";
+        for (int i = 0; i < n; i++) {
+            if (mask & (1 << i)) {
+                cout << i << " ";
+            }
+        }
+        cout << "}\n";
+    }
+}
+
+// 枚举子集的高效写法
+void enumerateSubsets(int fullMask) {
+    for (int mask = fullMask; mask; mask = (mask - 1) & fullMask) {
+        // mask是fullMask的一个非空子集
+        cout << mask << '\n';
+    }
+    // 处理空集
+    cout << "0\n";
+}
+
+int main() {
+    int n = 3;
+    cout << "集合{0, 1, 2}的所有子集:\n";
+    printSubsets(n);
+
+    cout << "\n枚举子集的高效写法:\n";
+    enumerateSubsets((1 << n) - 1);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def print_subsets(n):
+    """打印集合的所有子集"""
+    for mask in range(1 << n):
+        subset = []
+        for i in range(n):
+            if mask & (1 << i):
+                subset.append(i)
+        print(subset)
+
+def enumerate_subsets(full_mask):
+    """枚举子集的高效写法"""
+    mask = full_mask
+    while mask:
+        print(mask)
+        mask = (mask - 1) & full_mask
+    print("0")  # 空集
+
+if __name__ == "__main__":
+    n = 3
+    print("集合{0, 1, 2}的所有子集:")
+    print_subsets(n)
+
+    print("\n枚举子集的高效写法:")
+    enumerate_subsets((1 << n) - 1)
+```
+
+应用：Hamming距离（汉明距离）
+----------------------------
+
+汉明距离是指两个等长字符串对应位置上不同字符的个数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int hammingDistance(int a, int b) {
+    int xor_result = a ^ b;
+    int distance = 0;
+    while (xor_result) {
+        distance++;
+        xor_result &= (xor_result - 1);  // 去掉最后一个1
+    }
+    return distance;
+}
+
+int main() {
+    int a = 1, b = 4;
+    cout << "Hamming距离: " << hammingDistance(a, b) << '\n';
+    return 0;
+}
+```
+
+Python版本：
+```python
+def hamming_distance(a, b):
+    """计算汉明距离"""
+    xor_result = a ^ b
+    distance = 0
+    while xor_result:
+        distance += 1
+        xor_result &= xor_result - 1
+    return distance
+
+print(f"Hamming距离: {hamming_distance(1, 4)}")
+```
+
+应用：格雷码（Gray Code）
+------------------------
+
+格雷码是一种二进制编码系统，相邻的两个数只有一位不同。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 二进制转格雷码
+int binaryToGray(int n) {
+    return n ^ (n >> 1);
+}
+
+// 格雷码转二进制
+int grayToBinary(int n) {
+    int mask = n >> 1;
+    while (mask) {
+        n ^= mask;
+        mask >>= 1;
+    }
+    return n;
+}
+
+vector<int> grayCode(int n) {
+    vector<int> result;
+    int size = 1 << n;
+    for (int i = 0; i < size; i++) {
+        result.push_back(binaryToGray(i));
+    }
+    return result;
+}
+
+int main() {
+    int n = 3;
+    vector<int> gc = grayCode(n);
+    cout << "3位格雷码序列:\n";
+    for (int x : gc) {
+        cout << bitset<3>(x) << " = " << x << '\n';
+    }
+    return 0;
+}
+```
+
+Python版本：
+```python
+def binary_to_gray(n):
+    """二进制转格雷码"""
+    return n ^ (n >> 1)
+
+def gray_to_binary(n):
+    """格雷码转二进制"""
+    mask = n >> 1
+    while mask:
+        n ^= mask
+        mask >>= 1
+    return n
+
+def gray_code(n):
+    """生成n位格雷码序列"""
+    return [binary_to_gray(i) for i in range(1 << n)]
+
+if __name__ == "__main__":
+    n = 3
+    gc = gray_code(n)
+    print("3位格雷码序列:")
+    for x in gc:
+        print(f"{x:03b} = {x}")
+```
+
+典型例题
+--------
+1. 状压DP：旅行商问题（TSP）
+2. 位集合操作：子集枚举
+3. 异或性质应用：找出只出现一次的数字
+4. 二进制表示：计算中1的个数
+
+注意事项
+--------
+1. 位运算的优先级较低，建议使用括号明确优先级
+2. Python中整数没有大小限制，但要注意负数的位运算
+3. C++中注意有符号数和无符号数的区别
+4. 移位操作时要注意左移可能溢出的问题
+
+总结
+----
+位运算是算法竞赛中重要的基础技巧，掌握常用的位运算操作和技巧能够：
+- 提高程序运行效率
+- 实现状态压缩
+- 简化某些操作的实现
+- 解决特殊类型的问题
+
+熟练运用位运算需要多做练习，理解每个操作的本质和应用场景。
