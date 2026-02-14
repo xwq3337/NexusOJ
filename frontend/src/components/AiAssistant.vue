@@ -11,7 +11,7 @@
   <!-- Chat Window -->
   <Transition name="chat-slide">
     <div v-if="isOpen"
-      class="fixed bottom-6 right-6 w-[calc(100%-3rem)] md:w-96 h-[500px] rounded-xl shadow-2xl flex flex-col z-50 overflow-hidden"
+      class="fixed bottom-6 right-6 w-[calc(100%-3rem)] md:w-96 h-125 rounded-xl shadow-2xl flex flex-col z-50 overflow-hidden"
       :style="{ backgroundColor: 'var(--surface-primary)', border: '1px solid var(--border-color)' }">
       <!-- Header -->
       <div class="flex items-center justify-between px-4 py-3 border-b" :style="{ borderColor: 'var(--border-color)' }">
@@ -26,7 +26,7 @@
           </div>
         </div>
         <button @click="toggleChat" class="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
-          :style="{ color: 'var(--text-secondary)' }" :class="`hover:bg-[var(--surface-secondary)]`">
+          :style="{ color: 'var(--text-secondary)' }" :class="`hover:bg-(--surface-secondary)`">
           <X :size="18" />
         </button>
       </div>
@@ -54,7 +54,7 @@
                 backgroundColor: 'var(--surface-secondary)',
                 color: 'var(--text-secondary)',
                 border: '1px solid var(--border-color)'
-              }" :class="`hover:bg-[var(--surface-tertiary)] hover:text-[var(--text-primary)]`">
+              }" :class="`hover:bg-(--surface-tertiary) hover:text-(--text-primary)`">
               {{ prompt.label }}
             </button>
           </div>
@@ -64,7 +64,7 @@
         <div v-for="message in messages" :key="message.id" class="flex gap-3"
           :class="message.role === 'user' ? 'flex-row-reverse' : 'flex-row'">
           <!-- Avatar -->
-          <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center" :style="{
+          <div class="w-8 h-8 rounded-full shrink-0 flex items-center justify-center" :style="{
             backgroundColor: message.role === 'user' ? 'var(--accent-color)' : 'var(--surface-secondary)'
           }">
             <User v-if="message.role === 'user'" :size="16" style="color: white" />
@@ -116,13 +116,13 @@
               backgroundColor: 'var(--input-bg)',
               border: '1px solid var(--input-border)',
               color: 'var(--text-primary)'
-            }" :class="`focus:border-[var(--input-focus)]`" @input="handleInput" />
+            }" :class="`focus:border-(--input-focus)`" @input="handleInput" />
           <button type="submit" :disabled="!inputMessage.trim() || isLoading"
             class="px-4 py-2 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             :style="{
               backgroundColor: inputMessage.trim() && !isLoading ? 'var(--accent-color)' : 'var(--btn-secondary)',
               color: 'white'
-            }" :class="`hover:bg-[var(--accent-hover)]`">
+            }" :class="`hover:bg-(--accent-hover)`">
             <Send v-if="!isLoading" :size="18" />
             <Loader2 v-else :size="18" class="animate-spin" />
           </button>
@@ -131,10 +131,13 @@
           <p class="text-xs" :style="{ color: 'var(--text-tertiary)' }">
             {{ messages.length }} 条消息
           </p>
-          <button v-if="messages.length > 0" @click="clearMessages" class="text-xs transition-colors"
-            :style="{ color: 'var(--text-tertiary)' }" :class="`hover:text-[var(--text-secondary)]`">
-            清空对话
-          </button>
+          <n-popconfirm v-if="messages.length > 0" @positive-click="clearMessages">
+            <template #trigger>
+              <n-button type="error" class="text-xs"> 清空对话
+              </n-button>
+            </template>
+            你确定要清空对话记录吗
+          </n-popconfirm>
         </div>
       </div>
     </div>
@@ -153,7 +156,9 @@ import { useLocalStorage } from '@vueuse/core'
 import { streamGeminiResponse } from '@/services/agent'
 import type { ChatMessage } from '@/types'
 import MarkdownIt from 'markdown-it'
-
+import { NPopconfirm, NButton } from "naive-ui"
+import { useMessage } from 'naive-ui'
+const message = useMessage()
 // Initialize markdown-it
 const md = new MarkdownIt({
   html: false,
@@ -377,9 +382,7 @@ const sendMessage = async () => {
 
 // Clear messages
 const clearMessages = () => {
-  if (confirm('确定要清空所有对话记录吗？')) {
     messages.value = []
-  }
 }
 
 // Keyboard shortcut to open/close

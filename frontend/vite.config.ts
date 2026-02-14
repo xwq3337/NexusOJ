@@ -10,8 +10,8 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       proxy: {
         '/api': {
-          target: 'http://127.0.0.1:8080/',
-          // target: 'http://47.109.57.7:8080',
+          // target: 'http://127.0.0.1:8080/',
+          target: 'http://47.109.57.7:8080',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
           onError: (err, req, res) => {
@@ -21,7 +21,8 @@ export default defineConfig(({ mode }) => {
           }
         },
         '/agent' : {
-          target : "http://127.0.0.1:5557/",
+          // target : "http://127.0.0.1:5557/",
+          target : "http://47.109.57.7:5557/",
           changeOrigin : true,
           rewrite: (path) => path.replace(/^\/agent/, ''),
           onError: (err, req, res) => {
