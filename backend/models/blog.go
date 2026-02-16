@@ -18,7 +18,7 @@ type Blog struct {
 	Like       int32                       `json:"like" gorm:"default:0"`       // 喜欢
 	IsPrivate  bool                        `json:"is_private" gorm:"type:tinyint(1);default:0"`
 	CreatedAt  time.Time                   `json:"created_at"`
-	Status     int32                       `json:"status" gorm:"default:0"` // 状态 (0:待审核 1: 草稿 2: 正常 3: 违规 4: 已删除 )
+	Status     string                      `json:"status"`
 	UpdatedAt  time.Time                   `json:"updated_at"`
 	DeletedAt  gorm.DeletedAt              `gorm:"index"`
 }
@@ -30,8 +30,8 @@ func CreateBlog(blog *Blog) error {
 	err := dao.MysqlClient.Create(blog).Error
 	return err
 }
-func ChangeBlog(blog *Blog) error {
-	err := dao.MysqlClient.Model(&Blog{}).Where("id = ?", blog.ID).Select("context", "is_private", "tags", "title").Updates(blog).Error
+func UpdateBlog(blog *Blog) error {
+	err := dao.MysqlClient.Model(&Blog{}).Where("id = ?", blog.ID).Select("context", "is_private", "tags", "title", "status").Updates(blog).Error
 	return err
 }
 func QueryBlog(id string) (Blog, error) {
@@ -73,7 +73,7 @@ func (Blog) GetAvailableBlog(user_id string, keywords string) ([]BlogWithUsernam
 	err := dao.MysqlClient.Model(&Blog{}).
 		Select("blog.id", "blog.user_id", "blog.title", "blog.like", "blog.tags", "blog.collection", "blog.created_at", "blog.updated_at", "user.username").
 		Joins("LEFT JOIN user ON blog.user_id = user.id").
-		Where("blog.status = ?", 2). // 正常状态的博客
+		Where("blog.status = ?", "Normal"). // 正常状态的博客
 		Where("(blog.title LIKE CONCAT('%',?,'%') OR blog.tags LIKE CONCAT('%',?,'%')) AND blog.deleted_at IS NULL AND (blog.user_id = ? OR blog.is_private = 0)", keywords, keywords, user_id).
 		Order("blog.created_at DESC").Scan(&blogs).Error
 	return blogs, err
@@ -93,7 +93,7 @@ func (Blog) GetRecycleBlog() ([]BlogWithUsername, error) {
 	err := dao.MysqlClient.Model(&Blog{}).Unscoped().
 		Select("blog.*", "user.username").
 		Joins("LEFT JOIN user ON blog.user_id = user.id").
-		Where("blog.status = ?", 4).
+		Where("blog.status = ?", "Deleted").
 		Order("blog.created_at DESC").
 		Scan(&blogs).Error
 	return blogs, err
@@ -106,7 +106,7 @@ func (Blog) GetVerifyList() ([]BlogWithUsername, error) {
 	err := dao.MysqlClient.Model(&Blog{}).
 		Select("blog.*", "user.username").
 		Joins("LEFT JOIN user ON blog.user_id = user.id").
-		Where("blog.status = ?", 0).
+		Where("blog.status = ?", "Pending").
 		Order("blog.created_at DESC").
 		Scan(&blogs).Error
 	return blogs, err

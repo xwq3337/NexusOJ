@@ -117,7 +117,7 @@ func Router() *gin.Engine {
 	{
 		blog.POST("/create", controllers.BlogController{}.CreateBlog)        // 创建博客
 		blog.GET("/delete", controllers.BlogController{}.DeleteBlog)         // 删除博客
-		blog.POST("/change", controllers.BlogController{}.ChangeBlog)        // 修改博客
+		blog.POST("/update", controllers.BlogController{}.UpdateBlog)        // 修改博客
 		blog.GET("/count", controllers.BlogController{}.GetNumber)           // 所有博客数量
 		blog.GET("/all", controllers.BlogController{}.GetList)               // 所有博客列表
 		blog.GET("/list", controllers.BlogController{}.GetAvailableBlogList) // 所有可见的博客列表

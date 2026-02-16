@@ -11,12 +11,12 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'problems',
-        component: () => import('@/pages/Problems.vue'),
+        component: () => import('@/pages/problem/Problems.vue'),
         name: 'Problems'
       },
       {
         path: 'contests',
-        component: () => import('@/pages/Contests.vue'),
+        component: () => import('@/pages/contest/Contests.vue'),
         name: 'Contests'
       },
       {
@@ -26,7 +26,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'records',
-        component: () => import('@/pages/Records.vue'),
+        component: () => import('@/pages/record/Records.vue'),
         name: 'Records'
       },
       {
@@ -41,12 +41,12 @@ const routes: RouteRecordRaw[] = [
         children: [
           {
             path: 'courses',
-            component: () => import('@/pages/CoursePage.vue'),
+            component: () => import('@/pages/Courses.vue'),
             name: 'Courses'
           },
           {
             path: 'blogs',
-            component: () => import('@/pages/Blogs.vue'),
+            component: () => import('@/pages/blog/Blogs.vue'),
             name: 'Blogs'
           },
           {
@@ -61,18 +61,36 @@ const routes: RouteRecordRaw[] = [
         children: [
           {
             path: 'login',
-            component: () => import('@/pages/UserAuth.vue'),
-            name: 'Login'
-          },
-          {
-            path: 'profile',
-            component: () => import('@/pages/UserProfile.vue'),
-            name: 'Profile'
+            component: () => import('@/pages/user/UserAuth.vue'),
+            name: 'Login',
+            meta: {
+              desciption: '登录与注册'
+            }
           },
           {
             path: 'personal-center',
-            component: () => import('@/pages/UserPersonalCenter.vue'),
-            name: 'PersonalCenter'
+            component: () => import('@/pages/user/UserPersonalCenter.vue'),
+            name: 'PersonalCenter',
+            children: [
+              {
+                path: 'profile',
+                component: () => import('@/pages/user/UserProfile.vue'),
+                name: 'Profile',
+                meta: {
+                  description: '向他人展示的个人中心'
+                }
+              },
+              {
+                path: 'settings',
+                component: () => import('@/pages/user/UserSettings.vue'),
+                name: 'Settings'
+              },
+              {
+                path: 'user-record',
+                component: () => import('@/pages/user/UserRecord.vue'),
+                name: 'UserRecord'
+              }
+            ]
           }
         ]
       }
@@ -80,18 +98,33 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/problem/:id',
-    component: () => import('@/pages/ProblemDetail.vue'),
+    component: () => import('@/pages/problem/ProblemDetail.vue'),
     name: 'ProblemDetail'
   },
   {
     path: '/record/:id',
-    component: () => import('@/pages/RecordDetail.vue'),
+    component: () => import('@/pages/record/RecordDetail.vue'),
     name: 'RecordDetail'
   },
   {
     path: '/blog/:id',
-    component: () => import('@/pages/BlogDetail.vue'),
+    component: () => import('@/pages/blog/BlogDetail.vue'),
     name: 'BlogDetail'
+  },
+  {
+    path: '/blog/create',
+    component: () => import('@/pages/blog/BlogCreate.vue'),
+    name: 'BlogCreate'
+  },
+  {
+    path: '/contest/:id',
+    component: () => import('@/pages/contest/ContestDetail.vue'),
+    name: 'ContestDetail'
+  },
+  {
+    path: '/user/:id',
+    component: () => import('@/pages/user/UserHomePage.vue'),
+    name: 'UserHomePage'
   },
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ]

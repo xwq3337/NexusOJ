@@ -228,7 +228,7 @@ onMounted(async () => {
 })
 
 // 评测记录数据结构
-interface JudgeRecord {
+export interface JudgeRecord {
   id: number
   code: string
   created_at: string
@@ -246,7 +246,7 @@ interface JudgeRecord {
 }
 
 // 测试用例数据结构
-interface TestCase {
+export interface TestCase {
   time: number
   stdin: string
   memory: number

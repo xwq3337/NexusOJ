@@ -2,20 +2,12 @@
   <div class="animate-fade-in max-w-6xl mx-auto">
     <div class="mb-8">
       <!-- TODO:搜索 -->
-      <div
-        class="divide-y"
-        :style="{
-          borderBottomColor: 'var(--border-color)',
-          borderBottomWidth: '1px',
-          borderStyle: 'solid'
-        }"
-      >
-        <n-data-table
-          :columns="columns"
-          :data="Problems"
-          :pagination="pagination"
-          :bordered="false"
-        >
+      <div class="divide-y" :style="{
+        borderBottomColor: 'var(--border-color)',
+        borderBottomWidth: '1px',
+        borderStyle: 'solid'
+      }">
+        <n-data-table :columns="columns" :data="Problems" :pagination="pagination" :bordered="false">
         </n-data-table>
       </div>
     </div>
@@ -28,6 +20,7 @@ import { RouterLink } from 'vue-router'
 import { Search, Filter, CheckCircle2, Circle, ArrowRight } from 'lucide-vue-next'
 import { NTag, NSpace, NDataTable, NButton, useMessage, NTab, NCol } from 'naive-ui'
 const message = useMessage()
+import { difficultyMap } from '@/constants'
 const pagination = {
   page: 1,
   pageSize: 10
@@ -111,13 +104,7 @@ const columns = [
     }
   }
 ]
-const difficultyMap = [
-  { text: '简单', color: 'text-green-400', type: 'success' },
-  { text: '容易', color: 'text-yellow-400', type: 'warning' },
-  { text: '中等', color: 'text-orange-400', type: 'info' },
-  { text: '困难', color: 'text-red-400', type: 'error' },
-  { text: '极难', color: 'text-purple-400', type: 'error' }
-]
+
 const Problems = ref([])
 import Request from '@/services/api/index'
 onMounted(async () => {
@@ -126,6 +113,6 @@ onMounted(async () => {
     .then((res) => {
       Problems.value = res.info
     })
-    .catch((e) => {})
+    .catch((e) => { })
 })
 </script>

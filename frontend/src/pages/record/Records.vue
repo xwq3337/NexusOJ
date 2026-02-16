@@ -131,37 +131,9 @@ const resetFilters = () => {
 }
 
 
-// 获取状态图标
-const getStatusIcon = (verdict: string) => {
-  switch (verdict) {
-    case 'Accepted':
-      return CheckCircle
-    case 'WrongAnswer':
-    case 'RuntimeError':
-    case 'TimeLimitExceeded':
-    case 'MemoryLimitExceeded':
-    case 'CompilationError':
-      return XCircle
-    default:
-      return Clock
-  }
-}
 import { LANGUAGE_OPTIONS, LANGUAGE_CONFIG, STATUS_OPTIONS, STATUS_COLORS } from '@/constants'
-// 格式化日期
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString)
-  return date.toLocaleString('zh-CN')
-}
 
-// 格式化内存
-const formatMemory = (memory: number) => {
-  return `${Math.round(memory / 1024 / 1024 * 100) / 100} MB`
-}
-
-// 格式化时间
-const formatTime = (time: number) => {
-  return `${time} ms`
-}
+import { formatMemory, formatDate, formatTime } from '@/utils/format'
 
 // 更新路由参数
 const updateRouteQuery = () => {
@@ -226,11 +198,16 @@ const columns = [
     width: 120,
     render(row: RecordItem) {
       return h('div', [
-        h('div', { style: { fontWeight: 'bold', color: 'var(--text-primary)' } }, row.username),
+        h('div', {
+          style: { fontWeight: 'bold', color: 'var(--text-primary)', cursor: 'pointer' },
+          onClick: () => { router.push({ name: 'UserHomePage', params: { id: row.user_id } }) }
+        }, row.username),
         h(
           'div',
-          { style: { fontSize: '12px', color: 'var(--text-secondary)' } },
-          `ID: ${row.user_id.substring(0, 8)}...`
+          {
+            style: { fontSize: '12px', color: 'var(--text-secondary)' },
+          },
+          `ID: ${row.user_id.substring(0, 8)}...`,
         )
       ])
     }

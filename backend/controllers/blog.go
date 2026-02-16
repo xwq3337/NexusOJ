@@ -19,6 +19,8 @@ func (BlogController) CreateBlog(c *gin.Context) {
 		return
 	}
 	data.ID = uuid.New().String()
+	u, _ := ParserToken(c.Request.Header.Get("Authorization"))
+	data.UserID = u.UserID
 	if err := (models.CreateBlog(data)); err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
@@ -27,13 +29,13 @@ func (BlogController) CreateBlog(c *gin.Context) {
 }
 
 // 修改博客
-func (BlogController) ChangeBlog(c *gin.Context) {
+func (BlogController) UpdateBlog(c *gin.Context) {
 	data := &models.Blog{}
 	if Err := c.BindJSON(&data); Err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, Err)
 		return
 	}
-	if err := (models.ChangeBlog(data)); err != nil {
+	if err := (models.UpdateBlog(data)); err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
 	}

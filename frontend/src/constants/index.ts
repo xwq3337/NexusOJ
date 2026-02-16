@@ -26,8 +26,8 @@ export const MARKDOWN_CODE_THEMES: { value: MarkdownCodeTheme; label: string }[]
   { value: 'twilight', label: 'Twilight' },
   { value: 'xcode', label: 'Xcode' }
 ]
-
-import { Problem, Contest } from '@/types'
+import { Problem } from '@/types/problem';
+import { Contest } from '@/types/contest';
 
 export const MOCK_PROBLEMS: Problem[] = [
   {
@@ -72,8 +72,8 @@ export const MOCK_PROBLEMS: Problem[] = [
 
 export const MOCK_CONTESTS: Contest[] = [
   {
-    id: '358',
-    title: '周赛 358',
+    id: '1',
+    title: '周赛 1',
     startTime: '2025/12/15 14:44',
     duration: '1h 30m',
     registered: 12450,
@@ -81,8 +81,8 @@ export const MOCK_CONTESTS: Contest[] = [
     status: 'Live'
   },
   {
-    id: '110',
-    title: '双周赛 110',
+    id: '2',
+    title: '双周赛 1',
     startTime: '2025/12/16 14:44',
     duration: '1h 30m',
     registered: 4300,
@@ -90,13 +90,157 @@ export const MOCK_CONTESTS: Contest[] = [
     status: 'Upcoming'
   },
   {
-    id: '4',
-    title: 'Nexus新手杯 #4',
+    id: '3',
+    title: 'Nexus新手杯 #1',
     startTime: '2025/12/17 14:44',
     duration: '2h 00m',
     registered: 1200,
     type: 'Cup',
     status: 'Upcoming'
+  }
+]
+
+export interface ContestRanking {
+  rank: number
+  username: string
+  avatar: string
+  score: number
+  solved: number
+  time: string
+  penalty: number
+}
+
+export interface ContestProblem {
+  id: string
+  title: string
+  difficulty: 'Easy' | 'Medium' | 'Hard'
+  acceptRate: string
+  solved: number
+  status?: 'accepted' | 'wrong' | 'pending'
+}
+
+export const difficultyMap = [
+  { text: '简单', color: 'text-green-400', type: 'success' },
+  { text: '容易', color: 'text-yellow-400', type: 'warning' },
+  { text: '中等', color: 'text-orange-400', type: 'info' },
+  { text: '困难', color: 'text-red-400', type: 'error' },
+  { text: '极难', color: 'text-purple-400', type: 'error' }
+]
+export const MOCK_CONTEST_RANKING: ContestRanking[] = [
+  {
+    rank: 1,
+    username: 'algorithm_master',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=algorithm',
+    score: 3200,
+    solved: 4,
+    time: '1:23:45',
+    penalty: 12
+  },
+  {
+    rank: 2,
+    username: 'code_ninja',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ninja',
+    score: 3050,
+    solved: 4,
+    time: '1:28:32',
+    penalty: 18
+  },
+  {
+    rank: 3,
+    username: 'byte_warrior',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=warrior',
+    score: 2900,
+    solved: 3,
+    time: '1:35:12',
+    penalty: 8
+  },
+  {
+    rank: 4,
+    username: 'pixel_coder',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=pixel',
+    score: 2750,
+    solved: 3,
+    time: '1:42:05',
+    penalty: 22
+  },
+  {
+    rank: 5,
+    username: 'data_drifter',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=drifter',
+    score: 2600,
+    solved: 3,
+    time: '1:48:33',
+    penalty: 15
+  },
+  {
+    rank: 6,
+    username: 'logic_lord',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=logic',
+    score: 2450,
+    solved: 2,
+    time: '1:55:18',
+    penalty: 10
+  },
+  {
+    rank: 7,
+    username: 'syntax_sage',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=syntax',
+    score: 2300,
+    solved: 2,
+    time: '2:02:45',
+    penalty: 25
+  },
+  {
+    rank: 8,
+    username: 'quantum_dev',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=quantum',
+    score: 2150,
+    solved: 2,
+    time: '2:10:12',
+    penalty: 14
+  }
+]
+
+export const MOCK_CONTEST_PROBLEMS: ContestProblem[] = [
+  {
+    id: 'A',
+    title: '数字游戏',
+    difficulty: 'Easy',
+    acceptRate: '78.5%',
+    solved: 12450,
+    status: 'accepted'
+  },
+  {
+    id: 'B',
+    title: '字符串变换',
+    difficulty: 'Easy',
+    acceptRate: '65.2%',
+    solved: 9850,
+    status: 'accepted'
+  },
+  {
+    id: 'C',
+    title: '矩阵路径',
+    difficulty: 'Medium',
+    acceptRate: '42.8%',
+    solved: 5320,
+    status: 'pending'
+  },
+  {
+    id: 'D',
+    title: '树形 DP',
+    difficulty: 'Medium',
+    acceptRate: '28.3%',
+    solved: 3520,
+    status: 'wrong'
+  },
+  {
+    id: 'E',
+    title: '最短路优化',
+    difficulty: 'Hard',
+    acceptRate: '12.5%',
+    solved: 1560,
+    status: 'pending'
   }
 ]
 

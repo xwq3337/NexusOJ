@@ -28,7 +28,7 @@
     "@vueuse/core": "^14.1.0",
     "ace-builds": "^1.43.5",
     "axios": "^1.13.2",
-    "codemirror": "^6.0.2",
+    "codemirror": "^5.65.20",
     "echarts": "^5.4.0",
     "highlight.js": "^11.11.1",
     "katex": "^0.16.27",

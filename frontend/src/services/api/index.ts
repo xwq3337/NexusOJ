@@ -81,7 +81,7 @@ class Axios {
 
 const Request = new Axios({
   directlyGetdata: true, // 是否直接返回data中的数据
-  baseURL: '/api',
+  baseURL: '/service',
   timeout: 10 * 1000,
   interceptors: _RequstInterceptors,
   headers: { 'Content-Type': 'application/json' },

@@ -24,7 +24,7 @@
                 {{ problem.judge_config.memory_limit }}MB</span>
             </div>
           </div>
-          <MarkdownPreview :text="ProblemContext" style="height: 50rem;" :style="{
+          <v-md-preview :text="ProblemContext" style="height: 50rem;" :style="{
             padding: '5px',
             backgroundColor: 'transparent'
           }" />
@@ -143,7 +143,6 @@ import { Play, RotateCcw, Settings } from 'lucide-vue-next'
 import AiAssistant from '@/components/AiAssistant.vue'
 import { useLocalStorage } from '@vueuse/core'
 import { RemovableRef } from '@vueuse/core'
-import MarkdownPreview from '@/components/MarkdownPreview.vue'
 import Request from '@/services/api'
 import { useMessage } from 'naive-ui'
 import indexedDBService from '@/services/indexedDB'
@@ -177,14 +176,7 @@ const languageToApi = (lang: LanguageValue): string => {
   return LANGUAGE_CONFIG[lang].apiValue
 }
 
-const difficultyMap = [
-  { text: '简单', color: 'text-green-400', type: 'success' },
-  { text: '容易', color: 'text-yellow-400', type: 'warning' },
-  { text: '中等', color: 'text-orange-400', type: 'info' },
-  { text: '困难', color: 'text-red-400', type: 'error' },
-  { text: '极难', color: 'text-purple-400', type: 'error' }
-]
-
+import {difficultyMap} from '@/constants'
 // 使用 IndexedDB 存储代码
 const code = ref('')
 const testCaseInput = ref('')

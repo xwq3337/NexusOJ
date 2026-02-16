@@ -87,6 +87,34 @@ body.light {
   --hero-btn-secondary-bg: #e2e8f0;
   --hero-btn-secondary-hover: #cbd5e1;
 
+  /* Contest page */
+  --contest-hero-from: rgba(59, 130, 246, 0.12);
+  --contest-hero-to: rgba(99, 102, 241, 0.08);
+  --contest-hero-border: rgba(0, 0, 0, 0.08);
+  --contest-glow: rgba(59, 130, 246, 0.15);
+  --contest-title: #1e293b;
+  --contest-subtitle: #64748b;
+  --contest-type-bg: rgba(59, 130, 246, 0.1);
+  --contest-type-color: #2563eb;
+  --contest-live-bg: rgba(16, 185, 129, 0.1);
+  --contest-live-color: #059669;
+  --contest-live-dot: #10b981;
+  --contest-timer-bg: rgba(59, 130, 246, 0.08);
+  --contest-timer-border: rgba(59, 130, 246, 0.2);
+  --contest-timer-label: #64748b;
+  --contest-timer-value: #1e293b;
+  --contest-btn-primary: #3b82f6;
+  --contest-btn-primary-hover: #2563eb;
+  --contest-btn-primary-text: #ffffff;
+  --contest-btn-secondary: #64748b;
+  --contest-btn-secondary-text: #ffffff;
+  --contest-btn-ghost: rgba(0, 0, 0, 0.04);
+  --contest-btn-ghost-text: #64748b;
+  --contest-problem-solved-bg: rgba(16, 185, 129, 0.08);
+  --contest-gold: #fbbf24;
+  --contest-silver: #94a3b8;
+  --contest-bronze: #b45309;
+
   /* Ensure compatibility with Tailwind light mode */
   color-scheme: light;
 }

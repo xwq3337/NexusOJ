@@ -60,8 +60,8 @@ importers:
         specifier: ^1.13.2
         version: 1.13.2
       codemirror:
-        specifier: ^6.0.2
-        version: 6.0.2
+        specifier: ^5.65.20
+        version: 5.65.20
       echarts:
         specifier: ^5.4.0
         version: 5.6.0
@@ -189,9 +189,6 @@ packages:
 
   '@codemirror/lint@6.9.2':
     resolution: {integrity: sha512-sv3DylBiIyi+xKwRCJAAsBZZZWo82shJ/RTMymLabAdtbkV5cSKwWDeCgtUq3v8flTaXS2y1kKkICuRYtUswyQ==}
-
-  '@codemirror/search@6.5.11':
-    resolution: {integrity: sha512-KmWepDE6jUdL6n8cAAqIpRmLPBZ5ZKnicE8oGU/s3QrAVID+0VhLFrzUucVKHG5035/BSykhExDL/Xm7dHthiA==}
 
   '@codemirror/state@6.5.3':
     resolution: {integrity: sha512-MerMzJzlXogk2fxWFU1nKp36bY5orBG59HnPiz0G9nLRebWa0zXuv2siH6PLIHBvv5TH8CkQRqjBs0MlxCZu+A==}
@@ -929,9 +926,6 @@ packages:
 
   codemirror@5.65.20:
     resolution: {integrity: sha512-i5dLDDxwkFCbhjvL2pNjShsojoL3XHyDwsGv1jqETUoW+lzpBKKqNTUWgQwVAOa0tUm4BwekT455ujafi8payA==}
-
-  codemirror@6.0.2:
-    resolution: {integrity: sha512-VhydHotNW5w1UGK0Qj96BwSk/Zqbp9WbnyK2W/eVMv4QyF41INRGpjUhFJY7/uDNuudSc33a/PKr4iDqRduvHw==}
 
   collection-visit@1.0.0:
     resolution: {integrity: sha512-lNkKvzEeMBBjUGHZ+q6z9pSJla0KWAQPvtzhEV9+iGyQYG+pBpl7xKDhxoNSOZH2hhv0v5k0y2yAM4o4SjoSkw==}
@@ -2583,12 +2577,6 @@ snapshots:
       '@codemirror/view': 6.39.9
       crelt: 1.0.6
 
-  '@codemirror/search@6.5.11':
-    dependencies:
-      '@codemirror/state': 6.5.3
-      '@codemirror/view': 6.39.9
-      crelt: 1.0.6
-
   '@codemirror/state@6.5.3':
     dependencies:
       '@marijn/find-cluster-break': 1.0.2
@@ -3276,16 +3264,6 @@ snapshots:
       static-extend: 0.1.2
 
   codemirror@5.65.20: {}
-
-  codemirror@6.0.2:
-    dependencies:
-      '@codemirror/autocomplete': 6.20.0
-      '@codemirror/commands': 6.10.1
-      '@codemirror/language': 6.12.1
-      '@codemirror/lint': 6.9.2
-      '@codemirror/search': 6.5.11
-      '@codemirror/state': 6.5.3
-      '@codemirror/view': 6.39.9
 
   collection-visit@1.0.0:
     dependencies:
