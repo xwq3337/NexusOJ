@@ -26,6 +26,7 @@ func Router() *gin.Engine {
 	assets := r.Group("/assets")
 	// assets.Use(noCacheMiddleware())
 	{
+		assets.Static("/avatar", config.AvatarDir)
 		assets.Static("/images", config.ImagesDir)
 		assets.Static("/videos", config.VideosDir)
 		assets.Static("/markdown/images", config.MarkdownImagesDir)
@@ -65,16 +66,10 @@ func Router() *gin.Engine {
 	}
 	userGroup := r.Group("/user")
 	{
-		userGroup.POST("/create", controllers.UserController{}.CreateUser)             // 创建用户
-		userGroup.POST("/login", controllers.UserController{}.UserLogin)               // 用户登录
-		userGroup.GET("/logout", controllers.UserController{}.UserLogout)              // 用户登出
-		userGroup.GET("/friend", controllers.UserController{}.GetAllFriends)           // 获取所有好友
-		userGroup.GET("/handle", controllers.UserController{}.HandleNewFriend)         // 处理新的好友请求
-		userGroup.POST("/changeAvatar", controllers.UserController{}.ChangeAvatar)     // 更改头像
-		userGroup.POST("/changePassword", controllers.UserController{}.ChangePassword) // 更改密码
-		userGroup.GET("/newfriend", controllers.UserController{}.GetNewFriends)        // 获取新的好友请求
-		userGroup.GET("/search", controllers.UserController{}.FuzzyQuery)              // 模糊查询用户
-		userGroup.POST("/add", controllers.UserController{}.AddFirend)                 // 添加好友
+		userGroup.POST("/create", controllers.UserController{}.CreateUser) // 创建用户
+		userGroup.POST("/login", controllers.UserController{}.UserLogin)   // 用户登录
+		userGroup.GET("/count", controllers.UserController{}.GetNumber)    // 用户数量
+		userGroup.GET("/search", controllers.UserController{}.FuzzyQuery)  // 模糊查询用户
 	}
 	chatGroup := r.Group("/chat")
 	{
@@ -86,10 +81,16 @@ func Router() *gin.Engine {
 
 	r.Use(jwt.Auth())
 	{
-		userGroup.POST("/refresh", controllers.UserController{}.GetAccessToken) // 刷新token
-		userGroup.GET("/count", controllers.UserController{}.GetNumber)         // 用户数量
-		userGroup.GET("/:id", controllers.UserController{}.GetUserInfo)         // 根据id获取用户信息
-		adminGroup.GET("/user-list", controllers.AdminController{}.GetUserList) // 获取用户列表
+		userGroup.POST("/refresh", controllers.UserController{}.GetAccessToken)                   // 刷新token
+		userGroup.POST("/update", controllers.UserController{}.UpdateUser)                        // 更新用户信息
+		userGroup.POST("/update_avatar", controllers.UserController{}.UpdateAvatar)               // 更改头像
+		userGroup.POST("/update_password", controllers.UserController{}.UpdatePassword)           // 更改密码
+		userGroup.GET("/friend_list", controllers.UserController{}.GetAllFriends)                 // 获取所有好友
+		userGroup.POST("/friend_request", controllers.UserController{}.FirendRequest)             // 添加好友，发送好友请求
+		userGroup.GET("/handle_friend_request", controllers.UserController{}.HandleFriendRequest) // 处理新的好友请求，拒绝或者接受
+		userGroup.GET("/friend_request_list", controllers.UserController{}.GetFriendRequestList)  // 获取新的好友请求
+		userGroup.GET("/:id", controllers.UserController{}.GetUserInfo)                           // 根据id获取用户信息
+		adminGroup.GET("/user_list", controllers.AdminController{}.GetUserList)                   // 获取用户列表
 	}
 	problem := r.Group("/problem")
 	{
@@ -126,22 +127,16 @@ func Router() *gin.Engine {
 		blog.GET("/verify-list", controllers.BlogController{}.GetVerifyList) // 待审核博客列表
 		blog.GET("/:id", controllers.BlogController{}.GetBlogInfo)           // 根据id获取博客详情
 	}
-	comment := r.Group("/comment") // TODO: 评论相关接口
-	{
-		comment.GET("", controllers.CommentController{}.GetComment)            // 获取评论
-		comment.POST("/main", controllers.CommentController{}.CreateComment)   // 创建主评论
-		comment.POST("/sub", controllers.CommentController{}.CreateSubComment) // 创建子评论
-	}
+
 	training := r.Group("/training")
 	{
-		training.POST("/create", controllers.TrainingController{}.CreateTraining) // 创建训练(题单)
-		training.GET("/list", controllers.TrainingController{}.GetList)           // 所有训练(题单)列表
-		training.GET("/:id", controllers.TrainingController{}.GetTrainingInfo)    // 根据id获取训练(题单)详情
+		training.GET("/list", controllers.TrainingController{}.GetList)        // 所有训练(题单)列表
+		training.GET("/:id", controllers.TrainingController{}.GetTrainingInfo) // 根据id获取训练(题单)详情
 	}
 	contest := r.Group("/contest")
 	{
-		contest.GET("/list", controllers.ContestController{}.GetList)           // 所有比赛列表
-		contest.GET("/:id", controllers.ContestController{}.GetContestProblems) // 根据id获取比赛题目
+		contest.GET("/list", controllers.ContestController{}.GetList)       // 所有比赛列表
+		contest.GET("/:id", controllers.ContestController{}.GetContestInfo) // 根据id获取比赛题目
 	}
 	file := r.Group("/file")
 	{
@@ -155,7 +150,6 @@ func Router() *gin.Engine {
 		fileUpload.POST("/merge", controllers.FileUploadController{}.MergeFileChunk)         // 合并文件块
 		fileUpload.POST("/directory", controllers.FileUploadController{}.UploadFolder)       // 上传文件夹
 		fileUpload.POST("/markdown-image", controllers.FileUploadController{}.MarkdownImage) // 上传markdown图片
-		fileUpload.POST("/avatar")                                                           // TODO: 文件上传接口
 
 	}
 	fileDownload := r.Group("/download")

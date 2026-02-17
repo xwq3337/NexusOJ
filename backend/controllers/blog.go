@@ -94,6 +94,8 @@ func (BlogController) GetUserBlogList(c *gin.Context) {
 	}
 	utils.ReturnError(c, http.StatusInternalServerError, err)
 }
+
+// 获取回收站的博客列表
 func (BlogController) RecycleBlog(c *gin.Context) {
 	blogs, err := models.Blog{}.GetRecycleBlog()
 	if err == nil {

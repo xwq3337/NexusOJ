@@ -10,25 +10,25 @@ import (
 )
 
 type User struct {
-	ID           string  `json:"id" gorm:"primaryKey"`
-	Username     string  `json:"username" gorm:"type:varchar(50);uniqueIndex;not null"`
-	Password     string  `json:"password"`
-	Email        *string `json:"email"`
-	Nickname     *string `json:"nickname"`
-	Introduction *string `json:"introduction"`
-	Rating       int16   `json:"rating" gorm:"default:1000"`
-	School       *string `json:"school"`
-	Avatar       *string `json:"avatar"`
-	UserRole     uint    `json:"user_role"`
-	Gender       string  `json:"gender"`
-	Submission   int32   `json:"submission" gorm:"default:0"`
-	Accept       int32   `json:"accept" gorm:"default:0"`
-	Codeforces   *string `json:"codeforces"`
-	Birthday     *string `json:"birthday"`
-	Status       int8    `json:"status" gorm:"default:0"` // 0 正常 1 封禁
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	DeletedAt    gorm.DeletedAt `gorm:"index"`
+	ID           string         `json:"id" gorm:"primaryKey"`
+	Username     string         `json:"username" gorm:"type:varchar(50);uniqueIndex;not null"`
+	Password     string         `json:"password"`
+	Email        *string        `json:"email"`
+	Nickname     *string        `json:"nickname"`
+	Introduction *string        `json:"introduction"`
+	Rating       int16          `json:"rating" gorm:"default:1000"`
+	School       *string        `json:"school"`
+	Avatar       *string        `json:"avatar"`
+	UserRole     string         `json:"user_role"`
+	Gender       string         `json:"gender"`
+	Submission   int32          `json:"submission" gorm:"default:0"`
+	Accept       int32          `json:"accept" gorm:"default:0"`
+	Codeforces   *string        `json:"codeforces"`
+	Birthday     *string        `json:"birthday"`
+	Status       int8           `json:"status" gorm:"default:0"` // 0 正常 1 封禁
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 	BannedTo     *time.Time     `json:"banned_to"`                // 封禁到期时间
 	Balance      float64        `json:"balance" gorm:"default:0"` // x币余额
 }
@@ -57,119 +57,128 @@ func (User) FuzzyQuery(key string) ([]User, error) {
 	query := `
 		SELECT * 
 		FROM user 
-		WHERE 
-			(id LIKE CONCAT('%',?,'%') OR 
-			username LIKE CONCAT('%',?,'%')) AND 
-			nickname LIKE CONCAT('%',?,'%')) AND 
-			deleted_at IS NULL 
-		ORDER BY created_at DESC`
-
-	err := dao.MysqlClient.Raw(query, key, key).Scan(&users).Error
+		WHERE id = ? OR username LIKE CONCAT('%',?,'%') OR nickname LIKE CONCAT('%',?,'%')	
+	`
+	err := dao.MysqlClient.Raw(query, key, key, key).Scan(&users).Error
 	return users, err
 }
 func (user User) QueryUser() (User, error) {
 	err := dao.MysqlClient.Find(&user, user).Error
 	return user, err
 }
+
 func UpdateUser(user *User) error {
-	err := dao.MysqlClient.Omit("created_at").Updates(user).Error
+	err := dao.MysqlClient.Model(&User{}).Where("id = ?", user.ID).Omit("id", "created_at", "updated_at", "deleted_at", "banned_to", "balance", "status", "submission", "accept", "user_role", "avatar", "password").Updates(user).Error
 	return err
 }
+func (User) UpdatePassword(userID, oldPassword, newPassword string) error {
+	var user User
+	err := dao.MysqlClient.Where("id = ? AND password = ?", userID, oldPassword).First(&user).Error
+	if err != nil {
+		return err
+	}
+	err = dao.MysqlClient.Model(&User{}).Where("id = ?", userID).Update("password", newPassword).Error
+	return err
+}
+
 func GetAllUsers() ([]User, error) {
 	var users []User
 	err := dao.MysqlClient.Find(&users).Error
 	return users, err
 }
-func ChangeAvatar(id string) error {
-	err := dao.MysqlClient.Model(&User{}).Where("id = ?", id).Update("avatar", fmt.Sprintf("%s/assets/image/%s.png", config.Address, id)).Error
-	return err
+func UpdateAvatar(id string) (string, error) {
+	url := fmt.Sprintf("%s:%s/assets/avatar/%s.png", config.Address, config.Port, id)
+	err := dao.MysqlClient.Model(&User{}).Where("id = ?", id).Update("avatar", url).Error
+	return url, err
 }
 
 type FriendShips struct {
-	ID           uint `json:"id" gorm:"primarykey autoIncrement"`
-	UserID1      string
-	UserID2      string
-	Status       string // pending accepted rejected
-	Verification string // 验证消息
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	DeletedAt    gorm.DeletedAt `gorm:"index"`
+	ID        uint           `json:"id" gorm:"primarykey autoIncrement"`
+	UserID    string         `json:"user_id" gorm:"index"`
+	FriendID  string         `json:"friend_id" gorm:"index"`
+	Status    int8           `json:"status" gorm:"default:0"` // 0 待处理 1 已接受 2 已拒绝
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 }
 
 func (FriendShips) TableName() string {
 	return "friendship"
 }
 
-func GetAllFriends(id string) ([]User, error) {
-	var users []User
-	err := dao.MysqlClient.Raw("SELECT id, nickname, username, avatar FROM user WHERE id IN (SELECT user_id2 as `id`  FROM friendship WHERE user_id1 = ? AND status = 'accepted' UNION ALL SELECT user_id1 as `id` FROM friendship WHERE user_id2 = ? AND status = 'accepted')", id, id).Scan(&users).Error
-	return users, err
+// CreateFriendRequest 创建好友请求
+func CreateFriendRequest(friendship *FriendShips) error {
+	err := dao.MysqlClient.Create(friendship).Error
+	return err
 }
 
-type FriendRequestDetail struct {
-	UserID   string    `json:"id" gorm:"column:id"`
-	Avatar   string    `json:"avatar"`
-	Status   string    `json:"status"`    // pending/rejected
-	SendTime time.Time `json:"send_time"` // 新增时间字段
-	IsSender bool      `json:"is_sender"` // 是否为本方主动发送
-}
-
-func GetNewFriends(id string) ([]FriendRequestDetail, error) {
-	var requests []FriendRequestDetail
+// GetFriendList 获取用户的所有好友（已接受的）
+func GetFriendList(userID string) ([]User, error) {
+	var friends []User
+	// 查找所有状态为1（已接受）的好友关系
 	err := dao.MysqlClient.
-		Table("user u").
-		Select(`
-        u.id, u.username, u.avatar, 
-        f.status, f.created_at as send_time,
-        f.user_id1 = ? as is_sender
-    `, id).
-		Joins(`
-        JOIN friendship f ON 
-            (f.user_id1 = ? AND u.id = f.user_id2) OR
-            (f.user_id2 = ? AND u.id = f.user_id1)
-    `, id, id).
-		Where("f.status IN (?,?)", "pending", "rejected").
-		Scan(&requests).Error
+		Table("user").
+		Joins("JOIN friendship ON (user.id = friendship.friend_id OR user.id = friendship.user_id)").
+		Where("(friendship.user_id = ? OR friendship.friend_id = ?) AND friendship.status = 1 AND user.id != ? AND user.deleted_at IS NULL", userID, userID, userID).
+		Find(&friends).Error
+	return friends, err
+}
+
+// GetFriendRequestList 获取收到的好友请求列表（待处理的）
+func GetFriendRequestList(userID string) ([]FriendShips, error) {
+	var requests []FriendShips
+	err := dao.MysqlClient.
+		Where("friend_id = ? AND status = 0", userID).
+		Find(&requests).Error
 	return requests, err
 }
-func AddFirend(applicant string, recipient string, Verification string) error {
-	var count int8
-	err := dao.MysqlClient.Raw("SELECT count(*) FROM friendship WHERE (user_id1 = ? AND user_id2 = ?) OR (user_id1 = ? AND user_id2 = ?)", applicant, recipient, recipient, applicant).Scan(&count).Error
+
+// HandleFriendRequest 处理好友请求
+func HandleFriendRequest(friendshipID uint, accept bool) error {
+	var friendship FriendShips
+	err := dao.MysqlClient.First(&friendship, friendshipID).Error
 	if err != nil {
 		return err
 	}
-	if count != 0 {
-		return fmt.Errorf("已经是好友或者已存在好友申请")
-	}
-	err = dao.MysqlClient.Create(&FriendShips{
-		UserID1:      applicant,
-		UserID2:      recipient,
-		Status:       "pending", // 初次加好友为等待同意
-		Verification: Verification,
-	}).Error
-	return err
-}
-func HandleNewFriend(applicant string, recipient string, status string) error {
-	if status == "accepted" {
-		return AcceptToFriendRequest(recipient, applicant)
-	} else {
-		return RejectToFriendRequest(recipient, applicant)
-	}
-}
-func AcceptToFriendRequest(recipient string, applicant string) error {
-	err := dao.MysqlClient.Model(&FriendShips{}).Where("user_id1 = ?", applicant).Where("user_id2  = ?", recipient).Where("status =  ? ", "pending").Updates(FriendShips{
-		UserID1: applicant,
-		UserID2: recipient,
-		Status:  "accepted",
-	}).Error
-	return err
-}
 
-func RejectToFriendRequest(recipient string, applicant string) error {
-	err := dao.MysqlClient.Model(&FriendShips{}).Where("user_id1 = ?", applicant).Where("user_id2  = ?", recipient).Where("status = pending").Updates(FriendShips{
-		UserID1: applicant,
-		UserID2: recipient,
-		Status:  "rejected",
-	}).Error
-	return err
+	if accept {
+		// 接受好友请求，创建双向好友关系
+		friendship.Status = 1
+		err = dao.MysqlClient.Save(&friendship).Error
+		if err != nil {
+			return err
+		}
+
+		// 检查是否已有反向好友关系
+		var reverseFriendship FriendShips
+		result := dao.MysqlClient.Where("user_id = ? AND friend_id = ?", friendship.FriendID, friendship.UserID).First(&reverseFriendship)
+		if result.Error != nil && result.Error == gorm.ErrRecordNotFound {
+			// 创建反向好友关系
+			reverseFriendship = FriendShips{
+				UserID:   friendship.FriendID,
+				FriendID: friendship.UserID,
+				Status:   1,
+			}
+			err = dao.MysqlClient.Create(&reverseFriendship).Error
+			if err != nil {
+				return err
+			}
+		} else if result.Error == nil {
+			// 更新反向关系状态
+			reverseFriendship.Status = 1
+			err = dao.MysqlClient.Save(&reverseFriendship).Error
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		// 拒绝好友请求
+		friendship.Status = 2
+		err = dao.MysqlClient.Save(&friendship).Error
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

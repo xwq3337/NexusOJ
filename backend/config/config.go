@@ -30,6 +30,7 @@ var (
 	UploadDir         string
 	ChunkDir          string
 	ImagesDir         string
+	AvatarDir         string
 	VideosDir         string
 	MarkdownImagesDir string
 	LogDir            string
@@ -80,10 +81,12 @@ func loadRedis(file *ini.File) {
 }
 
 func loadPath(file *ini.File) {
+
 	UploadDir = file.Section("path").Key("UploadDir").String()
 	ChunkDir = file.Section("path").Key("ChunkDir").String()
 	ImagesDir = file.Section("path").Key("ImagesDir").String()
 	VideosDir = file.Section("path").Key("VideosDir").String()
+	AvatarDir = file.Section("path").Key("AvatarDir").String()
 	MarkdownImagesDir = file.Section("path").Key("MarkdownImagesDir").String()
 	LogDir = file.Section("path").Key("LogDir").String()
 	DataDir = file.Section("path").Key("DataDir").String()
@@ -92,6 +95,7 @@ func loadPath(file *ini.File) {
 		ChunkDir = DataDir + ChunkDir
 		ImagesDir = DataDir + ImagesDir
 		VideosDir = DataDir + VideosDir
+		AvatarDir = DataDir + AvatarDir
 		MarkdownImagesDir = DataDir + MarkdownImagesDir
 		LogDir = DataDir + LogDir
 	}

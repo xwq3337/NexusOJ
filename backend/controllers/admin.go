@@ -16,7 +16,7 @@ type AdminController struct{}
 func (AdminController) AdminLogin(c *gin.Context) {
 	data := make(map[string]string)
 	_ = c.BindJSON(&data)
-	user, err := models.User{Username: data["username"], Password: data["password"], UserRole: 2}.QueryUser()
+	user, err := models.User{Username: data["username"], Password: data["password"], UserRole: "admin"}.QueryUser()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", data["username"]))
@@ -30,8 +30,8 @@ func (AdminController) AdminLogin(c *gin.Context) {
 		utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", data["username"]))
 		return
 	}
-	access_token, _ := generateToken(c, user, 6*60*60)
-	refresh_token, _ := generateToken(c, user, 7*24*60*60)
+	access_token, _ := generateToken(user, 6*60*60)
+	refresh_token, _ := generateToken(user, 7*24*60*60)
 	var tokens []string
 	tokens = append(tokens, access_token)
 	tokens = append(tokens, refresh_token)

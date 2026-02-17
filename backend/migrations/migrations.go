@@ -12,13 +12,7 @@ func Migrate() {
 		&models.Record{},
 		&models.Blog{},
 		&models.Training{},
-		&models.TrainingToProblem{},
 		&models.Contest{},
-		&models.Comment{},
-		&models.SubComment{},
 		&models.FriendShips{},
-		&models.ContestToProblems{},
-		&models.TrainingToProblem{},
-		&models.TrainingToProblemToRecord{},
 	)
 }
