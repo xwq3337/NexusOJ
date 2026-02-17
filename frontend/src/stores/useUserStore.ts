@@ -5,14 +5,14 @@ export const useUserStore = defineStore(
   'user',
   () => {
     const id = ref('')
-    const account = ref('')
+    const username = ref('')
     const nickname = ref('')
     const gender = ref()
     const avatar = ref('')
     const rating = ref()
-    function initStore({ Id, Account, Nickname, Gender, Avatar, Rating }) {
+    function initStore({ Id, Username, Nickname, Gender, Avatar, Rating }) {
       id.value = Id
-      account.value = Account
+      username.value = Username
       nickname.value = Nickname
       gender.value = Gender
       avatar.value = Avatar
@@ -21,7 +21,7 @@ export const useUserStore = defineStore(
 
     const resetStore = () => {
       id.value = ''
-      account.value = ''
+      username.value = ''
       nickname.value = ''
       gender.value = ''
       avatar.value = ''
@@ -29,7 +29,7 @@ export const useUserStore = defineStore(
     }
     return {
       id,
-      account,
+      username,
       nickname,
       gender,
       avatar,

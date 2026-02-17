@@ -112,7 +112,6 @@ const user = ref<User>({
   username: '',
   avatar: '',
   introduction: '',
-  created_at: '',
   codeforces: '',
   school: '',
   accept: 0,
@@ -126,6 +125,7 @@ const user = ref<User>({
   birthday: '',
   banned_to: '',
   balance: 0,
+  created_at: '',
   updated_at: ""
 })
 onMounted(async () => {

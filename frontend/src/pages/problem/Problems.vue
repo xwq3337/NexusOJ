@@ -18,7 +18,7 @@
 import { ref, computed, h, renderList, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Search, Filter, CheckCircle2, Circle, ArrowRight } from 'lucide-vue-next'
-import { NTag, NSpace, NDataTable, NButton, useMessage, NTab, NCol } from 'naive-ui'
+import { NTag, NSpace, NDataTable, useMessage, NTab, NCol } from 'naive-ui'
 const message = useMessage()
 import { difficultyMap } from '@/constants'
 const pagination = {
@@ -80,7 +80,7 @@ const columns = [
       return h(
         'span',
         { class: 'text-sm' },
-        `${row.submission == 0 ? 0 : (row.accept / row.submission) * 100}%`
+        `${formatAcceptance(row.accept, row.submission)}`
       )
     }
   },
@@ -107,6 +107,7 @@ const columns = [
 
 const Problems = ref([])
 import Request from '@/services/api/index'
+import { formatAcceptance } from '@/utils/format'
 onMounted(async () => {
   console.log('Fetching problem list...')
   await Request.get('/problem/list')

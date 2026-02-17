@@ -14,7 +14,7 @@
         </template>
       </n-input>
       <n-select v-model:value="selectedCategory" :options="categoryOptions" placeholder="分类" class="min-w-40" />
-      <n-button round type="tertiary">
+      <n-button round type="info" ghost>
         <template #icon>
           <RefreshCcw />
         </template>
@@ -35,8 +35,11 @@
             </n-row>
             <n-row>
               <n-col>
+                <!-- TODO 后端返回增加username字段 -->
                 <span style="color: #8a919f;" class="justify-center align-center">
-                  {{ blog.username }}
+                  <UserCard :user_id="blog.user_id">
+                    <span class="text-sm cursor-pointer hover:text-blue-500">{{ blog.username }}</span>
+                  </UserCard>
                 </span>
               </n-col>
               <n-divider vertical />
@@ -44,10 +47,12 @@
                 {{ formatRelativeTime(blog.created_at) }}
                 <n-divider vertical />
                 <Eye :size="20" />
-                {{ formatNumber(Number(Math.random().toPrecision(1) ) * 10) }}
+                {{ formatNumber(Number(Math.random().toPrecision(1)) * 10) }}
                 <n-divider vertical />
-                <ThumbsUp :size="16" />
-                {{ formatNumber(blog.like ?? 0) }}
+                <div class="flex items-center gap-2 hover:text-blue-500 cursor-pointer">
+                  <ThumbsUp :size="16" />
+                  {{ formatNumber(blog.like ?? 0) }}
+                </div>
               </div>
             </n-row>
           </n-list-item>
@@ -154,6 +159,7 @@ import { NInput, NButton, NDivider, NCol, NRow, NSelect, NPagination, NList, NLi
 import type { Blog } from '@/types/blog'
 import { blogApi } from '@/services/blog'
 import { formatRelativeTime } from '@/utils/format'
+import UserCard from '@/components/UserCard.vue'
 
 const router = useRouter()
 // 博客数据

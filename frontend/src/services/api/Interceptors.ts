@@ -5,8 +5,7 @@ import type { RequestInterceptors } from './type'
 import { useLocalStorage } from '@vueuse/core'
 const AccessToken = useLocalStorage('access_token', null)
 const RefreshToken = useLocalStorage('refresh_token', null)
-const account = useLocalStorage('account', null)
-const password = useLocalStorage('password', null)
+const username = useLocalStorage('username', null)
 export const _RequstInterceptors: RequestInterceptors = {
   requestInterceptors(config) {
     config.headers['Authorization'] ||= AccessToken.value
@@ -56,13 +55,10 @@ export const _RequstInterceptors: RequestInterceptors = {
 }
 
 const refreshToken = () => {
-  console.log('正在刷新令牌，请稍候...')
   return Request.post(
     '/user/refresh',
     {
-      /// TODO: 刷新令牌接口，字段变更
-      username: account.value,
-      password: password.value
+      username: username.value,
     },
     {
       headers: {

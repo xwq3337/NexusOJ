@@ -1,7 +1,7 @@
 // 格式化日期
+import dayjs from 'dayjs'
 export const formatDate = (dateString: string) => {
-  const date = new Date(dateString)
-  return date.toLocaleString('zh-CN')
+  return dayjs(dateString).format('YYYY-MM-DD HH:mm:ss')
 }
 
 // 格式化内存
@@ -52,4 +52,9 @@ export const formatRelativeTime = (dateString: string): string => {
   // 年
   const years = Math.floor(months / 12)
   return `${years}年前`
+}
+
+export const formatAcceptance = (accept: number, total: number) => {
+  if (total === 0) return '0.00%'
+  return `${((accept / total) * 100).toFixed(2)}%`
 }

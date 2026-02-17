@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Settings } from 'lucide-vue-next';
-import { NForm, NFormItem,NSelect } from 'naive-ui';
+import { NForm, NFormItem, NSelect } from 'naive-ui';
 const language = ref('zh')
 const theme = ref(localStorage.getItem('theme') || 'light')
 const themeOptions = [

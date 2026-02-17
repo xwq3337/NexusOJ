@@ -39,7 +39,7 @@
 <script setup lang="ts">
 import { ref, reactive, watch, onMounted } from 'vue'
 import { useMessage, NDataTable, NCard, NInput, NSelect, NButton, NTag, NAvatar, NPagination } from 'naive-ui'
-import { Search, CheckCircle, XCircle, Clock, Code, User, Calendar } from 'lucide-vue-next'
+import { Search } from 'lucide-vue-next'
 import { h } from 'vue'
 import Request from '@/services/api'
 import { useRouter } from 'vue-router'

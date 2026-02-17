@@ -59,7 +59,7 @@
           </button>
         </n-badge>
 
-        <button v-if="account" :class="`hover:${currentTheme === 'dark' ? 'text-white' : 'text-black'}`"
+        <button v-if="username" :class="`hover:${currentTheme === 'dark' ? 'text-white' : 'text-black'}`"
           class="hidden md:flex items-center justify-center w-10 h-10 rounded-full text-gray-400 cursor-pointer"
           :style="{ backgroundColor: 'var(--surface-primary)' }" @click="$router.push({ name: 'Profile' })">
           <User :size="20" />
@@ -155,7 +155,7 @@
               </button>
             </n-badge>
 
-            <button v-if="account" @click="() => { isMobileMenuOpen = false; $router.push({ name: 'Profile' }) }"
+            <button v-if="username" @click="() => { isMobileMenuOpen = false; $router.push({ name: 'Profile' }) }"
               class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 transition-colors mt-2"
               :class="`hover:${currentTheme === 'dark' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-black'}`">
               <User :size="18" />
@@ -188,7 +188,7 @@ import {
 import { useLocalStorage } from '@vueuse/core'
 import { useTheme } from '@/composables/useTheme'
 
-const account = useLocalStorage('account', '')
+const username = useLocalStorage('username', '')
 const route = useRoute()
 const { theme: currentTheme, toggleTheme } = useTheme()
 

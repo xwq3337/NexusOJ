@@ -6,7 +6,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        component: () => import('@/pages/Home.vue'),
+        component: () => import('@/pages/home/Home.vue'),
         name: 'Home'
       },
       {
@@ -30,9 +30,28 @@ const routes: RouteRecordRaw[] = [
         name: 'Records'
       },
       {
-        path: 'message',
-        component: () => import('@/pages/Message.vue'),
-        name: 'Message'
+        path: 'notifications',
+        component: () => import('@/pages/notification/notifications.vue'),
+        name: 'Notifications',
+        redirect: { name: 'Info' },
+        children: [
+          {
+            path: 'info',
+            component: () => import('@/pages/notification/info.vue'),
+            name: 'Info',
+            meta: {
+              description: '系统通知'
+            }
+          },
+          {
+            path: 'message',
+            component: () => import('@/pages/notification/message.vue'),
+            name: 'Message',
+            meta: {
+              description: '私信'
+            }
+          }
+        ]
       },
       {
         path: 'knowledgebase',
@@ -78,6 +97,14 @@ const routes: RouteRecordRaw[] = [
                 name: 'Profile',
                 meta: {
                   description: '向他人展示的个人中心'
+                }
+              },
+              {
+                path: 'security',
+                component: () => import('@/pages/user/UserSecurity.vue'),
+                name: 'Security',
+                meta: {
+                  description: '账号安全'
                 }
               },
               {

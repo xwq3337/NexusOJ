@@ -78,6 +78,7 @@
             fontFamily: 'monospace',
             lineHeight: '1.5'
           }" v-html="highlightedCode"></pre>
+          
         </div>
       </div>
 

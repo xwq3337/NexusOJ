@@ -82,12 +82,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { NTabs, NTabPane } from 'naive-ui'
-import UserSideBar from '@/components/UserSideBar.vue'
-import UserStatsCard from '@/components/UserStatsCard.vue'
-import UserHeatmap from '@/components/UserHeatmap.vue'
+import UserSideBar from '@/pages/user/components/UserSideBar.vue'
+import UserStatsCard from '@/pages/user/components/UserStatsCard.vue'
+import UserHeatmap from '@/pages/user/components/UserHeatmap.vue'
 
 const route = useRoute()
 const activeTab = ref('submissions')
@@ -96,9 +96,6 @@ const activeTab = ref('submissions')
 const userId = ref<string>('')
 userId.value = route.params.id as string
 
-onMounted(() => {
-  // 可以在这里添加额外的初始化逻辑
-})
 </script>
 
 <style scoped>

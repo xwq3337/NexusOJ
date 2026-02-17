@@ -1,9 +1,9 @@
 <template>
   <div style="max-width: 480px; margin: 0 auto; padding: 24px">
     <n-form ref="formRef" :model="modelRef" :rules="rules">
-      <n-form-item path="account" label="用户名">
+      <n-form-item path="username" label="用户名">
         <n-input
-          v-model:value="modelRef.account"
+          v-model:value="modelRef.username"
           @keydown.enter.prevent
           :placeholder="'请输入用户名'"
         />
@@ -30,7 +30,7 @@
         <n-col :span="24">
           <div style="display: flex; justify-content: flex-end">
             <n-button
-              :disabled="modelRef.account === null"
+              :disabled="modelRef.username === null"
               round
               type="primary"
               @click="handleValidateButtonClick"
@@ -57,7 +57,7 @@ const router = useRouter()
 const regex = /redirect=([^&]+)/
 const redirectPath = route.fullPath.match(regex)?.slice(1)[0] ?? '/'
 interface ModelType {
-  account: string | null
+  username: string | null
   password: string | null
   reenteredPassword: string | null
 }
@@ -66,7 +66,7 @@ const formRef = ref<FormInst | null>(null)
 const rPasswordFormItemRef = ref<FormItemInst | null>(null)
 const message = useMessage()
 const modelRef = ref<ModelType>({
-  account: null,
+  username: null,
   password: null,
   reenteredPassword: null
 })
@@ -84,7 +84,7 @@ function validatePasswordSame(rule: FormItemRule, value: string): boolean {
 }
 
 const rules: FormRules = {
-  account: [
+  username: [
     {
       required: true,
       validator(rule: FormItemRule, value: string) {
@@ -132,8 +132,7 @@ function handlePasswordInput() {
 }
 const AccessToken = useLocalStorage('access_token', null)
 const RefreshToken = useLocalStorage('refresh_token', null)
-const account = useLocalStorage('account', '')
-const password = useLocalStorage('password', '')
+const username = useLocalStorage('username', '')
 import { useUserStore } from '@/stores/useUserStore'
 const { initStore } = useUserStore()
 // 上传登陆事件
@@ -142,20 +141,18 @@ function handleValidateButtonClick(e: MouseEvent) {
   formRef.value?.validate((errors) => {
     if (!errors) {
       Request.post('/user/login', {
-        // TODO:字段重命名
         // TODO:密码加密
-        username: modelRef.value.account,
+        username: modelRef.value.username,
         password: modelRef.value.password
       })
         .then((response: any) => {
           if (response.code == HttpStatusCode.Ok) {
             AccessToken.value = response.msg[0]
             RefreshToken.value = response.msg[1]
-            account.value = modelRef.value.account
-            password.value = modelRef.value.password
+            username.value = modelRef.value.username
             initStore({
               Id: response.info.id,
-              Account: modelRef.value.account,
+              Username: modelRef.value.username,
               Nickname: response.info.nickname,
               Gender: response.info.gender,
               Avatar: response.info.avatar,
@@ -163,6 +160,7 @@ function handleValidateButtonClick(e: MouseEvent) {
             })
             router.push({ path: redirectPath, replace: true })
           } else {
+            message.error('登录失败, 请检查用户名和密码')
             console.log(response.msg)
           }
         })

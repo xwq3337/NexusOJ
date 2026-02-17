@@ -187,12 +187,11 @@
 </template>
 
 <script setup lang="ts">
-import Stats from '@/components/Stats.vue'
-import ActivityChart from '@/components/ActivityChart.vue'
+import Stats from '@/pages/home/Stats.vue'
+import ActivityChart from '@/pages/home/ActivityChart.vue'
 import { MOCK_PROBLEMS, MOCK_CONTESTS } from '@/constants'
 import { CheckCircle2, Circle } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
-import { ref } from 'vue'
 </script>
 
 <style scoped>

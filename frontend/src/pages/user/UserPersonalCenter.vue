@@ -10,7 +10,7 @@
                 <UserIcon v-if="!userStore.avatar" />
               </n-avatar>
               <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-                {{ userStore.nickname || userStore.account }}
+                {{ userStore.nickname || userStore.username }}
               </h2>
               <p class="text-gray-500 dark:text-gray-400 text-sm">
                 Rating: {{ userStore.rating || 'N/A' }}
@@ -39,6 +39,7 @@ import {
   User,
   Settings,
   BarChart,
+  LockKeyhole
 } from 'lucide-vue-next'
 import {
   NAvatar,
@@ -63,6 +64,20 @@ const menuOptions: MenuOption[] = [
       ),
     key: 'profile',
     icon: () => h(User)
+  },
+    {
+    label: () =>
+      h(
+        RouterLink,
+        {
+          to: {
+            name: 'Security',
+          }
+        },
+        { default: () => '安全中心' }
+      ),
+    key: 'security',
+    icon: () => h(LockKeyhole)
   },
   {
     label: () =>
