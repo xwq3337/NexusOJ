@@ -14,15 +14,16 @@ import { useRouter } from 'vue-router';
 const router = useRouter();
 import { useUserStore } from '@/stores/useUserStore';
 import { useLocalStorage } from '@vueuse/core';
-const { id, resetStore } = useUserStore();
+import { inject, Ref } from 'vue';
+const { resetStore } = useUserStore();
 const accessToken = useLocalStorage('access_token', '')
 const refreshToken = useLocalStorage('refresh_token', '')
-const username = useLocalStorage('username', '')
-const handleLogout = () => {
+const isAuthorization = inject('isAuthorization') as Ref<boolean>; // 注入认证状态
+  const handleLogout = async () => {
   // 这里可以添加退出登录的逻辑，例如清除用户信息、重置状态等
   resetStore();
   accessToken.value = '', refreshToken.value = '';
-  username.value = '';
+  isAuthorization.value = false; // 设置认证状态为未认证
   // 重定向到登录页
   router.push('/user/login');
 };

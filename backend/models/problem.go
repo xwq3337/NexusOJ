@@ -15,7 +15,7 @@ type Problem struct {
 	Context           string                               `json:"context"`
 	InputDescription  string                               `json:"input_description"`
 	OutputDescription string                               `json:"output_description"`
-	Tip               string                               `json:"tip"`
+	Tips              string                               `json:"tips"`
 	Difficulty        float32                              `json:"difficulty"`
 	JudgeCase         datatypes.JSONSlice[ProblemTestCase] `json:"judge_case"`
 	JudgeConfig       JudgeConfig                          `json:"judge_config" gorm:"serializer:json"`
@@ -26,9 +26,9 @@ type Problem struct {
 	Collection        int32                                `json:"collection"`
 	CreatedAt         time.Time                            `json:"created_at"`
 	UpdatedAt         time.Time                            `json:"updated_at"`
-	DeletedAt         gorm.DeletedAt                       `gorm:"index"`
+	DeletedAt         gorm.DeletedAt                       `json:"deleted_at" gorm:"index"`
 }
-type ProblemWithUsername struct {
+type ProblemDetail struct {
 	Problem
 	Username string `json:"username"`
 }
@@ -63,7 +63,6 @@ func (Problem) CreateProblem(problem *Problem) error {
 	if err != nil {
 		return err
 	}
-
 	// 设置为最大ID+1
 	problem.ID = maxID + 1
 
@@ -75,8 +74,8 @@ func (Problem) UpdateProblem(problem *Problem) error {
 	err := dao.MysqlClient.Omit("created_at").Updates(&problem).Error
 	return err
 }
-func (Problem) QueryProblemById(id string) (ProblemWithUsername, error) {
-	var problem ProblemWithUsername
+func (Problem) QueryProblemById(id string) (ProblemDetail, error) {
+	var problem ProblemDetail
 	err := dao.MysqlClient.Model(Problem{}).
 		Select("problem.*", "user.username").
 		Where("problem.id = ?", id).
@@ -84,8 +83,8 @@ func (Problem) QueryProblemById(id string) (ProblemWithUsername, error) {
 		First(&problem).Error
 	return problem, err
 }
-func (Problem) QueryProblemByKeyword(keyword string) ([]ProblemWithUsername, error) {
-	var problems []ProblemWithUsername
+func (Problem) QueryProblemByKeyword(keyword string) ([]ProblemDetail, error) {
+	var problems []ProblemDetail
 	err := dao.MysqlClient.Model(Problem{}).
 		Select("problem.title, problem.id", "user.username").
 		Where("problem.title LIKE ?", "%"+keyword+"%").

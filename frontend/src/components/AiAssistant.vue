@@ -36,21 +36,20 @@
         <!-- Welcome Message -->
         <div v-if="messages.length === 0"
           class="flex flex-col items-center justify-center h-full text-center space-y-4">
-          <div class="w-16 h-16 rounded-full flex items-center justify-center"
-            :style="{ backgroundColor: 'var(--accent-color)' }">
+          <div class="w-16 h-16 rounded-full flex items-center justify-center bg-(--accent-color)">
             <Bot :size="32" style="color: white" />
           </div>
           <div>
             <h3 class="text-lg font-semibold mb-1" :style="{ color: 'var(--text-primary)' }">
               你好！我是 NexusAI
             </h3>
-            <p class="text-sm" :style="{ color: 'var(--text-secondary)' }">
+            <p class="text-sm text-(--text-secondary)">
               我可以帮助你理解算法、调试代码和提升编程技能
             </p>
           </div>
           <div class="grid grid-cols-2 gap-2 w-full">
             <button v-for="prompt in quickPrompts" :key="prompt.text" @click="sendQuickPrompt(prompt.text)"
-              class="px-3 py-2 rounded-lg text-xs text-left transition-colors" :style="{
+              class="px-3 py-2 rounded-lg text-xs text-left transition-colors " :style="{
                 backgroundColor: 'var(--surface-secondary)',
                 color: 'var(--text-secondary)',
                 border: '1px solid var(--border-color)'

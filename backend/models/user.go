@@ -119,7 +119,7 @@ func GetFriendList(userID string) ([]User, error) {
 	err := dao.MysqlClient.
 		Table("user").
 		Joins("JOIN friendship ON (user.id = friendship.friend_id OR user.id = friendship.user_id)").
-		Where("(friendship.user_id = ? OR friendship.friend_id = ?) AND friendship.status = 1 AND user.id != ? AND user.deleted_at IS NULL", userID, userID, userID).
+		Where("friendship.user_id = ? AND friendship.status = 1 AND user.id != ? AND user.deleted_at IS NULL", userID, userID).
 		Find(&friends).Error
 	return friends, err
 }

@@ -4,6 +4,8 @@ export interface Blog {
   user_id: string
   title: string
   context: string
+  excerpt: string
+  view : number
   tags: string[]
   collection: number
   like: number
@@ -22,8 +24,4 @@ export interface UpdateBlogParam extends Partial<
   Pick<Blog, 'title' | 'context' | 'tags' | 'is_private' | 'status'>
 > {
   id: string
-}
-export interface BlogDetail extends Blog {
-  avatar?: string
-  username: string
 }

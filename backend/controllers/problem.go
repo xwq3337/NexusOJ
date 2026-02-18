@@ -36,7 +36,7 @@ func (ProblemController) GetProblemInfo(c *gin.Context) {
 	id := c.Param("id")
 	problem, err := models.Problem{}.QueryProblemById(id)
 	if err == nil {
-		utils.ReturnSuccess(c, http.StatusOK, "suceess", problem)
+		utils.ReturnSuccess(c, http.StatusOK, "success", problem)
 		return
 	}
 	utils.ReturnError(c, http.StatusNotFound, err)
@@ -49,7 +49,7 @@ func (ProblemController) GetList(c *gin.Context) {
 	}
 	utils.ReturnError(c, http.StatusInternalServerError, err)
 }
-func (ProblemController) ChangeProblem(c *gin.Context) {
+func (ProblemController) UpdateProblem(c *gin.Context) {
 	problem := &models.Problem{}
 	_ = c.BindJSON(&problem)
 	err := models.Problem{}.UpdateProblem(problem)
@@ -84,7 +84,7 @@ func (ProblemController) GetNumber(c *gin.Context) {
 func (ProblemController) SubmitProblem(c *gin.Context) {
 	// 1. 参数验证
 	data := models.ProblemJudgeStruct{}
-	x, _ := ParserToken(c.Request.Header.Get("Authorization"))
+	userID, _ := ParserToken(c)
 	if Err := c.BindJSON(&data); Err != nil {
 		utils.ReturnError(c, http.StatusBadRequest, Err)
 		return
@@ -119,7 +119,7 @@ func (ProblemController) SubmitProblem(c *gin.Context) {
 	task := &services.JudgeTask{
 		SubmissionID: submissionID,
 		ProblemID:    data.ProblemID,
-		UserID:       x.UserID,
+		UserID:       userID,
 		Code:         data.Code,
 		Language:     data.Language,
 		TestCases:    testCases,
@@ -156,7 +156,7 @@ func (ProblemController) GetSubmissionStatus(c *gin.Context) {
 
 	// 检查记录是否属于当前用户
 	userID, exists := c.Get("user_id")
-	if exists && userID != record["user_id"] {
+	if exists && userID != record.UserId {
 		utils.ReturnError(c, http.StatusForbidden, "无权访问此提交记录")
 		return
 	}

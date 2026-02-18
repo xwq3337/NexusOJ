@@ -78,7 +78,7 @@
             fontFamily: 'monospace',
             lineHeight: '1.5'
           }" v-html="highlightedCode"></pre>
-          
+
         </div>
       </div>
 
@@ -155,8 +155,6 @@ import { useRoute } from 'vue-router'
 import { NTag, NButton, useMessage } from 'naive-ui'
 import { Clock, Database, Copy } from 'lucide-vue-next'
 import { useClipboard } from '@vueuse/core'
-import Request from '@/services/api'
-import { safeJsonParse } from '@/utils/safeJsonParse'
 import { LANGUAGE_CONFIG, STATUS_COLORS } from '@/constants'
 import hljs from 'highlight.js/lib/common'
 import javascript from 'highlight.js/lib/languages/javascript'
@@ -166,9 +164,10 @@ import java from 'highlight.js/lib/languages/java'
 import rust from 'highlight.js/lib/languages/rust'
 import go from 'highlight.js/lib/languages/go'
 import { useTheme } from '@/composables/useTheme'
-
-const {theme} = useTheme()
-
+import { recordApi } from '@/services/record'
+import { GetRecordDetailResponse, JudgeTestCaseResult } from '@/types/record'
+const { theme } = useTheme()
+import { formatTime, formatMemory, formatDate } from '@/utils/format'
 // 动态加载 highlight.js 主题 CSS
 let highlightThemeLoaded: string | null = null
 
@@ -210,7 +209,7 @@ hljs.registerLanguage('cpp', cpp)
 hljs.registerLanguage('python', python)
 hljs.registerLanguage('java', java)
 hljs.registerLanguage('rust', rust)
-hljs.registerLanguage('go',go)
+hljs.registerLanguage('go', go)
 
 // 初始化时加载主题
 onMounted(() => {
@@ -223,52 +222,22 @@ watch(theme, (newTheme) => {
 })
 
 onMounted(async () => {
-  await Request.get('/record/' + route.params.id).then((res) => {
-    record.value = res.info
+  if (!route.params.id) return
+  await recordApi.getRecordDetail(route.params.id as string).then((res) => {
+    const { info } = res
+    record.value = info
+    testCases.value = info.judge_result || []
   })
 })
-
-// 评测记录数据结构
-export interface JudgeRecord {
-  id: number
-  code: string
-  created_at: string
-  deleted_at: string | null
-  judge_result: string // JSON字符串
-  language: string
-  max_memory: number
-  max_time: number
-  problem_id: string
-  problem_title: string
-  updated_at: string
-  user_id: string
-  username: string
-  verdict: string
-}
-
-// 测试用例数据结构
-export interface TestCase {
-  time: number
-  stdin: string
-  memory: number
-  status: string
-  stderr: string
-  stdout: string
-  case_id: string
-  expected: string
-}
 
 // 获取当前路由参数
 const route = useRoute()
 
 // 记录数据
-const record = ref({} as JudgeRecord)
+const record = ref({} as GetRecordDetailResponse)
 
 // 解析测试用例
-const testCases = computed<TestCase[]>(() => {
-  const result = safeJsonParse(record.value.judge_result)
-  return result.isVaild() ? result.value : []
-})
+const testCases = ref<JudgeTestCaseResult[]>([])
 
 // 代码高亮
 const highlightedCode = computed(() => {
@@ -281,7 +250,7 @@ const highlightedCode = computed(() => {
     c: 'c',
     text: 'plaintext',
     rust: 'rust',
-    go : 'go'
+    go: 'go'
   }
 
   const language = langMap[record.value.language] || 'plaintext'
@@ -295,21 +264,6 @@ const highlightedCode = computed(() => {
   }
 })
 
-// 格式化内存
-const formatMemory = (memory: number) => {
-  return `${Math.round(memory / 1024 / 1024 * 100) / 100} MB`
-}
-
-// 格式化时间
-const formatTime = (time: number) => {
-  return `${time} ms`
-}
-
-// 格式化日期
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString)
-  return date.toLocaleString('zh-CN')
-}
 
 const { copy } = useClipboard()
 const message = useMessage()

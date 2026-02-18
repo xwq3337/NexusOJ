@@ -28,8 +28,8 @@
         <div class="flex justify-end p-4">
           <n-pagination v-model:page="pagination.page" v-model:page-size="pagination.pageSize"
             :page-count="Math.ceil(Number(totalRecords / pagination.pageSize))" :page-sizes="pagination.pageSizes"
-            size="medium" show-quick-jumper show-size-picker @update-page="pagination.onUpdatePage"
-            @update-page-size="pagination.onUpdatePageSize" />
+            size="medium" show-quick-jumper :show-size-picker="pagination.showSizePicker"
+            @update-page="pagination.onUpdatePage" @update-page-size="pagination.onUpdatePageSize" />
         </div>
       </n-card>
     </div>
@@ -41,36 +41,23 @@ import { ref, reactive, watch, onMounted } from 'vue'
 import { useMessage, NDataTable, NCard, NInput, NSelect, NButton, NTag, NAvatar, NPagination } from 'naive-ui'
 import { Search } from 'lucide-vue-next'
 import { h } from 'vue'
-import Request from '@/services/api'
 import { useRouter } from 'vue-router'
 import { useClipboard } from '@vueuse/core'
 const { copy } = useClipboard()
 const router = useRouter()
 const message = useMessage()
-// 评测记录数据结构
-interface RecordItem {
-  id: number
-  created_at: string
-  language: string
-  max_memory: number
-  max_time: number
-  problem_id: string
-  problem_title: string
-  user_id: string
-  username: string
-  verdict: string
-}
+
 
 // 筛选条件
 const searchKeyword = ref('')
-const statusFilter = ref<string | null>(null)
+const statusFilter = ref<JudgeVerdictType>()
 const languageFilter = ref<string | null>(null)
 
 // 加载状态
 const loading = ref(false)
 
 // 记录数据
-const records = ref<RecordItem[]>([])
+const records = ref<GetRecordListResponse[]>([])
 
 // 总记录数
 const totalRecords = ref(0)
@@ -83,7 +70,7 @@ const pageSize = ref(10)
 const fetchRecords = async () => {
   loading.value = true
   try {
-    const params: { [key: string]: any } = {
+    const params: Partial<GetRecordListParams> = {
       page: currentPage.value,
       page_size: pageSize.value
     }
@@ -99,9 +86,10 @@ const fetchRecords = async () => {
       params.language = languageFilter.value
     }
 
-    await Request.get('/record/list', { params }).then((res) => {
-      records.value = res.info.data || []
-      totalRecords.value = res.info.total || res.info?.length || 0
+    await recordApi.getRecordList(params).then((res) => {
+      const { info } = res
+      records.value = info.data || []
+      totalRecords.value = info.total || 0
     })
   } catch (error) {
     console.error('获取记录失败:', error)
@@ -134,6 +122,8 @@ const resetFilters = () => {
 import { LANGUAGE_OPTIONS, LANGUAGE_CONFIG, STATUS_OPTIONS, STATUS_COLORS } from '@/constants'
 
 import { formatMemory, formatDate, formatTime } from '@/utils/format'
+import { recordApi } from '@/services/record'
+import { JudgeVerdictType, GetRecordListParams,GetRecordListResponse } from '@/types/record'
 
 // 更新路由参数
 const updateRouteQuery = () => {
@@ -150,7 +140,7 @@ const columns = [
     title: 'ID',
     key: 'id',
     width: 150,
-    render(row: RecordItem) {
+    render(row: GetRecordListResponse) {
       return h(
         'span',
         {
@@ -167,7 +157,7 @@ const columns = [
     title: '题目',
     key: 'problem_title',
     width: 200,
-    render(row: RecordItem) {
+    render(row: GetRecordListResponse) {
       return h('div', [
         h(
           'div',
@@ -185,7 +175,7 @@ const columns = [
           'div',
           {
             style: { fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer' },
-            onClick: () => { copy(row.problem_id), message.success('复制成功') },
+            onClick: () => { copy(String(row.problem_id)), message.success('复制成功') },
           },
           `ID: ${row.problem_id}`
         )
@@ -196,7 +186,7 @@ const columns = [
     title: '用户',
     key: 'username',
     width: 120,
-    render(row: RecordItem) {
+    render(row: GetRecordListResponse) {
       return h('div', [
         h('div', {
           style: { fontWeight: 'bold', color: 'var(--text-primary)', cursor: 'pointer' },
@@ -216,7 +206,7 @@ const columns = [
     title: '状态',
     key: 'verdict',
     width: 150,
-    render(row: RecordItem) {
+    render(row: GetRecordListResponse) {
       return h(
         NTag,
         {
@@ -234,7 +224,7 @@ const columns = [
     title: '语言',
     key: 'language',
     width: 100,
-    render(row: RecordItem) {
+    render(row: GetRecordListResponse) {
       return h(
         NTag,
         {
@@ -252,7 +242,7 @@ const columns = [
     title: '内存',
     key: 'max_memory',
     width: 100,
-    render(row: RecordItem) {
+    render(row: GetRecordListResponse) {
       return formatMemory(row.max_memory)
     }
   },
@@ -260,7 +250,7 @@ const columns = [
     title: '时间',
     key: 'max_time',
     width: 100,
-    render(row: RecordItem) {
+    render(row: GetRecordListResponse) {
       return formatTime(row.max_time)
     }
   },
@@ -268,7 +258,7 @@ const columns = [
     title: '提交时间',
     key: 'created_at',
     width: 180,
-    render(row: RecordItem) {
+    render(row: GetRecordListResponse) {
       return formatDate(row.created_at)
     }
   }

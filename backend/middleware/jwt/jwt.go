@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -20,8 +21,8 @@ var (
 
 func Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := c.Request.Header.Get("Authorization")
-		if token == "" {
+		// 从请求头中获取token
+		if c.Request.Header.Get("Authorization") == "" {
 			c.JSON(http.StatusOK, gin.H{
 				"code": http.StatusUnauthorized,
 				"msg":  "请求未携带token,无权限访问",
@@ -29,8 +30,9 @@ func Auth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+		tokenString := strings.Split(c.Request.Header.Get("Authorization"), " ")[1]
 		j := NewJWT()
-		claims, err := j.ParserToken(token)
+		claims, err := j.ParserToken(tokenString)
 		if err != nil {
 			if errors.Is(err, TokenExpired) {
 				c.JSON(http.StatusOK, gin.H{

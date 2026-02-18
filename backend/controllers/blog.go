@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"pkg/models"
 	"pkg/utils"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -19,8 +20,7 @@ func (BlogController) CreateBlog(c *gin.Context) {
 		return
 	}
 	data.ID = uuid.New().String()
-	u, _ := ParserToken(c.Request.Header.Get("Authorization"))
-	data.UserID = u.UserID
+	data.UserID, _ = ParserToken(c)
 	if err := (models.CreateBlog(data)); err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
@@ -47,7 +47,7 @@ func (BlogController) DeleteBlog(c *gin.Context) {
 	id := c.Query("id")
 	err := models.DeleteBlog(id)
 	if err == nil {
-		utils.ReturnSuccess(c, http.StatusOK, "suceess", nil)
+		utils.ReturnSuccess(c, http.StatusOK, "success", nil)
 		return
 	}
 	utils.ReturnError(c, http.StatusInternalServerError, err)
@@ -58,7 +58,7 @@ func (BlogController) GetBlogInfo(c *gin.Context) {
 	id := c.Param("id")
 	blog, err := models.QueryBlog(id)
 	if err == nil {
-		utils.ReturnSuccess(c, http.StatusOK, "suceess", blog)
+		utils.ReturnSuccess(c, http.StatusOK, "success", blog)
 		return
 	}
 	utils.ReturnError(c, http.StatusNotFound, err)
@@ -75,7 +75,7 @@ func (BlogController) GetNumber(c *gin.Context) {
 }
 
 // 获取所有博客列表
-func (BlogController) GetList(c *gin.Context) {
+func (BlogController) GetFullList(c *gin.Context) {
 	results, err := models.Blog{}.GetAllBlog()
 	if err == nil {
 		utils.ReturnSuccess(c, http.StatusOK, "success", results)
@@ -86,8 +86,8 @@ func (BlogController) GetList(c *gin.Context) {
 
 // 获取用户的个人博客列表
 func (BlogController) GetUserBlogList(c *gin.Context) {
-	x, _ := ParserToken(c.Request.Header.Get("Authorization"))
-	results, err := models.Blog{}.GetUserBlogList(x.UserID)
+	userID, _ := ParserToken(c)
+	results, err := models.Blog{}.GetUserBlogList(userID)
 	if err == nil {
 		utils.ReturnSuccess(c, http.StatusOK, "success", results)
 		return
@@ -115,12 +115,18 @@ func (BlogController) GetVerifyList(c *gin.Context) {
 
 // 获取用户的可见博客列表（考虑其他用户私密博客）
 func (BlogController) GetAvailableBlogList(c *gin.Context) {
-	x, _ := ParserToken(c.Request.Header.Get("Authorization"))
+	userID, _ := ParserToken(c)
 	keyword := c.Query("keywords")
-	results, err := models.Blog{}.GetAvailableBlog(x.UserID, keyword)
-
+	page := c.DefaultQuery("page", "1")
+	pageSize := c.DefaultQuery("page_size", "10")
+	pageInt, err := strconv.Atoi(page)
+	pageSizeInt, err := strconv.Atoi(pageSize)
+	results, total, err := models.Blog{}.GetAvailableBlog(userID, keyword, pageInt, pageSizeInt)
 	if err == nil {
-		utils.ReturnSuccess(c, http.StatusOK, "success", results)
+		utils.ReturnSuccess(c, http.StatusOK, "success", gin.H{
+			"data":  results,
+			"total": total,
+		})
 		return
 	}
 	utils.ReturnError(c, http.StatusInternalServerError, err)

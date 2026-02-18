@@ -2,18 +2,28 @@
 import { userApi } from '@/services/user';
 import { User } from '@/types/user';
 import { NDropdown, NAvatar, NText, useMessage, NButton } from 'naive-ui'
-import { h, onMounted, ref } from 'vue'
+import { h, ref } from 'vue'
 const props = defineProps<{
     user_id: string
 }>()
 const user = ref<User>()
-onMounted(async () => {
-    await userApi.getInfoById(props.user_id).then(response => {
+const isLoading = ref(false)
+const hasLoaded = ref(false)
+
+const loadUserInfo = async () => {
+    // 避免重复加载
+    if (hasLoaded.value || isLoading.value) return
+    isLoading.value = true
+    try {
+        const response = await userApi.getInfoById(props.user_id)
         user.value = response.info
-    }).catch(error => {
+        hasLoaded.value = true
+    } catch (error) {
         console.error('获取用户信息失败:', error)
-    })
-})
+    } finally {
+        isLoading.value = false
+    }
+}
 function renderHeader() {
     return h(
         'div',
@@ -67,9 +77,15 @@ const options = [
 function handleSelect(key: string | number) {
     message.info(String(key))
 }
+
+function handleShowChange(show: boolean) {
+    if (show) {
+        loadUserInfo()
+    }
+}
 </script>
 <template>
-    <n-dropdown trigger="hover" :options="options" @select="handleSelect">
+    <n-dropdown trigger="hover" :options="options" @select="handleSelect" @update:show="handleShowChange">
         <slot></slot>
     </n-dropdown>
 </template>

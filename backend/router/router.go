@@ -66,10 +66,11 @@ func Router() *gin.Engine {
 	}
 	userGroup := r.Group("/user")
 	{
-		userGroup.POST("/create", controllers.UserController{}.CreateUser) // 创建用户
-		userGroup.POST("/login", controllers.UserController{}.UserLogin)   // 用户登录
-		userGroup.GET("/count", controllers.UserController{}.GetNumber)    // 用户数量
-		userGroup.GET("/search", controllers.UserController{}.FuzzyQuery)  // 模糊查询用户
+		userGroup.GET("/validate-token", controllers.UserController{}.ValidateToken) // 验证token
+		userGroup.POST("/create", controllers.UserController{}.CreateUser)           // 创建用户
+		userGroup.POST("/login", controllers.UserController{}.UserLogin)             // 用户登录
+		userGroup.GET("/count", controllers.UserController{}.GetNumber)              // 用户数量
+		userGroup.GET("/search", controllers.UserController{}.FuzzyQuery)            // 模糊查询用户
 	}
 	chatGroup := r.Group("/chat")
 	{
@@ -81,22 +82,22 @@ func Router() *gin.Engine {
 
 	r.Use(jwt.Auth())
 	{
-		userGroup.POST("/refresh", controllers.UserController{}.GetAccessToken)                   // 刷新token
-		userGroup.POST("/update", controllers.UserController{}.UpdateUser)                        // 更新用户信息
-		userGroup.POST("/update_avatar", controllers.UserController{}.UpdateAvatar)               // 更改头像
-		userGroup.POST("/update_password", controllers.UserController{}.UpdatePassword)           // 更改密码
-		userGroup.GET("/friend_list", controllers.UserController{}.GetAllFriends)                 // 获取所有好友
-		userGroup.POST("/friend_request", controllers.UserController{}.FirendRequest)             // 添加好友，发送好友请求
-		userGroup.GET("/handle_friend_request", controllers.UserController{}.HandleFriendRequest) // 处理新的好友请求，拒绝或者接受
-		userGroup.GET("/friend_request_list", controllers.UserController{}.GetFriendRequestList)  // 获取新的好友请求
-		userGroup.GET("/:id", controllers.UserController{}.GetUserInfo)                           // 根据id获取用户信息
-		adminGroup.GET("/user_list", controllers.AdminController{}.GetUserList)                   // 获取用户列表
+		userGroup.POST("/refresh", controllers.UserController{}.GetAccessToken)                    // 刷新token
+		userGroup.POST("/update", controllers.UserController{}.UpdateUser)                         // 更新用户信息
+		userGroup.POST("/update-avatar", controllers.UserController{}.UpdateAvatar)                // 更改头像
+		userGroup.POST("/update-password", controllers.UserController{}.UpdatePassword)            // 更改密码
+		userGroup.GET("/friend-list", controllers.UserController{}.GetAllFriends)                  // 获取所有好友
+		userGroup.POST("/friend-request", controllers.UserController{}.FirendRequest)              // 添加好友，发送好友请求
+		userGroup.POST("/handle-friend-request", controllers.UserController{}.HandleFriendRequest) // 处理新的好友请求，拒绝或者接受
+		userGroup.GET("/friend-request-list", controllers.UserController{}.GetFriendRequestList)   // 获取新的好友请求
+		userGroup.GET("/:id", controllers.UserController{}.GetUserInfo)                            // 根据id获取用户信息
+		adminGroup.GET("/user-list", controllers.AdminController{}.GetUserList)                    // 获取用户列表
 	}
 	problem := r.Group("/problem")
 	{
 		problem.POST("/create", controllers.ProblemController{}.CreateProblem)                  // 创建题目
 		problem.GET("/list", controllers.ProblemController{}.GetList)                           // 所有题目列表
-		problem.POST("/change", controllers.ProblemController{}.ChangeProblem)                  // 修改题目
+		problem.POST("/update", controllers.ProblemController{}.UpdateProblem)                  // 修改题目
 		problem.GET("/search", controllers.ProblemController{}.SearchProblem)                   // 根据id获取题目详情
 		problem.POST("/submit", controllers.ProblemController{}.SubmitProblem)                  // 提交代码
 		problem.GET("/count", controllers.ProblemController{}.GetNumber)                        // 所有题目数量
@@ -116,16 +117,16 @@ func Router() *gin.Engine {
 	}
 	blog := r.Group("/blog")
 	{
-		blog.POST("/create", controllers.BlogController{}.CreateBlog)        // 创建博客
-		blog.GET("/delete", controllers.BlogController{}.DeleteBlog)         // 删除博客
-		blog.POST("/update", controllers.BlogController{}.UpdateBlog)        // 修改博客
-		blog.GET("/count", controllers.BlogController{}.GetNumber)           // 所有博客数量
-		blog.GET("/all", controllers.BlogController{}.GetList)               // 所有博客列表
-		blog.GET("/list", controllers.BlogController{}.GetAvailableBlogList) // 所有可见的博客列表
-		blog.GET("/my-list", controllers.BlogController{}.GetUserBlogList)   // 用户个人的所有博客列表
-		blog.GET("/recycling", controllers.BlogController{}.RecycleBlog)     // 所有已经标记删除的博客
-		blog.GET("/verify-list", controllers.BlogController{}.GetVerifyList) // 待审核博客列表
-		blog.GET("/:id", controllers.BlogController{}.GetBlogInfo)           // 根据id获取博客详情
+		blog.POST("/create", controllers.BlogController{}.CreateBlog)                  // 创建博客
+		blog.GET("/delete", controllers.BlogController{}.DeleteBlog)                   // 删除博客
+		blog.POST("/update", controllers.BlogController{}.UpdateBlog)                  // 修改博客
+		blog.GET("/count", controllers.BlogController{}.GetNumber)                     // 所有博客数量
+		blog.GET("/available-list", controllers.BlogController{}.GetAvailableBlogList) // 所有可见的博客列表
+		blog.GET("/full-list", controllers.BlogController{}.GetFullList)               // 所有博客列表
+		blog.GET("/personal-list", controllers.BlogController{}.GetUserBlogList)       // 用户个人的所有博客列表
+		blog.GET("/recycle-list", controllers.BlogController{}.RecycleBlog)            // 所有已经标记删除的博客
+		blog.GET("/verify-list", controllers.BlogController{}.GetVerifyList)           // 待审核博客列表
+		blog.GET("/:id", controllers.BlogController{}.GetBlogInfo)                     // 根据id获取博客详情
 	}
 
 	training := r.Group("/training")
@@ -142,8 +143,8 @@ func Router() *gin.Engine {
 	{
 		file.POST("/upload", controllers.FileUploadController{}.UploadFile)            // 文件上传
 		file.GET("/delete", controllers.FileUploadController{}.DeleteFile)             // 文件删除
-		file.GET("/get_share", controllers.FileUploadController{}.GetShareFile)        // 获取分享的文件
-		file.POST("/create_share", controllers.FileUploadController{}.CreateShareFile) // 创建分享的文件
+		file.GET("/get-share", controllers.FileUploadController{}.GetShareFile)        // 获取分享的文件
+		file.POST("/create-share", controllers.FileUploadController{}.CreateShareFile) // 创建分享的文件
 	}
 	fileUpload := r.Group("/upload")
 	{

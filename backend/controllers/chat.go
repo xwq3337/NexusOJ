@@ -90,10 +90,10 @@ func (ChatController) Handler(c *gin.Context) {
 		removeClient(client)
 	}()
 }
-func addClient(userId string, client *Client) {
+func addClient(userID string, client *Client) {
 	clientsMu.Lock()
 	defer clientsMu.Unlock()
-	clients[userId] = client
+	clients[userID] = client
 }
 func findClient(id string) *Client {
 	clientsMu.RLock()
@@ -223,8 +223,8 @@ func sendGroupMsg(msg MessageStruct) { //群聊
 }
 
 func (ChatController) GetChatRecord(c *gin.Context) {
-	x, _ := ParserToken(c.Request.Header.Get("Authorization"))
-	id1 := x.UserID
+	userID, _ := ParserToken(c)
+	id1 := userID
 	id2 := c.Query("id")
 	chatRecords, err := models.QueryChatRecord(id1, id2)
 	if err != nil {

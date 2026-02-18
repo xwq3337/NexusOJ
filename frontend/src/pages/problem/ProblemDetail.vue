@@ -18,7 +18,7 @@
             <div class="flex gap-4 text-sm">
               <span class="font-medium" :class="difficultyMap[Number(problem.difficulty) - 1]?.color">{{
                 difficultyMap[Number(problem.difficulty) - 1]?.text }}</span>
-              <span class="text-black">通过率: {{ problem.acceptance }}</span>
+              <span class="text-black">通过率: {{ formatAcceptance(problem.accept, problem.submission) }}</span>
               <span class="text-black">标签: {{ problem.tags.join(', ') }}</span>
               <span class="text-black">判题配置: {{ problem.judge_config.time_limit }}s
                 {{ problem.judge_config.memory_limit }}MB</span>
@@ -154,18 +154,23 @@ const codeEditor = defineAsyncComponent(() => import('@/components/AceEditor/Ace
 // const codeEditor = defineAsyncComponent(() => import('@/components/CodeMirror/CodeMirror.vue'))
 const ProblemContext = ref('')
 const fontSize = useLocalStorage('editor_font_size', 14)
-const problem = reactive({
-  id: route.params.id,
+const problem = ref<Problem>({
+  id: 0,
+  user_id: '',
   title: '',
   context: '',
-  difficulty: '',
-  acceptance: '',
+  difficulty: 0,
   input_description: '',
   output_description: '',
-  judge_config: {} as { time_limit: number; memory_limit: number },
+  tags: [],
+  accept: 0,
+  judge_config: {
+    time_limit: 1000,
+    memory_limit: 65536
+  },
+  judge_case: [],
   judge_sample: [],
-  tip: '',
-  tags: []
+  tips: ''
 })
 
 const Language = useLocalStorage<LanguageValue>('language', 'cpp')
@@ -177,6 +182,9 @@ const languageToApi = (lang: LanguageValue): string => {
 }
 
 import {difficultyMap} from '@/constants'
+import { formatAcceptance } from '@/utils/format'
+import { Problem } from '@/types/problem'
+import { problemApi } from '@/services/problem'
 // 使用 IndexedDB 存储代码
 const code = ref('')
 const testCaseInput = ref('')
@@ -280,43 +288,34 @@ watch(Language, async (newLanguage, oldLanguage) => {
 onMounted(async () => {
   // 初始化 IndexedDB
   await initIndexedDB()
-
-  await Request.get('/problem/' + route.params.id)
+  if(route.params.id == undefined) return
+  await problemApi.getProblemDetail(route.params.id as string)
     .then((res) => {
-      problem.id = res.info.id
-      problem.title = res.info.title
-      problem.difficulty = res.info.difficulty
-      problem.acceptance = res.info.accept
-      problem.context = res.info.context
-      problem.input_description = res.info.input_description
-      problem.output_description = res.info.output_description
-      problem.judge_config = res.info.judge_config
-      problem.judge_sample = res.info.judge_sample
-      problem.tip = res.info.tip
-      problem.tags = res.info.tags
-
+      const {info} = res
+      problem.value = info
       // 如果有样例，使用第一个样例作为默认测试用例
-      if (res.info.judge_sample && res.info.judge_sample.length > 0 && !testCaseInput.value) {
-        test_case.value.input = res.info.judge_sample[0].input
-        test_case.value.expected = res.info.judge_sample[0].expected
-        testCaseInput.value = res.info.judge_sample[0].input
-        testCaseExpected.value = res.info.judge_sample[0].expected
+      if (info.judge_sample && info.judge_sample.length > 0 && !testCaseInput.value) {
+        test_case.value.input = info.judge_sample[0].input
+        test_case.value.expected = info.judge_sample[0].expected
+        test_case.value = JSON.parse(JSON.stringify(test_case.value))
+        testCaseInput.value = info.judge_sample[0].input
+        testCaseExpected.value = info.judge_sample[0].expected
       }
     })
     .finally(() => {
       var res = ''
-      problem.judge_sample.forEach((item, index) => {
+      problem.value.judge_sample.forEach((item, index) => {
         res += `### 样例输入${index + 1}\n\n\`\`\`\n${item.input} \n\`\`\`\n`
         res += `### 样例输出${index + 1}\n\n\`\`\`\n${item.expected}\n \`\`\`\n`
-        if (index != problem.judge_sample.length - 1) {
+        if (index != problem.value.judge_sample.length - 1) {
           res += `--- \n\n`
         }
         ProblemContext.value =
-          `## 题目描述\n${problem.context} \n\n` +
-          `## 输入格式\n${problem.input_description}\n\n` +
-          `## 输出格式\n${problem.output_description}\n\n ` +
+          `## 题目描述\n${problem.value.context} \n\n` +
+          `## 输入格式\n${problem.value.input_description}\n\n` +
+          `## 输出格式\n${problem.value.output_description}\n\n ` +
           `## 样例\n${res}\n\n` +
-          `## 提示\n ${problem.tip} \n\n`
+          `## 提示\n ${problem.value.tips} \n\n`
       })
     })
 })

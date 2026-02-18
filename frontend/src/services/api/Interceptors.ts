@@ -1,14 +1,12 @@
 import Request from './index'
 import axios, { HttpStatusCode, type AxiosError } from 'axios'
-import { checkErrorStatus } from './checkErrorStatus'
 import type { RequestInterceptors } from './type'
 import { useLocalStorage } from '@vueuse/core'
 const AccessToken = useLocalStorage('access_token', null)
 const RefreshToken = useLocalStorage('refresh_token', null)
-const username = useLocalStorage('username', null)
 export const _RequstInterceptors: RequestInterceptors = {
   requestInterceptors(config) {
-    config.headers['Authorization'] ||= AccessToken.value
+    config.headers['Authorization'] ||=`Bearer ${AccessToken.value}`
     return config
   },
   requestInterceptorsCatch(err) {
@@ -25,7 +23,7 @@ export const _RequstInterceptors: RequestInterceptors = {
               ...res.config,
               headers: {
                 ...res.config.headers,
-                Authorization: `${AccessToken.value}`
+                Authorization: `Bearer ${AccessToken.value}`
               }
             }
             return await Request.request(newConfig)
@@ -58,11 +56,11 @@ const refreshToken = () => {
   return Request.post(
     '/user/refresh',
     {
-      username: username.value,
+      password : 'TODO',
     },
     {
       headers: {
-        Authorization: `${RefreshToken.value}`
+        Authorization: `Bearer ${RefreshToken.value}`
       }
     }
   )

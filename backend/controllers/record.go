@@ -47,10 +47,8 @@ func (RecodeController) GetList(c *gin.Context) {
 
 	if err == nil {
 		utils.ReturnSuccess(c, http.StatusOK, "success", gin.H{
-			"data":      results,
-			"total":     total,
-			"page":      pageInt,
-			"page_size": pageSizeInt,
+			"data":  results,
+			"total": total,
 		})
 		return
 	}

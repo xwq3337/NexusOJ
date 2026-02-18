@@ -9,6 +9,7 @@ import (
 	jwtgo "pkg/middleware/jwt"
 	"pkg/models"
 	"pkg/utils"
+	"strings"
 	"time"
 
 	"pkg/config"
@@ -25,7 +26,7 @@ func (UserController) GetUserInfo(c *gin.Context) {
 	id := c.Param("id")
 	user, err := models.User{}.QueryUserById(id)
 	if err == nil {
-		utils.ReturnSuccess(c, http.StatusOK, "suceess", user)
+		utils.ReturnSuccess(c, http.StatusOK, "success", user)
 		return
 	}
 	utils.ReturnError(c, http.StatusInternalServerError, err)
@@ -84,8 +85,7 @@ func (UserController) UpdateUser(c *gin.Context) {
 		utils.ReturnError(c, http.StatusBadRequest, "请求参数错误"+err.Error())
 		return
 	}
-	u, _ := ParserToken(c.Request.Header.Get("Authorization"))
-	user.ID = u.UserID
+	user.ID, _ = ParserToken(c)
 	err = models.UpdateUser(user)
 	if err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, err)
@@ -106,7 +106,7 @@ func (UserController) FuzzyQuery(c *gin.Context) {
 }
 
 func (UserController) UpdateAvatar(c *gin.Context) {
-	claims, _ := ParserToken(c.Request.Header.Get("Authorization"))
+	userID, _ := ParserToken(c)
 	file, err := c.FormFile("avatar")
 	DirPath := config.AvatarDir
 	if err != nil {
@@ -114,12 +114,12 @@ func (UserController) UpdateAvatar(c *gin.Context) {
 		return
 	}
 
-	if err = c.SaveUploadedFile(file, filepath.Join(DirPath, fmt.Sprintf("/%s.png", claims.UserID))); err != nil {
+	if err = c.SaveUploadedFile(file, filepath.Join(DirPath, fmt.Sprintf("/%s.png", userID))); err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, "上传头像失败, err: "+err.Error())
 		return
 	}
 
-	url, err := models.UpdateAvatar(claims.UserID)
+	url, err := models.UpdateAvatar(userID)
 	if err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, "更新头像失败, err: "+err.Error())
 		return
@@ -129,7 +129,7 @@ func (UserController) UpdateAvatar(c *gin.Context) {
 
 // UpdatePassword 更新密码
 func (UserController) UpdatePassword(c *gin.Context) {
-	claims, err := ParserToken(c.Request.Header.Get("Authorization"))
+	userID, err := ParserToken(c)
 	if err != nil {
 		utils.ReturnError(c, http.StatusUnauthorized, "未授权")
 		return
@@ -149,7 +149,7 @@ func (UserController) UpdatePassword(c *gin.Context) {
 		return
 	}
 
-	err = models.User{}.UpdatePassword(claims.UserID, oldPassword, newPassword)
+	err = models.User{}.UpdatePassword(userID, oldPassword, newPassword)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			utils.ReturnError(c, http.StatusBadRequest, "旧密码错误")
@@ -191,21 +191,35 @@ func generateToken(user models.User, Time int64) (string, error) {
 	return token, nil
 }
 
-func ParserToken(tokenString string) (*jwtgo.CustomClaims, error) {
+func ParserToken(c *gin.Context) (string, error) {
+	tokenString := c.Request.Header.Get("Authorization")
+	if tokenString == "" || !strings.HasPrefix(tokenString, "Bearer ") {
+		return "", errors.New("请求未携带token或token不完整,无权限访问")
+	}
+	tokenString = strings.Split(tokenString, " ")[1]
 	j := jwtgo.NewJWT()
 	claims, err := j.ParserToken(tokenString)
-	return claims, err
+	return claims.UserID, err
+}
+
+func (UserController) ValidateToken(c *gin.Context) {
+	_, err := ParserToken(c)
+	if err != nil {
+		utils.ReturnError(c, http.StatusUnauthorized, "token无效")
+		return
+	}
+	utils.ReturnSuccess(c, http.StatusOK, "success", "token有效")
 }
 
 // GetAllFriends 获取所有好友
 func (UserController) GetAllFriends(c *gin.Context) {
-	claims, err := ParserToken(c.Request.Header.Get("Authorization"))
+	userID, err := ParserToken(c)
 	if err != nil {
 		utils.ReturnError(c, http.StatusUnauthorized, "未授权")
 		return
 	}
 
-	friends, err := models.GetFriendList(claims.UserID)
+	friends, err := models.GetFriendList(userID)
 	if err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, "获取好友列表失败")
 		return
@@ -216,7 +230,7 @@ func (UserController) GetAllFriends(c *gin.Context) {
 
 // FirendRequest 发送好友请求
 func (UserController) FirendRequest(c *gin.Context) {
-	claims, err := ParserToken(c.Request.Header.Get("Authorization"))
+	userID, err := ParserToken(c)
 	if err != nil {
 		utils.ReturnError(c, http.StatusUnauthorized, "未授权")
 		return
@@ -234,7 +248,7 @@ func (UserController) FirendRequest(c *gin.Context) {
 		return
 	}
 
-	if friendID == claims.UserID {
+	if friendID == userID {
 		utils.ReturnError(c, http.StatusBadRequest, "不能添加自己为好友")
 		return
 	}
@@ -242,7 +256,7 @@ func (UserController) FirendRequest(c *gin.Context) {
 	// 检查是否已经是好友或已有请求
 	var existingFriendship models.FriendShips
 	err = dao.MysqlClient.Where("(user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)",
-		claims.UserID, friendID, friendID, claims.UserID).First(&existingFriendship).Error
+		userID, friendID, friendID, userID).First(&existingFriendship).Error
 	if err == nil {
 		if existingFriendship.Status == 1 {
 			utils.ReturnError(c, http.StatusBadRequest, "已经是好友关系")
@@ -254,7 +268,7 @@ func (UserController) FirendRequest(c *gin.Context) {
 	}
 
 	friendship := &models.FriendShips{
-		UserID:   claims.UserID,
+		UserID:   userID,
 		FriendID: friendID,
 		Status:   0,
 	}
@@ -270,7 +284,7 @@ func (UserController) FirendRequest(c *gin.Context) {
 
 // HandleFriendRequest 处理好友请求
 func (UserController) HandleFriendRequest(c *gin.Context) {
-	claims, err := ParserToken(c.Request.Header.Get("Authorization"))
+	userID, err := ParserToken(c)
 	if err != nil {
 		utils.ReturnError(c, http.StatusUnauthorized, "未授权")
 		return
@@ -303,7 +317,7 @@ func (UserController) HandleFriendRequest(c *gin.Context) {
 		return
 	}
 
-	if friendship.FriendID != claims.UserID {
+	if friendship.FriendID != userID {
 		utils.ReturnError(c, http.StatusForbidden, "无权处理此好友请求")
 		return
 	}
@@ -323,13 +337,13 @@ func (UserController) HandleFriendRequest(c *gin.Context) {
 
 // GetFriendRequestList 获取好友请求列表
 func (UserController) GetFriendRequestList(c *gin.Context) {
-	claims, err := ParserToken(c.Request.Header.Get("Authorization"))
+	userID, err := ParserToken(c)
 	if err != nil {
 		utils.ReturnError(c, http.StatusUnauthorized, "未授权")
 		return
 	}
 
-	requests, err := models.GetFriendRequestList(claims.UserID)
+	requests, err := models.GetFriendRequestList(userID)
 	if err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, "获取好友请求列表失败")
 		return

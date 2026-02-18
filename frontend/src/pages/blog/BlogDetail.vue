@@ -1,29 +1,30 @@
 <template>
-  <article class="blog-detail">
+  <article class="max-w-3xl px-8 py-4 mx-auto">
     <!-- 加载状态 -->
-    <div v-if="loading" class="blog-detail__loading">
+    <div v-if="loading" class="flex justify-center items-center min-h-[50vh]">
       <n-spin size="large" />
     </div>
 
     <!-- 博客内容 -->
-    <main v-else-if="blog" class="blog-detail__main">
+    <main v-else-if="blog" class="animate-[fadeIn_0.4s_ease-out]">
       <!-- 头部信息 -->
-      <header class="blog-detail__header">
-        <h1 class="blog-detail__title">{{ blog.title }}</h1>
-
-        <div class="blog-detail__author-card">
-          <div class="blog-detail__avatar">
-            U
-            <!-- TODO {{ blog.username?.charAt(0).toUpperCase() ?? 'U' }} -->
+      <header class="mb-10">
+        <h1 class="tracking-tight mx-0 mt-0 mb-5 text-3xl font-bold text-(--text-primary)">{{ blog.title }}</h1>
+        <div class="rounded-xl bg-(--surface-secondary) flex items-center gap-3 mb-6 p-4">
+          <div
+            class="font-semibold text-xl shrink-0 bg-(--color-primary-bg) text-(--color-primary) flex items-center justify-center w-11 h-11">
+            <n-avatar :size="44" :src="blog?.avatar || undefined" />
           </div>
-          <div class="blog-detail__author-info">
-            <span class="blog-detail__author-name">{{ blog.user_id }}</span>
-            <time class="blog-detail__publish-time">{{ formatDateTime(blog.created_at) }}</time>
+          <div class="flex flex-col gap-0.5">
+            <span class="text-sm font-semibold text-(--text-primary)">{{ blog.username }}</span>
+            <time class="text-sm text-(--text-tertiary)">{{ formatDateTime(blog.created_at) }}</time>
           </div>
         </div>
 
-        <div v-if="blog.tags?.length" class="blog-detail__tags">
-          <span v-for="tag in blog.tags" :key="tag" class="blog-detail__tag">{{ tag }}</span>
+        <div v-if="blog.tags?.length" class="flex flex-wrap gap-1">
+          <span v-for="tag in blog.tags" :key="tag"
+            class="hover:bg-(--surface-tertiary) hover:text-(--text-primary) rounded-4xl text-(--text-secondary) bg-(--surface-secondary) border-(--border-secondary) transition-all duration-200 font-medium inline-flex items-center px-1 py-3 text-sm">{{
+            tag }}</span>
         </div>
       </header>
 
@@ -33,14 +34,18 @@
       </section>
 
       <!-- 底部操作栏 -->
-      <footer class="blog-detail__footer">
-        <div class="blog-detail__stats">
-          <button class="blog-detail__stat" :class="{ 'blog-detail__stat--active': isLiked }" @click="likeBlog">
+      <footer class="px-8 py-0">
+        <div class="flex items-center">
+          <button class="blog-detail__stat"
+            :class="{ 'text-(--color-primary) bg-(--color-primary-bg) border-(--color-primary-border)': isLiked }"
+            @click="likeBlog">
             <Heart :size="18" :fill="isLiked ? 'currentColor' : 'none'" />
             <span>{{ formatNumber(blog.like) }}</span>
           </button>
 
-          <button class="blog-detail__stat" :class="{ 'blog-detail__stat--active': isCollected }" @click="collectBlog">
+          <button class="blog-detail__stat"
+            :class="{ 'text-(--color-primary) bg-(--color-primary-bg) border-(--color-primary-border)': isCollected }"
+            @click="collectBlog">
             <Bookmark :size="18" :fill="isCollected ? 'currentColor' : 'none'" />
             <span>{{ formatNumber(blog.collection) }}</span>
           </button>
@@ -54,11 +59,12 @@
     </main>
 
     <!-- 空状态 -->
-    <div v-else class="blog-detail__empty">
-      <FileX :size="48" :style="{ color: 'var(--text-tertiary)' }" />
-      <h2>博客未找到</h2>
-      <p>该博客可能已被删除或不存在</p>
-      <n-button type="primary" @click="$router.push({name : 'Blogs'})">返回博客列表</n-button>
+    <div v-else class="flex flex-col items-center justify-center gap-4 min-h-[50vh] text-center
+">
+      <FileX :size="48" class="text-(--text-tertiary)" />
+      <span class="m-0 text-2xl font-semibold text-(--text-primary)">博客未找到</span>
+      <span class="m-0 text-(--text-secondary)">该博客可能已被删除或不存在</span>
+      <n-button type="primary" @click="$router.push({ name: 'Blogs' })">返回博客列表</n-button>
     </div>
   </article>
 </template>
@@ -66,16 +72,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NButton, NSpin, useMessage } from 'naive-ui'
+import { NButton, NSpin, useMessage, NAvatar } from 'naive-ui'
 import { Heart, Bookmark, Share2, FileX } from 'lucide-vue-next'
-import type { Blog } from '@/types/blog'
 import { blogApi } from '@/services/blog'
 
 const route = useRoute()
 const router = useRouter()
 const message = useMessage()
 
-const blog = ref<Blog | null>(null)
+const blog = ref(null)
 const loading = ref(true)
 const isLiked = ref(false)
 const isCollected = ref(false)
@@ -123,7 +128,7 @@ const shareBlog = () => {
   if (navigator.share) {
     navigator
       .share({ title: blog.value?.title, url })
-      .catch(() => {})
+      .catch(() => { })
   } else {
     navigator.clipboard
       .writeText(url)
@@ -152,122 +157,16 @@ onMounted(fetchBlogDetail)
 </script>
 
 <style scoped>
-.blog-detail {
-  max-width: 768px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-}
-
-.blog-detail__loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 50vh;
-}
-
-.blog-detail__main {
-  animation: fadeIn 0.4s ease-out;
-}
-
 @keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.blog-detail__header {
-  margin-bottom: 2.5rem;
-}
-
-.blog-detail__meta {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-  color: var(--text-secondary);
-}
-
-.blog-detail__separator {
-  color: var(--text-tertiary);
-}
-
-.blog-detail__title {
-  font-size: 2rem;
-  font-weight: 700;
-  line-height: 1.3;
-  color: var(--text-primary);
-  margin: 0 0 1.25rem;
-  letter-spacing: -0.02em;
-}
-
-.blog-detail__author-card {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-  background: var(--surface-secondary);
-  border-radius: 0.75rem;
-}
-
-.blog-detail__avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.blog-detail__author-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-
-.blog-detail__author-name {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.blog-detail__publish-time {
-  font-size: 0.8125rem;
-  color: var(--text-tertiary);
-}
-
-.blog-detail__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.blog-detail__tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: var(--surface-secondary);
-  border-radius: 9999px;
-  transition: all 0.2s;
-}
-
-.blog-detail__tag:hover {
-  background: var(--surface-tertiary);
-  color: var(--text-primary);
 }
 
 .blog-detail__content {
@@ -277,16 +176,6 @@ onMounted(fetchBlogDetail)
   color: var(--text-primary);
   line-height: 1.75;
   font-size: 1.0625rem;
-}
-
-.blog-detail__footer {
-  padding: 2rem 0;
-}
-
-.blog-detail__stats {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .blog-detail__stat {
@@ -310,34 +199,6 @@ onMounted(fetchBlogDetail)
   border-color: var(--border-secondary);
 }
 
-.blog-detail__stat--active {
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-  border-color: var(--color-primary-border);
-}
-
-.blog-detail__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  min-height: 50vh;
-  text-align: center;
-}
-
-.blog-detail__empty h2 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.blog-detail__empty p {
-  margin: 0;
-  color: var(--text-secondary);
-}
-
 /* Markdown 内容样式重写 */
 :deep(.v-md-editor) {
   background: transparent;
@@ -356,10 +217,6 @@ onMounted(fetchBlogDetail)
 @media (max-width: 640px) {
   .blog-detail {
     padding: 1.5rem 1rem;
-  }
-
-  .blog-detail__title {
-    font-size: 1.625rem;
   }
 
   .blog-detail__content {

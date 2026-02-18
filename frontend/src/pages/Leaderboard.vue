@@ -81,8 +81,7 @@ const MOCK_LEADERBOARD = [
   { id: 10, username: '王二', avatar: 'https://picsum.photos/200', rank: 10, solved: 95, rating: 1990 }
 ]
 onMounted(async () => {
-  const response = await Request.get('/user/leaderboard')
-  leaderboard.value = response.info || MOCK_LEADERBOARD
+  leaderboard.value = MOCK_LEADERBOARD
   loading.value = false
 })
 </script>

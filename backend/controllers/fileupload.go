@@ -35,9 +35,9 @@ func (FileUploadController) UploadFile(c *gin.Context) {
 	utils.ReturnSuccess(c, http.StatusOK, "success", "分块上传成功!")
 }
 func (FileUploadController) DeleteFile(c *gin.Context) {
-	x, _ := ParserToken(c.Request.Header.Get("Authorization"))
+	userID, _ := ParserToken(c)
 	filename := c.Query("filename")
-	fileDir := filepath.Join(config.UploadDir, x.UserID)
+	fileDir := filepath.Join(config.UploadDir, userID)
 	if filename == "" {
 		utils.ReturnError(c, http.StatusBadRequest, "文件名不能为空")
 		return
@@ -55,10 +55,10 @@ func (FileUploadController) DeleteFile(c *gin.Context) {
 }
 func (FileUploadController) MergeFileChunk(c *gin.Context) {
 	filename := c.PostForm("filename")
-	x, _ := ParserToken(c.Request.Header.Get("Authorization"))
+	userID, _ := ParserToken(c)
 	hashList := strings.Split(c.PostForm("hashList"), ",")
-	fileDir := filepath.Join(config.UploadDir, x.UserID)
-	finalFilePath := filepath.Join(config.UploadDir, x.UserID, filename)
+	fileDir := filepath.Join(config.UploadDir, userID)
+	finalFilePath := filepath.Join(config.UploadDir, userID, filename)
 	if _, err := os.Stat(fileDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(fileDir, 0755); err != nil {
 			utils.ReturnError(c, http.StatusInternalServerError, err.Error())
@@ -140,12 +140,12 @@ type FileInfo struct {
 
 func (FileUploadController) GetDirStruct(c *gin.Context) {
 	var DirInfo []FileInfo
-	x, _ := ParserToken(c.Request.Header.Get("Authorization"))
-	if x.UserID == "" {
+	userID, _ := ParserToken(c)
+	if userID == "" {
 		utils.ReturnError(c, http.StatusUnauthorized, "状态出错")
 		return
 	}
-	personDir := filepath.Join(config.UploadDir, x.UserID)
+	personDir := filepath.Join(config.UploadDir, userID)
 	err := filepath.Walk(personDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -196,14 +196,14 @@ type FileShare struct {
 }
 
 func (FileUploadController) CreateShareFile(c *gin.Context) { // 创建文件分享
-	x, _ := ParserToken(c.Request.Header.Get("Authorization"))
+	userID, _ := ParserToken(c)
 	pwd := c.PostForm("pwd")
 	filename := c.PostForm("filename") // 	拼出这个文件的地址
 	if pwd == "" {
 		utils.ReturnError(c, http.StatusBadRequest, "密钥不能为空")
 		return
 	}
-	fileDir := filepath.Join(config.UploadDir, x.UserID)
+	fileDir := filepath.Join(config.UploadDir, userID)
 	targetPath := filepath.Join(fileDir, filename)
 	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
 		utils.ReturnError(c, http.StatusNotFound, "文件不存在")
@@ -218,7 +218,7 @@ func (FileUploadController) CreateShareFile(c *gin.Context) { // 创建文件分
 }
 
 func (FileUploadController) GetShareFile(c *gin.Context) {
-	x, _ := ParserToken(c.Request.Header.Get("Authorization"))
+	userID, _ := ParserToken(c)
 	// key := c.Query("key")
 	pwd := c.Query("pwd")
 	// cache.Set(key, 24*time.Hour)
@@ -227,12 +227,12 @@ func (FileUploadController) GetShareFile(c *gin.Context) {
 		utils.ReturnError(c, http.StatusBadRequest, "密钥不能为空")
 		return
 	}
-	fileDir := filepath.Join(config.UploadDir, x.UserID)
+	fileDir := filepath.Join(config.UploadDir, userID)
 	targetPath := filepath.Join(fileDir, filename)
 	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
 		utils.ReturnError(c, http.StatusNotFound, "文件不存在")
 		return
 	}
-	fileURL := fmt.Sprintf("%s:%s/%s/%s", config.Address, config.Port, x.UserID, filename)
+	fileURL := fmt.Sprintf("%s:%s/%s/%s", config.Address, config.Port, userID, filename)
 	utils.ReturnSuccess(c, http.StatusOK, "success", fileURL)
 }

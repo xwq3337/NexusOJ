@@ -8,7 +8,8 @@
         </template>
         我要创作
       </n-button>
-      <n-input v-model:value="searchQuery" placeholder="搜索博客标题、内容或标签..." class="flex-1 min-w-60">
+      <n-input v-model:value="searchQuery" placeholder="搜索博客标题、内容或标签..." class="flex-1 min-w-60"
+        @keydown.enter="loadBlogs(searchQuery)">
         <template #prefix>
           <Search :size="16" />
         </template>
@@ -25,39 +26,41 @@
     <div class="flex flex-col md:flex-row gap-6">
       <div class="flex-1">
         <n-list bordered>
-          <n-list-item v-for="blog in blogs" :key="blog.id" class="p-2  hover:bg-[#eeeeee]">
+          <n-list-item v-for="blog in blogs" :key="blog.id" class="p-2  hover:bg-[#EEEEEE]">
             <n-row>
               <span @click="$router.push({ name: 'BlogDetail', params: { id: blog.id } })"
                 class="font-bold text-lg  cursor-pointer"> {{ blog.title }}</span>
             </n-row>
             <n-row>
-              ...............
+              <span class="text-sm text-gray-500">{{ blog.excerpt }}</span>
             </n-row>
             <n-row>
               <n-col>
-                <!-- TODO 后端返回增加username字段 -->
-                <span style="color: #8a919f;" class="justify-center align-center">
+                <div class="text-[#8A919F] justify-center align-center flex gap-2">
                   <UserCard :user_id="blog.user_id">
                     <span class="text-sm cursor-pointer hover:text-blue-500">{{ blog.username }}</span>
                   </UserCard>
-                </span>
+                </div>
               </n-col>
               <n-divider vertical />
-              <div class="flex items-center gap-2" style="color: #8a919f;">
+              <div class="text-[#8A919F] flex items-center gap-2">
                 {{ formatRelativeTime(blog.created_at) }}
                 <n-divider vertical />
                 <Eye :size="20" />
-                {{ formatNumber(Number(Math.random().toPrecision(1)) * 10) }}
+                {{ formatNumber(blog.view) }}
                 <n-divider vertical />
                 <div class="flex items-center gap-2 hover:text-blue-500 cursor-pointer">
                   <ThumbsUp :size="16" />
-                  {{ formatNumber(blog.like ?? 0) }}
+                  {{ formatNumber(blog.like) }}
                 </div>
               </div>
             </n-row>
           </n-list-item>
           <template #footer>
-            <n-pagination />
+            <n-pagination v-model:page="pagination.page" v-model:page-size="pagination.pageSize"
+              :page-count="Math.ceil(Number(totalBlogs / pagination.pageSize))" :page-sizes="pagination.pageSizes"
+              size="medium" show-quick-jumper :show-size-picker="pagination.showSizePicker"
+              @update-page="pagination.onUpdatePage" @update-page-size="pagination.onUpdatePageSize" />
           </template>
         </n-list>
       </div>
@@ -152,7 +155,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, RefreshCcw, ThumbsUp, Eye, Heart, FileX, Plus } from 'lucide-vue-next'
 import { NInput, NButton, NDivider, NCol, NRow, NSelect, NPagination, NList, NListItem, NCard, NAvatar } from 'naive-ui'
@@ -160,27 +163,54 @@ import type { Blog } from '@/types/blog'
 import { blogApi } from '@/services/blog'
 import { formatRelativeTime } from '@/utils/format'
 import UserCard from '@/components/UserCard.vue'
-
+const pageSize = ref(10)
+const currentPage = ref(1)
+const totalBlogs = ref(0)
+const updateRouteQuery = () => {
+  router.push({
+    query: {
+      ...router.currentRoute.value.query,
+      page: currentPage.value.toString(),
+    }
+  })
+}
+const pagination = reactive({
+  page: currentPage.value,
+  pageSize: pageSize.value,
+  showSizePicker: true,
+  pageSizes: [5, 10, 20, 50],
+  itemCount: 0,
+  onUpdatePage: (page: number) => {
+    currentPage.value = page
+    updateRouteQuery()
+    loadBlogs(searchQuery.value)
+  },
+  onUpdatePageSize: (size: number) => {
+    pageSize.value = size
+    currentPage.value = 1
+    updateRouteQuery()
+    loadBlogs(searchQuery.value)
+  }
+})
 const router = useRouter()
 // 博客数据
 const blogs = ref<(Blog & { user_id: string, username: string })[]>()
-
 // 加载博客数据
-onMounted(async () => {
+const loadBlogs = async (query = '') => {
   try {
-    const response = await blogApi.getList()
-    blogs.value = response.info
+    const response = await blogApi.getList(query, pagination.page, pagination.pageSize)
+    blogs.value = response.info.data
+    totalBlogs.value = response.info.total
   } catch (error) {
     console.error('获取博客数据失败:', error)
-  } finally {
-    loading.value = false
   }
-})
+}
+onMounted(loadBlogs)
+
 
 // 筛选条件
 const selectedCategory = ref('all')
 const searchQuery = ref('')
-const loading = ref(true)
 
 // 分类选项
 const categoryOptions = [
@@ -207,35 +237,6 @@ const recentActivities = ref([
   { id: 5, username: '钱七', action: '点赞了', target: 'React Hooks 实战', targetUrl: '/blog/3', avatar: '', time: '25分钟前' }
 ])
 
-// 生成博客封面图片
-
-
-
-// 格式化时间显示
-const formatTime = (dateString: string) => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-
-  if (days === 0) {
-    const hours = Math.floor(diff / (1000 * 60 * 60))
-    if (hours === 0) {
-      const minutes = Math.floor(diff / (1000 * 60))
-      return minutes === 0 ? '刚刚' : `${minutes}分钟前`
-    }
-    return `${hours}小时前`
-  } else if (days === 1) {
-    return '昨天'
-  } else if (days < 7) {
-    return `${days}天前`
-  } else if (days < 30) {
-    return `${Math.floor(days / 7)}周前`
-  } else {
-    return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'numeric', day: 'numeric' })
-  }
-}
-
 // 格式化数字显示
 const formatNumber = (num: number) => {
   if (num >= 10000) {
@@ -245,4 +246,14 @@ const formatNumber = (num: number) => {
   }
   return num.toString()
 }
+
+watch(currentPage, () => {
+  pagination.page = currentPage.value
+})
+watch(pageSize, () => {
+  pagination.pageSize = pageSize.value
+})
+watch(totalBlogs, () => {
+  pagination.itemCount = totalBlogs.value
+})
 </script>

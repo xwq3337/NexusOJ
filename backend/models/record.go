@@ -25,10 +25,10 @@ type Record struct {
 	Verdict     JudgeVerdict                             `json:"verdict"`
 	MaxTime     float32                                  `json:"max_time"`
 	MaxMemory   float32                                  `json:"max_memory"`
-	JudgeResult datatypes.JSONSlice[JudgeTestCaseResult] `json:"judge_result" gorm:"type:json"`
+	JudgeResult datatypes.JSONSlice[JudgeTestCaseResult] `json:"judge_result"`
 	CreatedAt   time.Time                                `json:"created_at"`
 	UpdatedAt   time.Time                                `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt                           `gorm:"index" json:"deleted_at"`
+	DeletedAt   gorm.DeletedAt                           `json:"deleted_at" gorm:"index"`
 }
 
 func (Record) TableName() string {
@@ -47,7 +47,7 @@ func QueryRecord(record Record) (Record, error) {
 /**
  * 根据用户id获取记录
  */
-func QueryRecordByUserId(userId string) ([]map[string]interface{}, error) {
+func QueryRecordByUserId(userID string) ([]map[string]interface{}, error) {
 	var record []map[string]interface{}
 	err := dao.MysqlClient.Table("record").
 		Select(`
@@ -61,7 +61,7 @@ func QueryRecordByUserId(userId string) ([]map[string]interface{}, error) {
 			problem.title AS problem_title
 	`).Joins(`INNER JOIN user ON user.id = record.user_id`).
 		Joins(`INNER JOIN problem ON problem.id = record.problem_id`).
-		Where("record.user_id = ?", userId).Order("created_at DESC").Scan(&record).Error
+		Where("record.user_id = ?", userID).Order("created_at DESC").Scan(&record).Error
 	return record, err
 
 }
@@ -69,14 +69,20 @@ func QueryRecordByUserId(userId string) ([]map[string]interface{}, error) {
 /**
  * 根据记录id获取记录
  */
-func QueryRecordById(id string) (map[string]interface{}, error) {
-	var record map[string]interface{}
+type RecordDetail struct {
+	Record
+	ProblemTitle string `json:"problem_title" gorm:"column:problem_title"`
+	Username     string `json:"username" gorm:"column:username"`
+}
+
+func QueryRecordById(id string) (*RecordDetail, error) {
+	var record RecordDetail
 	err := dao.MysqlClient.Table("record").
 		Select("record.*", "problem.title AS problem_title", "user.username AS username").
 		Joins("INNER JOIN user ON user.id = record.user_id").
 		Joins("INNER JOIN problem ON problem.id = record.problem_id").
 		Where("record.id = ?", id).Limit(1).Scan(&record).Error
-	return record, err
+	return &record, err
 }
 
 /**

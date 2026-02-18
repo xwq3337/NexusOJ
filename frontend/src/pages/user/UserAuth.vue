@@ -2,39 +2,20 @@
   <div style="max-width: 480px; margin: 0 auto; padding: 24px">
     <n-form ref="formRef" :model="modelRef" :rules="rules">
       <n-form-item path="username" label="用户名">
-        <n-input
-          v-model:value="modelRef.username"
-          @keydown.enter.prevent
-          :placeholder="'请输入用户名'"
-        />
+        <n-input v-model:value="modelRef.username" @keydown.enter.prevent :placeholder="'请输入用户名'" />
       </n-form-item>
       <n-form-item path="password" label="密码">
-        <n-input
-          v-model:value="modelRef.password"
-          type="password"
-          @input="handlePasswordInput"
-          @keydown.enter.prevent
-          :placeholder="'请输入密码'"
-        />
+        <n-input v-model:value="modelRef.password" type="password" @input="handlePasswordInput" @keydown.enter.prevent
+          :placeholder="'请输入密码'" />
       </n-form-item>
       <n-form-item ref="rPasswordFormItemRef" first path="reenteredPassword" label="重复密码">
-        <n-input
-          v-model:value="modelRef.reenteredPassword"
-          :disabled="!modelRef.password"
-          type="password"
-          @keydown.enter.prevent
-          :placeholder="'请再次输入密码'"
-        />
+        <n-input v-model:value="modelRef.reenteredPassword" :disabled="!modelRef.password" type="password"
+          @keydown.enter.prevent :placeholder="'请再次输入密码'" />
       </n-form-item>
       <n-row :gutter="[0, 24]">
         <n-col :span="24">
           <div style="display: flex; justify-content: flex-end">
-            <n-button
-              :disabled="modelRef.username === null"
-              round
-              type="primary"
-              @click="handleValidateButtonClick"
-            >
+            <n-button :disabled="modelRef.username === null" round type="primary" @click="handleValidateButtonClick">
               验证
             </n-button>
           </div>
@@ -48,7 +29,7 @@
 import type { FormInst, FormItemInst, FormItemRule, FormRules } from 'naive-ui'
 import { useMessage, NForm, NRow, NCol, NFormItem, NButton, NInput } from 'naive-ui'
 import { useRoute, useRouter } from 'vue-router'
-import { ref } from 'vue'
+import { inject, ref } from 'vue'
 import Request from '@/services/api/index'
 import { HttpStatusCode } from 'axios'
 import { useLocalStorage } from '@vueuse/core'
@@ -132,10 +113,11 @@ function handlePasswordInput() {
 }
 const AccessToken = useLocalStorage('access_token', null)
 const RefreshToken = useLocalStorage('refresh_token', null)
-const username = useLocalStorage('username', '')
 import { useUserStore } from '@/stores/useUserStore'
 const { initStore } = useUserStore()
 // 上传登陆事件
+const checkAuth = inject('checkAuth') as () => Promise<void>
+
 function handleValidateButtonClick(e: MouseEvent) {
   e.preventDefault()
   formRef.value?.validate((errors) => {
@@ -145,11 +127,10 @@ function handleValidateButtonClick(e: MouseEvent) {
         username: modelRef.value.username,
         password: modelRef.value.password
       })
-        .then((response: any) => {
+        .then(async (response: any) => {
           if (response.code == HttpStatusCode.Ok) {
             AccessToken.value = response.msg[0]
             RefreshToken.value = response.msg[1]
-            username.value = modelRef.value.username
             initStore({
               Id: response.info.id,
               Username: modelRef.value.username,
@@ -163,10 +144,13 @@ function handleValidateButtonClick(e: MouseEvent) {
             message.error('登录失败, 请检查用户名和密码')
             console.log(response.msg)
           }
+
         })
         .catch((err: any) => {
           message.error('登录失败')
           console.log(err)
+        }).finally(async () => {
+          await checkAuth(); // 更新认证状态
         })
     } else {
       console.log(errors)

@@ -6,14 +6,14 @@
         <div class="lg:col-span-1">
           <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div class="text-center">
-              <n-avatar :size="80" :src="userStore.avatar || undefined" class="mx-auto mb-4">
-                <UserIcon v-if="!userStore.avatar" />
+              <n-avatar :size="80" :src="avatar + `?t=${Date.now()}`" class="mx-auto mb-4">
+                <UserIcon v-if="!avatar" />
               </n-avatar>
               <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-                {{ userStore.nickname || userStore.username }}
+                {{ nickname || username }}
               </h2>
               <p class="text-gray-500 dark:text-gray-400 text-sm">
-                Rating: {{ userStore.rating || 'N/A' }}
+                Rating: {{ rating || 'N/A' }}
               </p>
             </div>
             <n-divider />
@@ -34,7 +34,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, h } from 'vue'
 import { useUserStore } from '@/stores/useUserStore'
-const userStore = useUserStore()
+const {id, username, nickname,avatar,rating} = useUserStore()
 import {
   User,
   Settings,
@@ -49,7 +49,9 @@ import {
 } from 'naive-ui'
 import { RouterLink } from 'vue-router'
 
-
+const refreshAvatar = () => {
+  console.log('Refreshing avatar...')
+}
 const menuOptions: MenuOption[] = [
   {
     label: () =>

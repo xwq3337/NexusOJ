@@ -136,7 +136,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/blog/:id',
     component: () => import('@/pages/blog/BlogDetail.vue'),
-    name: 'BlogDetail'
+    name: 'BlogDetail',
   },
   {
     path: '/blog/create',

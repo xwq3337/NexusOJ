@@ -53,7 +53,7 @@ func InitMongoDB() {
 }
 func mySql() {
 	var err error
-	gsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", config.DbUser, config.DbPassword, config.DbHost, config.DbPort, config.DbName)
+	gsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&collation=utf8mb4_0900_ai_ci&parseTime=True&loc=Local", config.DbUser, config.DbPassword, config.DbHost, config.DbPort, config.DbName)
 	MysqlClient, err = gorm.Open(mysql.Open(gsn), &gorm.Config{
 		SkipDefaultTransaction: true,
 		PrepareStmt:            true,

@@ -10,8 +10,8 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       proxy: {
         '/service': {
-          // target: 'http://127.0.0.1:8080/',
-          target: 'http://47.109.57.7:8080',
+          target: 'http://127.0.0.1:8080/',
+          // target: 'http://47.109.57.7:8080',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/service/, ''),
           onError: (err, req, res) => {

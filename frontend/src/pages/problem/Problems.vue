@@ -106,11 +106,10 @@ const columns = [
 ]
 
 const Problems = ref([])
-import Request from '@/services/api/index'
 import { formatAcceptance } from '@/utils/format'
+import { problemApi } from '@/services/problem'
 onMounted(async () => {
-  console.log('Fetching problem list...')
-  await Request.get('/problem/list')
+  await problemApi.getProblemList()
     .then((res) => {
       Problems.value = res.info
     })

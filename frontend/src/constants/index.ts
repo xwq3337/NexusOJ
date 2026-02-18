@@ -488,3 +488,49 @@ export const STATUS_COLORS = {
     borderColor: 'rgba(32, 128, 240, 0.3)'
   }
 }
+
+/**
+ * 实时连接类型
+ */
+export type RealtimeConnectionType = 'sse' | 'websocket'
+
+/**
+ * 连接状态
+ */
+export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
+
+/**
+ * 连接配置选项
+ */
+export interface RealtimeConnectionOptions {
+  /** 连接类型 */
+  type: RealtimeConnectionType
+  /** 是否自动连接 */
+  immediate?: boolean
+  /** 自动重连配置 */
+  autoReconnect?: {
+    /** 重连次数 */
+    retries: number
+    /** 重连延迟 */
+    delay: number | ((retries: number) => number)
+    /** 重连失败回调 */
+    onFailed?: () => void
+  }
+  /** 心跳配置 (仅 WebSocket) */
+  heartbeat?: {
+    /** 心跳消息内容 */
+    message: string | ArrayBuffer | Blob
+    /** 心跳间隔 (ms) */
+    interval: number
+    /** pong 超时时间 (ms) */
+    pongTimeout: number
+  }
+  /** 连接成功回调 */
+  onConnected?: () => void
+  /** 连接关闭回调 */
+  onDisconnected?: () => void
+  /** 连接错误回调 */
+  onError?: (error: Error) => void
+  /** 接收消息回调 */
+  onMessage?: (data: string) => void
+}
