@@ -97,20 +97,3 @@ const userId = ref<string>('')
 userId.value = route.params.id as string
 
 </script>
-
-<style scoped>
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>

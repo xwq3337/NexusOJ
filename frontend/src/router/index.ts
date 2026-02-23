@@ -38,7 +38,7 @@ const routes: RouteRecordRaw[] = [
           {
             path: 'info',
             component: () => import('@/pages/notification/info.vue'),
-            name: 'Info',
+            name: 'Infos',
             meta: {
               description: '系统通知'
             }
@@ -46,7 +46,7 @@ const routes: RouteRecordRaw[] = [
           {
             path: 'message',
             component: () => import('@/pages/notification/message.vue'),
-            name: 'Message',
+            name: 'Messages',
             meta: {
               description: '私信'
             }
@@ -54,25 +54,14 @@ const routes: RouteRecordRaw[] = [
         ]
       },
       {
-        path: 'knowledgebase',
-        component: () => import('@/pages/KnowledgeBase.vue'),
-        name: 'KnowledgeBase',
-        children: [
-          {
-            path: 'courses',
-            component: () => import('@/pages/Courses.vue'),
-            name: 'Courses'
-          },
-          {
-            path: 'blogs',
-            component: () => import('@/pages/blog/Blogs.vue'),
-            name: 'Blogs'
-          },
-          {
-            path: '',
-            redirect: { name: 'Courses' }
-          }
-        ]
+        path: 'courses',
+        component: () => import('@/pages/Courses.vue'),
+        name: 'Courses'
+      },
+      {
+        path: 'blogs',
+        component: () => import('@/pages/blog/Blogs.vue'),
+        name: 'Blogs'
       },
       {
         path: 'user',
@@ -136,7 +125,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/blog/:id',
     component: () => import('@/pages/blog/BlogDetail.vue'),
-    name: 'BlogDetail',
+    name: 'BlogDetail'
   },
   {
     path: '/blog/create',
@@ -152,6 +141,11 @@ const routes: RouteRecordRaw[] = [
     path: '/user/:id',
     component: () => import('@/pages/user/UserHomePage.vue'),
     name: 'UserHomePage'
+  },
+  {
+    path: '/not-found',
+    component: () => import('@/components/results/404.vue'),
+    name: 'NotFound'
   },
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ]

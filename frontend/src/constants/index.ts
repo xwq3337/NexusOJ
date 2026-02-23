@@ -26,48 +26,160 @@ export const MARKDOWN_CODE_THEMES: { value: MarkdownCodeTheme; label: string }[]
   { value: 'twilight', label: 'Twilight' },
   { value: 'xcode', label: 'Xcode' }
 ]
-import { Problem } from '@/types/problem';
-import { Contest } from '@/types/contest';
+import { Problem } from '@/types/problem'
+import { Contest } from '@/types/contest'
 
 export const MOCK_PROBLEMS: Problem[] = [
   {
-    id: '1',
+    id: 1,
     title: '两数之和',
-    difficulty: 'Easy',
-    acceptance: '48.5%',
+    difficulty: 0,
     tags: ['数组', '哈希表'],
-    status: 'todo'
+    user_id: '3953240110606292',
+    accept: 21431,
+    submission: 63216,
+    context: 'null',
+    input_description: 'input',
+    output_description: 'ouput',
+    judge_case: [
+      {
+        input: '1 2',
+        expected: '3'
+      }
+    ],
+    judge_sample: [
+      {
+        input: '3 4',
+        expected: '7'
+      }
+    ],
+    tips: 'null'
   },
   {
-    id: '2',
+    id: 2,
     title: '两数相加',
-    difficulty: 'Medium',
-    acceptance: '39.1%',
+    difficulty: 0,
     tags: ['链表', '数学'],
-    status: 'todo'
+    user_id: '1',
+    accept: 21431,
+    submission: 63216,
+    context: 'null',
+    input_description: 'input',
+    output_description: 'ouput',
+    judge_case: [
+      {
+        input: '1 2',
+        expected: '3'
+      }
+    ],
+    judge_sample: [
+      {
+        input: '3 4',
+        expected: '7'
+      }
+    ],
+    tips: 'null'
   },
   {
-    id: '3',
+    id: 3,
     title: '无重复字符的最长子串',
-    difficulty: 'Medium',
-    acceptance: '32.1%',
-    tags: ['字符串', '滑动窗口']
+    difficulty: 0,
+    tags: ['字符串', '滑动窗口'],
+    user_id: '1',
+    accept: 21431,
+    submission: 63216,
+    context: 'null',
+    input_description: 'input',
+    output_description: 'ouput',
+    judge_case: [
+      {
+        input: '1 2',
+        expected: '3'
+      }
+    ],
+    judge_sample: [
+      {
+        input: '3 4',
+        expected: '7'
+      }
+    ],
+    tips: 'null'
   },
   {
-    id: '4',
+    id: 4,
     title: '寻找两个正序数组的中位数',
-    difficulty: 'Hard',
-    acceptance: '35.2%',
-    tags: ['二分查找', '数组']
+    difficulty: 0,
+    tags: ['二分查找', '数组'],
+    user_id: '1',
+    accept: 21431,
+    submission: 63216,
+    context: 'null',
+    input_description: 'input',
+    output_description: 'ouput',
+    judge_case: [
+      {
+        input: '1 2',
+        expected: '3'
+      }
+    ],
+    judge_sample: [
+      {
+        input: '3 4',
+        expected: '7'
+      }
+    ],
+    tips: 'null'
   },
   {
-    id: '5',
+    id: 5,
     title: '最长回文子串',
-    difficulty: 'Medium',
-    acceptance: '32.1%',
-    tags: ['字符串', '动态规划']
+    difficulty: 0,
+    tags: ['字符串', '动态规划'],
+    user_id: '1',
+    accept: 21431,
+    submission: 63216,
+    context: 'null',
+    input_description: 'input',
+    output_description: 'ouput',
+    judge_case: [
+      {
+        input: '1 2',
+        expected: '3'
+      }
+    ],
+    judge_sample: [
+      {
+        input: '3 4',
+        expected: '7'
+      }
+    ],
+    tips: 'null'
   },
-  { id: '6', title: 'Z 字形变换', difficulty: 'Medium', acceptance: '42.4%', tags: ['字符串'] }
+  {
+    id: 6,
+    title: 'Z 字形变换',
+    difficulty: 0,
+    tags: ['字符串'],
+    user_id: '1',
+    accept: 21431,
+    submission: 63216,
+    context: 'null',
+    input_description: 'input',
+    output_description: 'ouput',
+    judge_case: [
+      {
+        input: '1 2',
+        expected: '3'
+      }
+    ],
+    judge_sample: [
+      {
+        input: '3 4',
+        expected: '7'
+      }
+    ],
+    tips: 'null'
+  }
 ]
 
 export const MOCK_CONTESTS: Contest[] = [
@@ -450,6 +562,8 @@ export const STATUS_OPTIONS = [
   { label: '编译错误', value: 'CompilationError' }
 ]
 
+export type VerdictType = "Accepted" | "WrongAnswer" | "TimeLimitExceeded" | "MemoryLimitExceeded" | "RuntimeError" | "CompilationError"
+
 export const STATUS_COLORS = {
   // success
   Accepted: {
@@ -487,50 +601,4 @@ export const STATUS_COLORS = {
     textColor: 'rgb(32, 128, 240)',
     borderColor: 'rgba(32, 128, 240, 0.3)'
   }
-}
-
-/**
- * 实时连接类型
- */
-export type RealtimeConnectionType = 'sse' | 'websocket'
-
-/**
- * 连接状态
- */
-export type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error'
-
-/**
- * 连接配置选项
- */
-export interface RealtimeConnectionOptions {
-  /** 连接类型 */
-  type: RealtimeConnectionType
-  /** 是否自动连接 */
-  immediate?: boolean
-  /** 自动重连配置 */
-  autoReconnect?: {
-    /** 重连次数 */
-    retries: number
-    /** 重连延迟 */
-    delay: number | ((retries: number) => number)
-    /** 重连失败回调 */
-    onFailed?: () => void
-  }
-  /** 心跳配置 (仅 WebSocket) */
-  heartbeat?: {
-    /** 心跳消息内容 */
-    message: string | ArrayBuffer | Blob
-    /** 心跳间隔 (ms) */
-    interval: number
-    /** pong 超时时间 (ms) */
-    pongTimeout: number
-  }
-  /** 连接成功回调 */
-  onConnected?: () => void
-  /** 连接关闭回调 */
-  onDisconnected?: () => void
-  /** 连接错误回调 */
-  onError?: (error: Error) => void
-  /** 接收消息回调 */
-  onMessage?: (data: string) => void
 }

@@ -1,5 +1,5 @@
 <template>
-  <div :style="{ backgroundColor: 'var(--bg-primary)' }" class="min-h-screen p-6">
+  <div :style="{ backgroundColor: 'var(--bg-primary)' }" class="min-h-screen p-2">
     <div class="max-w-7xl mx-auto">
       <h1 class="text-3xl font-bold mb-6" :style="{ color: 'var(--text-primary)' }">评测记录</h1>
 
@@ -28,7 +28,7 @@
         <div class="flex justify-end p-4">
           <n-pagination v-model:page="pagination.page" v-model:page-size="pagination.pageSize"
             :page-count="Math.ceil(Number(totalRecords / pagination.pageSize))" :page-sizes="pagination.pageSizes"
-            size="medium" show-quick-jumper :show-size-picker="pagination.showSizePicker"
+            size="medium" :show-size-picker="pagination.showSizePicker"
             @update-page="pagination.onUpdatePage" @update-page-size="pagination.onUpdatePageSize" />
         </div>
       </n-card>

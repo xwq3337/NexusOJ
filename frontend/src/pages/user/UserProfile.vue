@@ -28,7 +28,6 @@ onMounted(async () => {
       ...data,
       birthday: data.birthday ? new Date(data.birthday).getTime() : null
     }
-
   }).catch(error => {
     console.error('获取用户信息失败:', error)
   })
@@ -37,7 +36,7 @@ onMounted(async () => {
 // 将时间戳转换为字符串用于 API 提交
 const birthdayForSubmit = computed(() => {
   return profileForm.value.birthday
-    ? new Date(profileForm.value.birthday).toISOString().split('T')[0]
+    ? new Date(profileForm.value.birthday  + 100000 ) .toISOString().split('T')[0]
     : ''
 })
 const genderOptions = [
@@ -90,7 +89,7 @@ const handlePositiveClick = () => {
     个人信息
   </h3>
   <n-form :model="profileForm" label-placement="left" label-width="auto" :rules="rules">
-    <n-grid :cols="24" :x-gap="24">
+    <n-grid :cols="24" :x-gap="10">
       <n-form-item-gi :span="12" label="昵称" path="nickname">
         <n-input v-model:value="profileForm.nickname" placeholder="请输入昵称" />
       </n-form-item-gi>
@@ -121,7 +120,7 @@ const handlePositiveClick = () => {
         </n-button>
       </n-upload>
     </n-form-item>
-    <n-grid :cols="24" :x-gap="24">
+    <n-grid :cols="24">
       <n-gi :span="24">
         <div class="flex justify-end">
           <n-popconfirm @positive-click="handleValidateButtonClick">

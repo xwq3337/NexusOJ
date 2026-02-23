@@ -26,7 +26,7 @@
           </div>
           <v-md-preview :text="ProblemContext" style="height: 50rem;" :style="{
             padding: '5px',
-            backgroundColor: 'transparent'
+            backgroundColor: 'transparent',
           }" />
         </div>
       </template>
@@ -70,10 +70,11 @@
             </n-popover>
           </div>
           <div class="flex items-center gap-2">
-            <n-button class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors" :style="{
-              color: 'var(--text-primary)',
-              backgroundColor: hoverBgColor2
-            }" @mouseenter="() => (hoverBgColor2 = 'var(--surface-tertiary)')"
+            <n-button class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors"
+              :style="{
+                color: 'var(--text-primary)',
+                backgroundColor: hoverBgColor2
+              }" @mouseenter="() => (hoverBgColor2 = 'var(--surface-tertiary)')"
               @mouseleave="() => (hoverBgColor2 = 'transparent')">
               <RotateCcw :size="14" /> 重置
             </n-button>
@@ -82,11 +83,10 @@
               :style="{ color: 'var(--text-primary)' }" :class="isTesting ? 'opacity-70 cursor-wait' : ''">
               <Play :size="14" /> {{ isTesting ? '测试中...' : '自测运行' }}
             </n-button>
-            <n-button @click="handleRun" :disabled="isRunning"
-              type="success"
+            <n-button @click="handleRun" :disabled="isRunning" type="success"
               class="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded transition-colors"
               :style="{ color: 'var(--text-primary)' }" :class="isRunning ? 'opacity-70 cursor-wait' : ''">
-               {{ isRunning ? '提交中...' : '提交代码' }}
+              {{ isRunning ? '提交中...' : '提交代码' }}
             </n-button>
           </div>
         </div>
@@ -181,10 +181,11 @@ const languageToApi = (lang: LanguageValue): string => {
   return LANGUAGE_CONFIG[lang].apiValue
 }
 
-import {difficultyMap} from '@/constants'
+import { difficultyMap } from '@/constants'
 import { formatAcceptance } from '@/utils/format'
 import { Problem } from '@/types/problem'
 import { problemApi } from '@/services/problem'
+import router from '@/router'
 // 使用 IndexedDB 存储代码
 const code = ref('')
 const testCaseInput = ref('')
@@ -288,10 +289,9 @@ watch(Language, async (newLanguage, oldLanguage) => {
 onMounted(async () => {
   // 初始化 IndexedDB
   await initIndexedDB()
-  if(route.params.id == undefined) return
   await problemApi.getProblemDetail(route.params.id as string)
     .then((res) => {
-      const {info} = res
+      const { info, code, msg } = res
       problem.value = info
       // 如果有样例，使用第一个样例作为默认测试用例
       if (info.judge_sample && info.judge_sample.length > 0 && !testCaseInput.value) {
@@ -324,7 +324,7 @@ const handleTest = async () => {
   isTesting.value = true
   result.value = null
   test_case.value.output = ''
-  await Request.post('/ide/submit', {
+  await problemApi.TestCode({
     submission_id: 123456789,
     code: code.value,
     language: languageToApi(Language.value),
@@ -337,19 +337,13 @@ const handleTest = async () => {
     ],
     message: '',
     seccomp_profile: '',
-    resources_limits: {
-      cpu_time: 100000,
-      memory_bytes: 67108864,
-      stack_bytes: 10485760,
-      output_bytes: 10485760
-    },
-    timeout: 10 * 1000
   })
-    .then((res) => {
-      if (res.info.verdict == 'CompilationError') {
-        test_case.value.output = res.info.result[0].stderr ?? ''
-      } else if (res.info.verdict == 'WrongAnswer' || res.info.verdict == 'Accepted') {
-        test_case.value.output = res.info.result[0].stdout
+    .then((response) => {
+      const { info, code } = response
+      if (info.verdict == 'CompilationError') {
+        test_case.value.output = info.result[0].stderr ?? ''
+      } else if (info.verdict == 'WrongAnswer' || info.verdict == 'Accepted') {
+        test_case.value.output = info.result[0].stdout
       }
     })
     .catch((err) => {
@@ -373,7 +367,7 @@ const handleRun = async () => {
   result.value = null
 
   try {
-    await Request.post('/problem/submit', {
+    await problemApi.SubmitCode({
       problem_id: String(route.params.id),
       user_id: userStore.id,
       code: code.value,
@@ -396,16 +390,16 @@ const handleRun = async () => {
 const handleEditorChange = (newCode: string) => {
   code.value = newCode
 }
-onMounted(()=>{
-      // 禁止 body 和 html 滚动
-    document.body.style.overflow = 'hidden'
-    document.documentElement.style.overflow = 'hidden'
+onMounted(() => {
+  // 禁止 body 和 html 滚动
+  document.body.style.overflow = 'hidden'
+  document.documentElement.style.overflow = 'hidden'
 
 })
 onUnmounted(() => {
-    // 恢复 body 和 html 滚动
-    document.body.style.overflow = ''
-    document.documentElement.style.overflow = ''
+  // 恢复 body 和 html 滚动
+  document.body.style.overflow = ''
+  document.documentElement.style.overflow = ''
 })
 </script>
 <style scoped>

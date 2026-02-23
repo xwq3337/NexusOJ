@@ -1,10 +1,17 @@
 import { ApiResponse } from '@/types/api'
 import { User, FriendShip } from '@/types/user'
 import Request from './api'
+import { GetRecordListParams, GetRecordListResponse } from '@/types/record'
 
 export const userApi = {
+  Login: (username: string, password: string): Promise<ApiResponse<User>> => {
+    return Request.post('/user/login', { username, password })
+  },
+  Register: (username: string, password: string, nickname: string): Promise<ApiResponse<User>> => {
+    return Request.post('/user/register', { username, password, nickname })
+  },
   ValidateToken: (): Promise<ApiResponse<string>> => {
-    return Request.get('/user/validate-token')  
+    return Request.get('/user/validate-token')
   },
   getInfoById: (id: string): Promise<ApiResponse<User>> => {
     return Request.get(`/user/${id}`)
@@ -55,7 +62,13 @@ export const userApi = {
   searchUser: (keyword: string): Promise<ApiResponse<User[]>> => {
     return Request.get(`/user/search`, { params: { keyword } })
   },
-  Count:() : Promise<ApiResponse<number>> => {
+  Count: (): Promise<ApiResponse<number>> => {
     return Request.get(`/user/count`)
+  },
+  getUserRecordList: (
+    id: string,
+    params: Partial<GetRecordListParams>
+  ): Promise<ApiResponse<GetRecordListResponse[]>> => {
+    return Request.get(`/record/user/${id}`, { params: params })
   }
 }

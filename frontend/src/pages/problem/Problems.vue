@@ -1,6 +1,6 @@
 <template>
   <div class="animate-fade-in max-w-6xl mx-auto">
-    <div class="mb-8">
+    <div class="mb-8 whitespace-nowrap">
       <!-- TODO:搜索 -->
       <div class="divide-y" :style="{
         borderBottomColor: 'var(--border-color)',

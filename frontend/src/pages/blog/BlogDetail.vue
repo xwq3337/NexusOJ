@@ -1,5 +1,5 @@
 <template>
-  <article class="max-w-3xl px-8 py-4 mx-auto">
+  <article class="max-w-3xl px-2 py-4 mx-auto">
     <!-- 加载状态 -->
     <div v-if="loading" class="flex justify-center items-center min-h-[50vh]">
       <n-spin size="large" />

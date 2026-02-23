@@ -1,5 +1,5 @@
 <template>
-  <div class="course-container p-6">
+  <div class="p-2">
     <div class="mb-6">
       <h2 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">编程课程</h2>
       <p class="text-gray-500 mt-2">探索各种编程课程，提升你的技能</p>
@@ -37,7 +37,7 @@
       >
         <template #cover>
           <div
-            class="h-40 bg-gradient-to-r from-blue-500 to-purple-600 rounded-t-xl flex items-center justify-center"
+            class="h-40 bg-linear-to-r from-blue-500 to-purple-600 rounded-t-xl flex items-center justify-center"
           >
             <div class="text-white text-center p-4">
               <BookOpen :size="48" class="mx-auto mb-2" />

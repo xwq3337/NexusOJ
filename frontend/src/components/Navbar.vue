@@ -1,7 +1,7 @@
 <template>
   <nav class="sticky top-0 z-50 w-full border-b backdrop-blur" :style="{
     backgroundColor: 'var(--surface-primary)',
-    borderColor: 'var(--border-color)',
+    borderColor: 'transparent',
     borderWidth: '1px',
     borderStyle: 'solid'
   }">
@@ -14,7 +14,7 @@
           <span :style="{ color: 'var(--text-primary)' }">NexusOJ</span>
         </RouterLink>
 
-        <div class="hidden md:flex items-center gap-1">
+        <div class="hidden md:flex items-center gap-1 whitespace-nowrap">
           <RouterLink to="/problems"
             class="px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
             :class="isActive('/problems')">
@@ -30,53 +30,66 @@
             :class="isActive('/contests')">
             <Trophy :size="16" /> 竞赛
           </RouterLink>
-          <RouterLink to="/leaderboard"
+          <RouterLink to="/courses"
             class="px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
-            :class="isActive('/leaderboard')">
-            <BarChart2 :size="16" /> 排名
+            :class="isActive('/courses')">
+            <BookOpen :size="16" /> 课程
           </RouterLink>
-          <RouterLink to="/KnowledgeBase"
+          <RouterLink to="/blogs"
             class="px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
-            :class="isActive('/KnowledgeBase')">
-            <LibraryBig :size="16" /> 知识库
+            :class="isActive('/blogs')">
+            <LibraryBig :size="16" /> 博客
           </RouterLink>
         </div>
       </div>
 
-      <div class="flex items-center gap-4">
+
+      <div class="hidden md:flex items-center gap-4">
         <!-- 主题切换按钮 -->
         <button @click="toggleTheme" :class="`hover:${currentTheme === 'dark' ? 'text-white' : 'text-black'}`"
-          class="hidden md:flex items-center justify-center w-10 h-10 rounded-full text-gray-400 cursor-pointer"
+          class="items-center justify-center w-10 h-10 rounded-full text-gray-400 cursor-pointer"
           :style="{ backgroundColor: 'var(--surface-primary)' }">
           <Sun v-if="currentTheme === 'dark'" :size="20" />
           <Moon v-else :size="20" />
         </button>
-        <n-badge :value="101" :max="99">
+        <!-- 消息按钮 -->
+        <n-badge class="hidden md:flex" :value="unRead" :max="99">
           <button :class="`hover:${currentTheme === 'dark' ? 'text-white' : 'text-black'}`"
-            class="hidden md:flex items-center justify-center w-10 h-10 rounded-full text-gray-400 cursor-pointer"
-            :style="{ backgroundColor: 'var(--surface-primary)' }" @click="$router.push({ name: 'Message' })">
+            class="items-center justify-center w-10 h-10 rounded-full text-gray-400 cursor-pointer"
+            :style="{ backgroundColor: 'var(--surface-primary)' }" @click="$router.push({ name: 'Messages' })">
             <MessageCircleMore :size="20" />
           </button>
         </n-badge>
-
-        <n-button v-if="isAuthorization" :class="`hover:${currentTheme === 'dark' ? 'text-white' : 'text-black'}`"
-          class="hidden md:flex items-center justify-center w-10 h-10 rounded-full text-gray-400 cursor-pointer"
+        <!-- 登录/头像 -->
+        <button v-if="isAuthorization" :class="`hover:${currentTheme === 'dark' ? 'text-white' : 'text-black'}`"
+          class="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 cursor-pointer"
           :style="{ backgroundColor: 'var(--surface-primary)' }" @click="$router.push({ name: 'Profile' })">
           <n-avatar round :src="avatar" size="small" />
-        </n-button>
+        </button>
         <button v-else
-          class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-sm font-medium transition-colors"
+          class="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-sm font-medium transition-colors"
           @click="$router.push({ name: `Login` })">
           登录
         </button>
       </div>
+      <div class="hidden max-md:flex items-center gap-4 whitespace-nowrap">
+        <n-dropdown placement="bottom-start" animated class="color-(--text-primary)" trigger="click" :options="options"
+          @select="handleSelect">
+          <n-button type="info" ghost round>
+            <template #icon>
+              <Menu :size="16" />
+            </template>
+          </n-button>
+        </n-dropdown>
+      </div>
+
     </div>
   </nav>
 </template>
 
 <script setup lang="ts">
 import { useRoute, RouterLink } from 'vue-router'
-import { NBadge, NAvatar } from 'naive-ui'
+import { NButton, NBadge, NAvatar, NDropdown, useMessage } from 'naive-ui'
 import {
   LibraryBig,
   MessageCircleMore,
@@ -86,16 +99,83 @@ import {
   Sun,
   Moon,
   FileText,
+  Menu,
+  BookOpen
 } from 'lucide-vue-next'
 import { useTheme } from '@/composables/useTheme'
 import { useUserStore } from '@/stores/useUserStore'
-import { inject, Ref } from 'vue'
-const { avatar } = useUserStore()
+import { h, inject, onMounted, ref, Ref } from 'vue'
+import { useNexusEventSource } from '@/composables/useEventSource'
+import router from '@/router'
+const { id, avatar } = useUserStore()
 const route = useRoute()
 const { theme: currentTheme, toggleTheme } = useTheme()
-const isAuthorization : Ref<boolean> = inject('isAuthorization')!
+const isAuthorization: Ref<boolean> = inject('isAuthorization')!
 const isActive = (path: string) =>
   route.path === path
     ? 'text-blue-400'
     : `text-gray-400 hover:${currentTheme.value === 'dark' ? 'text-white' : 'text-black'}`
+const unRead = ref(0)
+type Response = {
+  data: string
+  event: "message" | "heartbeat",
+  id: string
+  retry: number | undefined
+}
+
+onMounted(() => {
+  if (isAuthorization.value) {
+    const { close } = useNexusEventSource(`/service/chat/unread?id=${id}`, {
+      onMessage: (msg: Response) => {
+        console.log("message: ", msg)
+        if (msg.event === "heartbeat") return
+        unRead.value = Number(msg.data)
+      },
+      onError(err) {
+        console.log("err", err)
+      },
+      onOpen() {
+        console.log('open')
+      },
+      onClose() {
+        console.log('close')
+      }
+    })
+  }
+})
+
+const options = [
+  {
+    label: '题库',
+    key: 'Problems',
+  },
+  {
+    label: '竞赛',
+    key: 'Contests',
+  },
+  {
+    label: '记录',
+    key: 'Records',
+  },
+  {
+    label: '课程',
+    key: 'Courses'
+  }, {
+    label: '博客',
+    key: 'Blogs'
+  },
+  {
+    label: '消息',
+    key: 'Messages'
+  },
+  {
+    label: "个人主页",
+    key: "Profile"
+  }
+]
+
+function handleSelect(key: string | number) {
+  router.push({ name: String(key) })
+}
+
 </script>

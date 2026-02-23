@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen text-slate-100 flex flex-col"
+    class="min-h-screen flex flex-col"
     :style="{ backgroundColor: 'var(--bg-primary)' }"
   >
     <Navbar />
@@ -24,6 +24,6 @@
 </template>
 
 <script setup lang="ts">
-import Navbar from '../components/Navbar.vue'
-import AiAssistant from '../components/AiAssistant.vue'
+import Navbar from '@/components/Navbar.vue'
+import AiAssistant from '@/components/AiAssistant.vue'
 </script>

@@ -1,25 +1,24 @@
 <template>
   <div class="min-h-screen bg-transparent">
     <!-- 搜索和筛选栏 -->
-    <div class="flex flex-col md:flex-row gap-3 mb-4 items-center">
+    <div class="flex flex-row gap-3 mb-4 items-center">
       <n-button type="info" @click="$router.push({ name: 'BlogCreate' })">
         <template #icon>
-          <Plus />
+          <Plus :size="16" />
         </template>
-        我要创作
+        <span class="max-md:hidden p-0"> 我要创作 </span>
       </n-button>
-      <n-input v-model:value="searchQuery" placeholder="搜索博客标题、内容或标签..." class="flex-1 min-w-60"
+      <n-input v-model:value="searchQuery" placeholder="搜索博客标题、内容或标签..." class="flex-1 min-w-30"
         @keydown.enter="loadBlogs(searchQuery)">
         <template #prefix>
           <Search :size="16" />
         </template>
       </n-input>
-      <n-select v-model:value="selectedCategory" :options="categoryOptions" placeholder="分类" class="min-w-40" />
-      <n-button round type="info" ghost>
+      <n-select v-model:value="selectedCategory" :options="categoryOptions" placeholder="分类" class="max-w-30" />
+      <n-button circle type="info" ghost>
         <template #icon>
           <RefreshCcw />
         </template>
-        刷新
       </n-button>
     </div>
     <!-- 博客列表 -->
@@ -59,8 +58,8 @@
           <template #footer>
             <n-pagination v-model:page="pagination.page" v-model:page-size="pagination.pageSize"
               :page-count="Math.ceil(Number(totalBlogs / pagination.pageSize))" :page-sizes="pagination.pageSizes"
-              size="medium" show-quick-jumper :show-size-picker="pagination.showSizePicker"
-              @update-page="pagination.onUpdatePage" @update-page-size="pagination.onUpdatePageSize" />
+              size="medium" :show-size-picker="pagination.showSizePicker" @update-page="pagination.onUpdatePage"
+              @update-page-size="pagination.onUpdatePageSize" />
           </template>
         </n-list>
       </div>
@@ -156,7 +155,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, reactive, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { Search, RefreshCcw, ThumbsUp, Eye, Heart, FileX, Plus } from 'lucide-vue-next'
 import { NInput, NButton, NDivider, NCol, NRow, NSelect, NPagination, NList, NListItem, NCard, NAvatar } from 'naive-ui'
 import type { Blog } from '@/types/blog'
@@ -193,6 +192,7 @@ const pagination = reactive({
   }
 })
 const router = useRouter()
+const route = useRoute()
 // 博客数据
 const blogs = ref<(Blog & { user_id: string, username: string })[]>()
 // 加载博客数据
@@ -205,7 +205,12 @@ const loadBlogs = async (query = '') => {
     console.error('获取博客数据失败:', error)
   }
 }
-onMounted(loadBlogs)
+onMounted(() => {
+  if (typeof route.query.page === 'string') {
+    pagination.page = Number(route.query.page)
+  }
+  loadBlogs()
+})
 
 
 // 筛选条件

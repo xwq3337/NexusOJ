@@ -1,52 +1,27 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, reactive, h, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { NCard, NTable, NTag, NEllipsis, NCollapse, NCollapseItem, NCode, NEmpty, NSpin, NPagination } from 'naive-ui'
+import { NCard,NDataTable, NTag, NEmpty, NSpin, NPagination, useMessage } from 'naive-ui'
 import Request from '@/services/api'
 import { useUserStore } from '@/stores/useUserStore'
+import { formatMemory, formatDate, formatTime } from '@/utils/format'
+import { GetRecordListResponse } from '@/types/record'
+import { LANGUAGE_CONFIG, STATUS_COLORS } from '@/constants'
+import router from '@/router'
 const { id } = useUserStore()
-// 测试用例数据结构
-interface TestCase {
-    time: number
-    stdin: string
-    memory: number
-    status: string
-    stderr: string
-    stdout: string
-    case_id: string
-    expected: string
-}
-
-// 提交记录数据结构
-interface JudgeRecord {
-    id: number
-    code: string
-    created_at: string
-    deleted_at: string | null
-    judge_result: string // JSON字符串，包含 TestCase 数组
-    language: string
-    max_memory: number
-    max_time: number
-    problem_id: string
-    problem_title: string
-    updated_at: string
-    user_id: string
-    username: string
-    verdict: string
-}
 import { ApiResponse } from '@/types/api'
+import { useClipboard } from '@vueuse/core'
+import { userApi } from '@/services/user'
+const { copy } = useClipboard()
 const route = useRoute()
-
-const records = ref<JudgeRecord[]>([])
-const loading = ref(true)
-const currentPage = ref(1)
-const pageSize = 20
-
-// 获取提交记录
+const message = useMessage()
 const fetchRecords = async () => {
     loading.value = true
     try {
-        const response = await Request.get<ApiResponse>(`/record/user/${id}`)
+        const response = await userApi.getUserRecordList(id, {
+            page: currentPage.value,
+            page_size: pageSize.value
+        })
         if (response.code === 200) {
             records.value = response.info
         }
@@ -57,57 +32,169 @@ const fetchRecords = async () => {
     }
 }
 
-// 解析测试用例结果
-const parseJudgeResult = (result: string): TestCase[] => {
-    try {
-        return JSON.parse(result)
-    } catch {
-        return []
+const columns = [
+    {
+        title: 'ID',
+        key: 'id',
+        width: 150,
+        render(row: GetRecordListResponse) {
+            return h(
+                'span',
+                {
+                    style: { color: 'var(--text-link)', cursor: 'pointer' },
+                    onClick: () => {
+                        router.push({ name: 'RecordDetail', params: { id: row.id } })
+                    }
+                },
+                row.id
+            )
+        }
+    },
+    {
+        title: '题目',
+        key: 'problem_title',
+        width: 200,
+        render(row: GetRecordListResponse) {
+            return h('div', [
+                h(
+                    'div',
+                    {
+                        style: { fontWeight: 'bold', color: 'var(--text-primary)', cursor: 'pointer' },
+                        onClick: () => router.push({
+                            name: "ProblemDetail", params: {
+                                id: row.problem_id
+                            }
+                        })
+                    },
+                    row.problem_title,
+                ),
+                h(
+                    'div',
+                    {
+                        style: { fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer' },
+                        onClick: () => { copy(String(row.problem_id)), message.success('复制成功') },
+                    },
+                    `ID: ${row.problem_id}`
+                )
+            ])
+        }
+    },
+    {
+        title: '状态',
+        key: 'verdict',
+        width: 150,
+        render(row: GetRecordListResponse) {
+            return h(
+                NTag,
+                {
+                    size: 'small',
+                    color: STATUS_COLORS[row.verdict],
+                    style: { margin: '2px' }
+                },
+                {
+                    default: () => row.verdict
+                }
+            )
+        }
+    },
+    {
+        title: '语言',
+        key: 'language',
+        width: 100,
+        render(row: GetRecordListResponse) {
+            return h(
+                NTag,
+                {
+                    size: 'small',
+                    style: { margin: '2px' },
+                    color: LANGUAGE_CONFIG[row.language].color
+                },
+                {
+                    default: () => LANGUAGE_CONFIG[row.language].label
+                }
+            )
+        }
+    },
+    {
+        title: '内存',
+        key: 'max_memory',
+        width: 100,
+        render(row: GetRecordListResponse) {
+            return formatMemory(row.max_memory)
+        }
+    },
+    {
+        title: '时间',
+        key: 'max_time',
+        width: 100,
+        render(row: GetRecordListResponse) {
+            return formatTime(row.max_time)
+        }
+    },
+    {
+        title: '提交时间',
+        key: 'created_at',
+        width: 180,
+        render(row: GetRecordListResponse) {
+            return formatDate(row.created_at)
+        }
     }
-}
-
-// 获取评测结果对应的标签类型
-const getVerdictType = (verdict: string) => {
-    const verdictMap: Record<string, 'success' | 'error' | 'warning' | 'default'> = {
-        'Accepted': 'success',
-        'Wrong Answer': 'error',
-        'Time Limit Exceeded': 'error',
-        'Memory Limit Exceeded': 'error',
-        'Runtime Error': 'error',
-        'Compilation Error': 'error',
-        'Presentation Error': 'warning',
-        'System Error': 'error',
+]
+const currentPage = ref(1)
+const pageSize = ref(10)
+const records = ref<GetRecordListResponse[]>([])
+const loading = ref(false)
+const totalRecords = ref(0)
+// 分页配置
+const pagination = reactive({
+    page: currentPage.value,
+    pageSize: pageSize.value,
+    showSizePicker: true,
+    pageSizes: [5, 10, 20, 50],
+    itemCount: 0,
+    onUpdatePage: (page: number) => {
+        currentPage.value = page
+        updateRouteQuery()
+        fetchRecords()
+    },
+    onUpdatePageSize: (size: number) => {
+        pageSize.value = size
+        currentPage.value = 1
+        updateRouteQuery()
+        fetchRecords()
     }
-    return verdictMap[verdict] || 'default'
-}
-
-// 获取测试用例状态对应的标签类型
-const getTestCaseStatusType = (status: string) => {
-    const statusMap: Record<string, 'success' | 'error' | 'warning' | 'default'> = {
-        'AC': 'success',
-        'WA': 'error',
-        'TLE': 'error',
-        'MLE': 'error',
-        'RE': 'error',
-        'CE': 'error',
-        'PE': 'warning',
-    }
-    return statusMap[status] || 'default'
-}
-
-import { formatMemory, formatDate, formatTime } from '@/utils/format'
-// 分页数据
-const paginatedRecords = computed(() => {
-    const start = (currentPage.value - 1) * pageSize
-    const end = start + pageSize
-    return records.value.slice(start, end)
 })
-
-const totalPages = computed(() => Math.ceil(records.value.length / pageSize))
-
 onMounted(() => {
+    // 从路由获取初始页码
+    const pageParam = router.currentRoute.value.query.page as string
+    if (pageParam) {
+        currentPage.value = parseInt(pageParam, 10)
+    }
     fetchRecords()
 })
+
+const updateRouteQuery = () => {
+    router.push({
+        query: {
+            ...router.currentRoute.value.query,
+            page: currentPage.value.toString()
+        }
+    })
+}
+
+watch(currentPage, () => {
+    pagination.page = currentPage.value
+})
+
+watch(pageSize, () => {
+    pagination.pageSize = pageSize.value
+})
+
+// 监听totalRecords变化，更新itemCount
+watch(totalRecords, (newTotal) => {
+    pagination.itemCount = newTotal
+})
+
 </script>
 
 <template>
@@ -123,34 +210,16 @@ onMounted(() => {
             </div>
 
             <div v-else class="min-h-100 space-y-3">
-                <NCard
-                    v-for="record in paginatedRecords"
-                    :key="record.id"
-                    class="hover:shadow-md transition-shadow cursor-pointer"
-                    :style="{ backgroundColor: 'var(--card-bg)' }"
-                >
-                    <div class="flex items-center justify-between gap-4">
-                        <div class="flex items-center gap-3 flex-1 min-w-0">
-                            <NTag :type="getVerdictType(record.verdict)" size="small" :bordered="false">
-                                {{ record.verdict }}
-                            </NTag>
-                            <span class="font-medium text-base truncate" :style="{ color: 'var(--text-primary)' }">
-                                {{ record.problem_title }}
-                            </span>
-                        </div>
-                        <div class="flex items-center gap-4 text-xs shrink-0" :style="{ color: 'var(--text-secondary)' }">
-                            <span class="whitespace-nowrap">{{ formatDate(record.created_at) }}</span>
-                            <span class="language whitespace-nowrap">{{ record.language }}</span>
-                            <span class="time whitespace-nowrap">{{ formatTime(record.max_time) }}</span>
-                            <span class="memory whitespace-nowrap">{{ formatMemory(record.max_memory) }}</span>
-                        </div>
+                <n-card :style="{ backgroundColor: 'var(--surface-primary)' }" content-style="padding: 0;">
+                    <n-data-table :columns="columns" :data="records" :loading="loading" size="small"/>
+                    <div class="flex justify-end p-4">
+                        <n-pagination v-model:page="pagination.page" v-model:page-size="pagination.pageSize"
+                            :page-count="Math.ceil(Number(totalRecords / pagination.pageSize))"
+                            :page-sizes="pagination.pageSizes" size="medium"
+                            :show-size-picker="pagination.showSizePicker" @update-page="pagination.onUpdatePage"
+                            @update-page-size="pagination.onUpdatePageSize" />
                     </div>
-                </NCard>
-                <!-- 分页 -->
-                <div v-if="totalPages > 1" class="flex justify-center mt-8 py-4">
-                    <NPagination v-model:page="currentPage" :page-count="totalPages" :page-size="pageSize"
-                        show-quick-jumper />
-                </div>
+                </n-card>
             </div>
         </NSpin>
     </div>

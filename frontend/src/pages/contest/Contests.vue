@@ -33,13 +33,12 @@
             {{ c.status === 'Live' ? '进行中' : c.status === 'Upcoming' ? '即将开始' : '已结束' }}
           </span>
           <button
-            class="text-xs px-3 py-1.5 rounded"
+            class="text-xs px-3 py-1.5 rounded cursor-pointer"
             :style="{
               color: 'var(--text-primary)',
-              backgroundColor: 'var(--btn-secondary)',
+              backgroundColor: 'var(--btn-primary)',
               '--tw-bg-opacity': '1'
             }"
-            :class="['hover:bg-gray-700']"
             @click.stop
           >
             报名

@@ -33,4 +33,5 @@ provide('isAuthorization', isAuthorization); // 提供检查认证的函数
 provide('checkAuth', checkAuth); // 提供检查认证的函数
 onMounted(checkAuth); //组件挂载时检查认证状态
 const { theme, naiveTheme } = useTheme()
+
 </script>

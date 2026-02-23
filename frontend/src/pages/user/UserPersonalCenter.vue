@@ -13,6 +13,9 @@
                 {{ nickname || username }}
               </h2>
               <p class="text-gray-500 dark:text-gray-400 text-sm">
+                ID: {{ id }}
+              </p>
+              <p class="text-gray-500 dark:text-gray-400 text-sm">
                 Rating: {{ rating || 'N/A' }}
               </p>
             </div>

@@ -1,10 +1,7 @@
 // 格式化日期
 import dayjs from 'dayjs'
-export const formatDate = (dateString: string) => {
-  return dayjs(dateString).format('YYYY-MM-DD HH:mm:ss')
-}
 
-// 格式化内存
+// 格式化内存 字节转MB
 export const formatMemory = (memory: number) => {
   return `${Math.round((memory / 1024 / 1024) * 100) / 100} MB`
 }
@@ -14,7 +11,27 @@ export const formatTime = (time: number) => {
   return `${time} ms`
 }
 
-// 格式化日期（1天前，29天前，1月前，12月前，一年前， 。。。）
+/**
+ * 格式化日期
+ * @param {number} dateString  日期字符串 2024-01-01T00:00:00.000Z
+ * @returns {string} 2024-01-01 00:00:00
+ */
+export const formatDate = (dateString: string) => {
+  return dayjs(dateString).format('YYYY-MM-DD HH:mm:ss')
+}
+/**
+ * 格式化时间戳为日期时间字符串
+ * @param {number} timestamp - 需要格式化的时间戳（毫秒级）
+ * @returns {string} 格式化后的日期时间字符串，格式为 'YYYY-MM-DD HH:mm:ss'
+ */
+export const formateTimeStamp = (timestamp: number) => {
+  return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss') // 使用 dayjs 库将时间戳格式化为指定格式的字符串
+}
+/***
+ * 格式化相对时间
+ * @param dateString  日期字符串 2024-01-01T00:00:00.000Z
+ * @returns  （1天前，29天前，1月前，12月前，一年前， 。。。）
+ */
 export const formatRelativeTime = (dateString: string): string => {
   const now = new Date()
   const date = new Date(dateString)

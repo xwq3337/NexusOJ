@@ -2,6 +2,7 @@ import { ref, watch, onMounted, Ref } from 'vue'
 import { darkTheme, lightTheme, useOsTheme } from 'naive-ui'
 import { RemovableRef, useLocalStorage } from '@vueuse/core'
 export function useTheme() {
+  
   const theme = useLocalStorage('theme', useOsTheme().value) as RemovableRef<'light' | 'dark'>
   const naiveTheme = ref(theme.value === 'dark' ? darkTheme : lightTheme)
 

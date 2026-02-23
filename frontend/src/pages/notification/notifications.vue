@@ -16,7 +16,7 @@
 
                 <!-- Main Content -->
                 <div class="lg:col-span-3">
-                    <div class="rounded-lg shadow-md p-6" :style="{ backgroundColor: 'var(--card-bg)' }">
+                    <div class="rounded-lg shadow-md p-0" :style="{ backgroundColor: 'var(--card-bg)' }">
                         <RouterView />
                     </div>
                 </div>
@@ -39,7 +39,7 @@ const menuOptions: MenuOption[] = [
         label: () =>
             h(
                 RouterLink,
-                { to: { name: 'Message' } },
+                { to: { name: 'Messages' } },
                 { default: () => '私信' }
             ),
         key: 'message',
@@ -49,7 +49,7 @@ const menuOptions: MenuOption[] = [
         label: () =>
             h(
                 RouterLink,
-                { to: { name: 'Info' } },
+                { to: { name: 'Infos' } },
                 { default: () => '系统通知' }
             ),
         key: 'info',
@@ -60,8 +60,8 @@ const menuOptions: MenuOption[] = [
 
 const activeKey = computed(() => {
     const name = route.name as string
-    if (name === 'Info') return 'info'
-    if (name === 'Message') return 'message'
+    if (name === 'Infos') return 'info'
+    if (name === 'Messages') return 'message'
     return 'info'
 })
 </script>

@@ -35,9 +35,6 @@ export enum JudgeVerdict {
     SystemError = "SystemError",
 }
 
-
-
-
 export interface GetRecordListParams {
     page : number
     page_size : number

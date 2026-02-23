@@ -8,7 +8,7 @@ import { fetchEventSource } from '@microsoft/fetch-event-source'
  * @param onClose - Callback function when connection closes
  * @param abortController - Controller to abort the request
  */
-export const streamGeminiResponse = async (
+export const streamResponse = async (
   query: string,
   onMessage: (chunk: string) => void,
   onError: (error: Error) => void,

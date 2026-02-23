@@ -11,7 +11,7 @@
   <!-- Chat Window -->
   <Transition name="chat-slide">
     <div v-if="isOpen"
-      class="fixed bottom-6 right-6 w-[calc(100%-3rem)] md:w-96 h-125 rounded-xl shadow-2xl flex flex-col z-50 overflow-hidden"
+      class="fixed bottom-6 right-6 w-[calc(100%-3rem)] md:w-lg h-125 rounded-xl shadow-2xl flex flex-col z-50 overflow-hidden"
       :style="{ backgroundColor: 'var(--surface-primary)', border: '1px solid var(--border-color)' }">
       <!-- Header -->
       <div class="flex items-center justify-between px-4 py-3 border-b" :style="{ borderColor: 'var(--border-color)' }">
@@ -25,7 +25,8 @@
             <span class="text-xs" :style="{ color: 'var(--text-secondary)' }">输入中...</span>
           </div>
         </div>
-        <button @click="toggleChat" class="flex items-center justify-center w-8 h-8 rounded-lg transition-colors cursor-pointer"
+        <button @click="toggleChat"
+          class="flex items-center justify-center w-8 h-8 rounded-lg transition-colors cursor-pointer"
           :style="{ color: 'var(--text-secondary)' }" :class="`hover:bg-(--surface-secondary)`">
           <X :size="18" />
         </button>
@@ -75,33 +76,10 @@
             backgroundColor: message.role === 'user' ? 'var(--accent-color)' : 'var(--surface-secondary)',
             color: message.role === 'user' ? 'white' : 'var(--text-primary)'
           }">
-            <div class="text-sm whitespace-pre-wrap leading-relaxed message-content"
-              v-html="renderMessage(message.text)"></div>
+            <div class="text-sm  leading-relaxed message-content" v-html="renderMessage(message.text)"></div>
             <div class="text-xs mt-1 opacity-70"
               :style="{ color: message.role === 'user' ? 'white' : 'var(--text-tertiary)' }">
-              {{ formatTime(message.timestamp) }}
-            </div>
-          </div>
-        </div>
-
-        <!-- Loading Indicator -->
-        <div v-if="isLoading" class="flex gap-3">
-          <div class="w-8 h-8 rounded-full flex items-center justify-center"
-            :style="{ backgroundColor: 'var(--surface-secondary)' }">
-            <Bot :size="16" :style="{ color: 'var(--accent-color)' }" />
-          </div>
-          <div class="flex items-center gap-1 px-4 py-2 rounded-2xl"
-            :style="{ backgroundColor: 'var(--surface-secondary)' }">
-            <div class="flex gap-1">
-              <div class="w-2 h-2 rounded-full"
-                :style="{ backgroundColor: 'var(--accent-color)', animation: 'bounce 1.4s infinite ease-in-out both' }">
-              </div>
-              <div class="w-2 h-2 rounded-full"
-                :style="{ backgroundColor: 'var(--accent-color)', animation: 'bounce 1.4s infinite ease-in-out both 0.16s' }">
-              </div>
-              <div class="w-2 h-2 rounded-full"
-                :style="{ backgroundColor: 'var(--accent-color)', animation: 'bounce 1.4s infinite ease-in-out both 0.32s' }">
-              </div>
+              {{ formateTimeStamp(message.timestamp) }}
             </div>
           </div>
         </div>
@@ -135,7 +113,7 @@
               <n-button size="tiny" type="error" class="text-xs"> 清空对话
               </n-button>
             </template>
-            你确定要清空对话记录吗
+            确定要清空对话记录吗
           </n-popconfirm>
         </div>
       </div>
@@ -151,14 +129,18 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { Bot, X, User, Send, Loader2 } from 'lucide-vue-next'
-import { useLocalStorage } from '@vueuse/core'
-import { streamGeminiResponse } from '@/services/agent'
+import { useLocalStorage, useEventListener } from '@vueuse/core'
+
+import { streamResponse } from '@/services/agent'
 import type { ChatMessage } from '@/types/chat'
 import MarkdownIt from 'markdown-it'
 import { NPopconfirm, NButton } from "naive-ui"
 import { useMessage } from 'naive-ui'
+import { formateTimeStamp } from '@/utils/format'
+import { safeJsonParse } from '@/utils/safeJsonParse'
 const message = useMessage()
 // Initialize markdown-it
+const AiAssistantMessages = useLocalStorage('ai-assistant-messages', null)
 const md = new MarkdownIt({
   html: false,
   linkify: true,
@@ -183,34 +165,28 @@ const quickPrompts = [
   { text: '解释这道题的思路', label: '💡 解题思路' },
   { text: '推荐一些练习题', label: '📚 练习推荐' }
 ]
-
 // Load messages from localStorage
 onMounted(() => {
-  const saved = localStorage.getItem('ai-assistant-messages')
-  if (saved) {
+  if (AiAssistantMessages.value) {
     try {
-      messages.value = JSON.parse(saved)
+      messages.value = safeJsonParse(AiAssistantMessages.value).value
     } catch (e) {
       console.error('Failed to load messages:', e)
     }
   }
-
   // Check if mobile
   checkMobile()
-  window.addEventListener('resize', checkMobile)
 })
 
-onUnmounted(() => {
-  window.removeEventListener('resize', checkMobile)
-})
 
 const checkMobile = () => {
   isMobile.value = window.innerWidth < 768
 }
+useEventListener('resize', checkMobile)
 
 // Save messages to localStorage
 watch(messages, (newMessages) => {
-  localStorage.setItem('ai-assistant-messages', JSON.stringify(newMessages))
+  AiAssistantMessages.value = JSON.stringify(newMessages)
 }, { deep: true })
 
 // Toggle chat
@@ -271,31 +247,6 @@ const escapeHtml = (text: string) => {
   return div.innerHTML
 }
 
-// Format time
-const formatTime = (timestamp: number) => {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-
-  // Less than 1 minute
-  if (diff < 60000) {
-    return '刚刚'
-  }
-
-  // Less than 1 hour
-  if (diff < 3600000) {
-    const minutes = Math.floor(diff / 60000)
-    return `${minutes}分钟前`
-  }
-
-  // Today
-  if (date.toDateString() === now.toDateString()) {
-    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-  }
-
-  // Otherwise
-  return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
-}
 
 // Handle input
 const handleInput = () => {
@@ -347,7 +298,7 @@ const sendMessage = async () => {
   const abortController = new AbortController()
 
   try {
-    await streamGeminiResponse(
+    await streamResponse(
       text,
       // onMessage - append each chunk to the AI message
       (chunk: string) => {
@@ -381,7 +332,7 @@ const sendMessage = async () => {
 
 // Clear messages
 const clearMessages = () => {
-    messages.value = []
+  messages.value = []
 }
 
 // Keyboard shortcut to open/close
@@ -392,14 +343,7 @@ const handleKeydown = (e: KeyboardEvent) => {
     toggleChat()
   }
 }
-
-onMounted(() => {
-  window.addEventListener('keydown', handleKeydown)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown)
-})
+useEventListener('keydown', handleKeydown)
 </script>
 
 <style scoped>
