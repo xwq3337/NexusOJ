@@ -1,8 +1,8 @@
 package migrations
 
 import (
-	"pkg/dao"
-	"pkg/models"
+	"nexus/dao"
+	"nexus/models"
 )
 
 func Migrate() {
@@ -14,5 +14,6 @@ func Migrate() {
 		&models.Training{},
 		&models.Contest{},
 		&models.FriendShips{},
+		&models.FriendShipRequest{},
 	)
 }

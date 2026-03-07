@@ -2,7 +2,7 @@ package models
 
 import (
 	"encoding/json"
-	"pkg/utils/jsonx"
+	"nexus/utils/jsonx"
 )
 
 type JudgeResourcesLimits struct {

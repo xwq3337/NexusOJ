@@ -1,7 +1,7 @@
 package models
 
 import (
-	"pkg/dao"
+	"nexus/dao"
 	"time"
 
 	"gorm.io/datatypes"
@@ -88,7 +88,7 @@ func QueryRecordById(id string) (*RecordDetail, error) {
 /**
  * 获取所有记录（支持分页和查询）
  */
-func GetAllRecord(page, pageSize int, search, verdict, language string) ([]map[string]interface{}, int64, error) {
+func (Record) GetAllRecord(page, pageSize int, search, verdict, language string) ([]map[string]interface{}, int64, error) {
 	var results []map[string]interface{}
 	var total int64
 
@@ -140,7 +140,7 @@ func GetAllRecord(page, pageSize int, search, verdict, language string) ([]map[s
 
 	err := countQuery.Count(&total).Error
 	if err != nil {
-		return nil, 0, err
+		return []map[string]interface{}{}, 0, err
 	}
 
 	// 计算偏移量

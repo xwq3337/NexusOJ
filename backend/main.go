@@ -1,13 +1,13 @@
 package main
 
 import (
+	"nexus/config"
+	"nexus/migrations"
+	"nexus/router"
+	"nexus/services"
+	"nexus/utils/logger"
 	"os"
 	"path/filepath"
-	"pkg/config"
-	"pkg/migrations"
-	"pkg/router"
-	"pkg/services"
-	"pkg/utils/logger"
 
 	"github.com/yitter/idgenerator-go/idgen"
 )

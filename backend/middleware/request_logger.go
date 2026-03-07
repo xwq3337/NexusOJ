@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"pkg/utils/logger"
+	"nexus/utils/logger"
 
 	"github.com/gin-gonic/gin"
 )

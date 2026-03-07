@@ -1,7 +1,7 @@
 package models
 
 import (
-	"pkg/dao"
+	"nexus/dao"
 	"time"
 
 	"gorm.io/datatypes"
@@ -48,7 +48,7 @@ type ProblemTestCase struct {
 
 func (Problem) GetProblemNumber() (int64, error) {
 	var count int64
-	err := dao.MysqlClient.Raw("SELECT count(*) FROM problem;").Scan(&count).Error
+	err := dao.MysqlClient.Model(Problem{}).Count(&count).Error
 	return count, err
 }
 
@@ -79,7 +79,7 @@ func (Problem) QueryProblemById(id string) (ProblemDetail, error) {
 	err := dao.MysqlClient.Model(Problem{}).
 		Select("problem.*", "user.username").
 		Where("problem.id = ?", id).
-		Joins("left join user on user.id = problem.user_id").
+		Joins("LEFT JOIN user ON user.id = problem.user_id").
 		First(&problem).Error
 	return problem, err
 }
@@ -89,10 +89,10 @@ func (Problem) QueryProblemByKeyword(keyword string) ([]ProblemDetail, error) {
 		Select("problem.title, problem.id", "user.username").
 		Where("problem.title LIKE ?", "%"+keyword+"%").
 		// Or("problem.context LIKE ?", "%"+keyword+"%").
-		Joins("left join user on user.id = problem.user_id").
+		Joins("LEFT JOIN user ON user.id = problem.user_id").
 		Find(&problems).Error
 	if err != nil {
-		return nil, err
+		return []ProblemDetail{}, err
 	}
 	return problems, nil
 }
@@ -104,6 +104,8 @@ func (Problem) GetProblemInfoWithoutUsername(id string) (Problem, error) {
 
 func (Problem) GetAllProblem() ([]Problem, error) {
 	var problems []Problem
-	err := dao.MysqlClient.Raw("SELECT id ,title, difficulty,collection, tags, accept,submission, created_at, updated_at FROM problem WHERE deleted_at IS NULL ORDER BY id;").Scan(&problems).Error
+	err := dao.MysqlClient.Model(Problem{}).
+		Select("id", "title", "difficulty", "collection", "tags", "accept", "submission", "created_at", "updated_at").
+		Where("deleted_at IS NULL").Order("id ASC").Find(&problems).Error
 	return problems, err
 }

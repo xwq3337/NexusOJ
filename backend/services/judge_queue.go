@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"pkg/config"
-	"pkg/models"
-	"pkg/utils/chttp"
+	"nexus/config"
+	"nexus/models"
+	"nexus/utils/chttp"
 	"sync"
 	"time"
 )
@@ -26,6 +26,8 @@ type JudgeQueue struct {
 	workerNum  int
 	wg         sync.WaitGroup
 	judgeQueue *JudgeServerQueue
+	results    map[int64]*models.JudgeOutputResult
+	resultMap  sync.Map // submissionID -> *JudgeOutputResult
 }
 
 type JudgeServerQueue struct {
@@ -41,6 +43,7 @@ func InitJudgeQueue(workerNum, queueSize int) {
 		taskChan:   make(chan *JudgeTask, queueSize),
 		workerNum:  workerNum,
 		judgeQueue: NewJudgeServerQueue(),
+		results:    make(map[int64]*models.JudgeOutputResult),
 	}
 
 	for i := 0; i < workerNum; i++ {
@@ -78,6 +81,36 @@ func (q *JudgeQueue) SubmitTask(task *JudgeTask) error {
 	}
 }
 
+// SubmitTaskSync 提交任务并等待结果
+func (q *JudgeQueue) SubmitTaskSync(task *JudgeTask) (*models.JudgeOutputResult, error) {
+	// 创建一个接收结果的 channel
+	resultChan := make(chan *models.JudgeOutputResult, 1)
+	errChan := make(chan error, 1)
+
+	// 存储 channel 以便 worker 可以发送结果
+	q.resultMap.Store(task.SubmissionID, resultChan)
+
+	// 提交任务到队列
+	if err := q.SubmitTask(task); err != nil {
+		q.resultMap.Delete(task.SubmissionID)
+		return nil, err
+	}
+
+	// 等待结果或超时
+	timeout := time.After(120 * time.Second) // 2分钟超时
+	select {
+	case result := <-resultChan:
+		q.resultMap.Delete(task.SubmissionID)
+		return result, nil
+	case err := <-errChan:
+		q.resultMap.Delete(task.SubmissionID)
+		return nil, err
+	case <-timeout:
+		q.resultMap.Delete(task.SubmissionID)
+		return nil, fmt.Errorf("judge timeout after 120 seconds")
+	}
+}
+
 func (q *JudgeQueue) worker(id int) {
 	defer q.wg.Done()
 
@@ -104,17 +137,38 @@ func (q *JudgeQueue) processTask(task *JudgeTask, workerID int) {
 	if err != nil {
 		log.Printf("Worker %d: submission %d failed - %v", workerID, task.SubmissionID, err)
 		q.handleJudgeError(task, err)
+
+		// 如果有等待的 channel，发送错误
+		if value, ok := q.resultMap.Load(task.SubmissionID); ok {
+			if resultChan, ok := value.(chan *models.JudgeOutputResult); ok {
+				close(resultChan)
+			}
+		}
 		return
 	}
 
 	// 保存判题结果
 	if err := q.saveResult(task, result); err != nil {
 		log.Printf("Worker %d: failed to save result for submission %d - %v", workerID, task.SubmissionID, err)
+
+		// 如果有等待的 channel，发送错误
+		if value, ok := q.resultMap.Load(task.SubmissionID); ok {
+			if resultChan, ok := value.(chan *models.JudgeOutputResult); ok {
+				close(resultChan)
+			}
+		}
 		return
 	}
 
 	// 更新题目统计
 	q.updateProblemStats(task.ProblemID, result.Verdict)
+
+	// 如果有等待的 channel，发送结果
+	if value, ok := q.resultMap.Load(task.SubmissionID); ok {
+		if resultChan, ok := value.(chan *models.JudgeOutputResult); ok {
+			resultChan <- result
+		}
+	}
 
 	log.Printf("Worker %d: submission %d completed with verdict %s", workerID, task.SubmissionID, result.Verdict)
 }

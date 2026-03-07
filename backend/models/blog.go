@@ -1,22 +1,23 @@
 package models
 
 import (
-	"pkg/dao"
+	"nexus/dao"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
 type Blog struct {
-	ID         string                      `json:"id" gorm:"primarykey"`        // id
-	UserID     string                      `json:"user_id"`                     // 用户id
-	Title      string                      `json:"title"`                       // 标题
-	Context    string                      `json:"context"`                     // 文本
-	Excerpt    string                      `json:"excerpt"`                     // 摘要
-	Tags       datatypes.JSONSlice[string] `json:"tags"`                        // 标签
-	Collection int32                       `json:"collection" gorm:"default:0"` // 收藏
-	Like       int32                       `json:"like" gorm:"default:0"`       // 喜欢
+	ID         uuid.UUID                   `json:"id" gorm:"primarykey type:uuid;default:uuid_generate_v4()"` // id
+	UserID     string                      `json:"user_id"`                                                   // 用户id
+	Title      string                      `json:"title"`                                                     // 标题
+	Context    string                      `json:"context"`                                                   // 文本
+	Excerpt    string                      `json:"excerpt"`                                                   // 摘要
+	Tags       datatypes.JSONSlice[string] `json:"tags"`                                                      // 标签
+	Collection int32                       `json:"collection" gorm:"default:0"`                               // 收藏
+	Like       int32                       `json:"like" gorm:"default:0"`                                     // 喜欢
 	IsPrivate  bool                        `json:"is_private" gorm:"type:tinyint(1);default:0"`
 	View       int32                       `json:"view" gorm:"default:0"` // 浏览量
 	Status     string                      `json:"status"`
@@ -39,13 +40,17 @@ func UpdateBlog(blog *Blog) error {
 func QueryBlog(id string) (BlogDetail, error) {
 	var blog BlogDetail
 	err := dao.MysqlClient.Model(&Blog{}).
-		Select("blog.id", "blog.user_id", "blog.title", "blog.is_private", "blog.status",
-			"blog.like", "blog.context", "blog.tags", "blog.collection", "blog.created_at", "blog.updated_at", "user.username", "user.avatar").
-		Joins("LEFT JOIN user ON blog.user_id = user.id").
+		Select("blog.id", "blog.user_id",
+			"blog.title", "blog.is_private",
+			"blog.status", "blog.like",
+			"blog.context", "blog.tags",
+			"blog.collection", "blog.created_at",
+			"blog.updated_at", "u.username", "u.avatar").
+		Joins("LEFT JOIN user as u ON blog.user_id = u.id").
 		Where("blog.id = ?", id).Scan(&blog).Error
 	return blog, err
 }
-func DeleteBlog(id string) error {
+func DeleteBlog(id uuid.UUID) error {
 	if err := dao.MysqlClient.Delete(&Blog{ID: id}).Error; err != nil {
 		return err
 	}
@@ -68,7 +73,7 @@ func (Blog) GetAllBlog() ([]BlogDetail, error) {
 // 获取所有博客的数量
 func (Blog) GetBlogNumber() (int64, error) {
 	var count int64
-	err := dao.MysqlClient.Raw("SELECT count(*) FROM blog;").Scan(&count).Error
+	err := dao.MysqlClient.Model(Blog{}).Count(&count).Error
 	return count, err
 }
 
@@ -97,7 +102,7 @@ func (Blog) GetAvailableBlog(user_id string, keywords string, page int, page_siz
 		Limit(page_size).
 		Scan(&blogs).Error
 	if err != nil {
-		return nil, 0, err
+		return []BlogDetail{}, 0, err
 	}
 
 	// 执行计数查询
@@ -107,7 +112,7 @@ func (Blog) GetAvailableBlog(user_id string, keywords string, page int, page_siz
 		Where("(title LIKE CONCAT('%',?,'%') OR tags LIKE CONCAT('%',?,'%')) AND deleted_at IS NULL AND (user_id = ? OR is_private = 0)", keywords, keywords, user_id)
 	err = countQuery.Count(&total).Error
 	if err != nil {
-		return nil, 0, err
+		return []BlogDetail{}, 0, err
 	}
 
 	return blogs, total, nil

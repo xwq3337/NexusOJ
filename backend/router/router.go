@@ -2,11 +2,10 @@ package router
 
 import (
 	"net/http"
-	"pkg/config"
-	"pkg/controllers"
-	"pkg/middleware"
-	"pkg/middleware/jwt"
-	"pkg/utils"
+	"nexus/config"
+	"nexus/controllers"
+	"nexus/middleware/jwt"
+	"nexus/utils"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -42,7 +41,7 @@ func Router() *gin.Engine {
 		MaxAge:           50 * time.Second,
 	}))
 	// r.Use(ipinterceptor.Interceptor())
-	r.Use(middleware.RequestLogger(middleware.DefaultRequestLoggerConfig()))
+	// r.Use(middleware.RequestLogger(middleware.DefaultRequestLoggerConfig()))
 	wsGroup := r.Group("/ws")
 	{
 		wsGroup.GET("/chat", controllers.ChatController{}.Handler)
@@ -82,28 +81,26 @@ func Router() *gin.Engine {
 
 	r.Use(jwt.Auth())
 	{
-		userGroup.POST("/refresh", controllers.UserController{}.GetAccessToken)                    // 刷新token
-		userGroup.POST("/update", controllers.UserController{}.UpdateUser)                         // 更新用户信息
-		userGroup.POST("/update-avatar", controllers.UserController{}.UpdateAvatar)                // 更改头像
-		userGroup.POST("/update-password", controllers.UserController{}.UpdatePassword)            // 更改密码
-		userGroup.GET("/friend-list", controllers.UserController{}.GetAllFriends)                  // 获取所有好友
-		userGroup.POST("/friend-request", controllers.UserController{}.FirendRequest)              // 添加好友，发送好友请求
-		userGroup.POST("/handle-friend-request", controllers.UserController{}.HandleFriendRequest) // 处理新的好友请求，拒绝或者接受
-		userGroup.GET("/friend-request-list", controllers.UserController{}.GetFriendRequestList)   // 获取新的好友请求
-		userGroup.GET("/:id", controllers.UserController{}.GetUserInfo)                            // 根据id获取用户信息
-		adminGroup.GET("/user-list", controllers.AdminController{}.GetUserList)                    // 获取用户列表
+		userGroup.POST("/refresh", controllers.UserController{}.GetAccessToken)                              // 刷新token
+		userGroup.POST("/update", controllers.UserController{}.UpdateUser)                                   // 更新用户信息
+		userGroup.POST("/update-avatar", controllers.UserController{}.UpdateAvatar)                          // 更改头像
+		userGroup.POST("/update-password", controllers.UserController{}.UpdatePassword)                      // 更改密码
+		userGroup.GET("/friend-list", controllers.FriendshipController{}.GetFriendList)                      // 获取所有好友
+		userGroup.GET("/friend-request-list", controllers.FriendshipController{}.GetFriendRequestList)       // 获取新的好友请求
+		userGroup.POST("/friend-request", controllers.FriendshipController{}.CreateFriendship)               // 添加好友，发送好友请求
+		userGroup.POST("/handle-friend-request", controllers.FriendshipController{}.HandleFriendshipRequest) // 处理新的好友请求，拒绝或者接受
+		userGroup.GET("/:id", controllers.UserController{}.GetUserInfo)                                      // 根据id获取用户信息
+		adminGroup.GET("/user-list", controllers.AdminController{}.GetUserList)                              // 获取用户列表
 	}
 	problem := r.Group("/problem")
 	{
-		problem.POST("/create", controllers.ProblemController{}.CreateProblem)                  // 创建题目
-		problem.GET("/list", controllers.ProblemController{}.GetList)                           // 所有题目列表
-		problem.POST("/update", controllers.ProblemController{}.UpdateProblem)                  // 修改题目
-		problem.GET("/search", controllers.ProblemController{}.SearchProblem)                   // 根据id获取题目详情
-		problem.POST("/submit", controllers.ProblemController{}.SubmitProblem)                  // 提交代码
-		problem.GET("/count", controllers.ProblemController{}.GetNumber)                        // 所有题目数量
-		problem.GET("/:id", controllers.ProblemController{}.GetProblemInfo)                     // 根据id获取题目详情
-		problem.GET("/submission/:id", controllers.ProblemController{}.GetSubmissionStatus)     // 查询提交状态
-		problem.GET("/judge-queue/status", controllers.ProblemController{}.GetJudgeQueueStatus) // 查询判题队列状态
+		problem.POST("/create", controllers.ProblemController{}.CreateProblem) // 创建题目
+		problem.GET("/list", controllers.ProblemController{}.GetList)          // 所有题目列表
+		problem.POST("/update", controllers.ProblemController{}.UpdateProblem) // 修改题目
+		problem.GET("/search", controllers.ProblemController{}.SearchProblem)  // 根据id获取题目详情
+		problem.POST("/submit", controllers.ProblemController{}.SubmitProblem) // 提交代码
+		problem.GET("/count", controllers.ProblemController{}.GetNumber)       // 所有题目数量
+		problem.GET("/:id", controllers.ProblemController{}.GetProblemInfo)    // 根据id获取题目详情
 	}
 	record := r.Group("/record")
 	{

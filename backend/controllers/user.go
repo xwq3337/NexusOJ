@@ -4,15 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	jwtgo "nexus/middleware/jwt"
+	"nexus/models"
+	"nexus/utils"
 	"path/filepath"
-	"pkg/dao"
-	jwtgo "pkg/middleware/jwt"
-	"pkg/models"
-	"pkg/utils"
 	"strings"
 	"time"
 
-	"pkg/config"
+	"nexus/config"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -55,12 +54,19 @@ func (UserController) CreateUser(c *gin.Context) {
 	utils.ReturnSuccess(c, http.StatusOK, "success", user)
 }
 func (UserController) UserLogin(c *gin.Context) {
-	data := make(map[string]string)
-	_ = c.BindJSON(&data)
-	user, err := models.User{Username: data["username"], Password: data["password"]}.QueryUser()
+	// 解析请求参数
+	var params struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := c.ShouldBindJSON(&params); err != nil {
+		utils.ReturnError(c, 400, err.Error())
+		return
+	}
+	user, err := models.User{Username: params.Username, Password: params.Password}.QueryUser()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", data["username"]))
+			utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", params.Username))
 			return
 		} else {
 			utils.ReturnError(c, http.StatusInternalServerError, fmt.Sprintf("查询出错 %v", err))
@@ -68,7 +74,7 @@ func (UserController) UserLogin(c *gin.Context) {
 		}
 	}
 	if user.ID == "" {
-		utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", data["username"]))
+		utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", params.Username))
 		return
 	}
 	access_token, _ := generateToken(user, 6*60*60)
@@ -134,22 +140,20 @@ func (UserController) UpdatePassword(c *gin.Context) {
 		utils.ReturnError(c, http.StatusUnauthorized, "未授权")
 		return
 	}
-
-	data := make(map[string]string)
-	if err := c.BindJSON(&data); err != nil {
+	var params struct {
+		OldPassword string `json:"old_password"`
+		NewPassword string `json:"new_password"`
+	}
+	if err := c.ShouldBindJSON(&params); err != nil {
 		utils.ReturnError(c, http.StatusBadRequest, "请求参数错误"+err.Error())
 		return
 	}
-
-	oldPassword := data["old_password"]
-	newPassword := data["new_password"]
-
-	if oldPassword == "" || newPassword == "" {
+	if params.OldPassword == "" || params.NewPassword == "" {
 		utils.ReturnError(c, http.StatusBadRequest, "旧密码和新密码不能为空")
 		return
 	}
 
-	err = models.User{}.UpdatePassword(userID, oldPassword, newPassword)
+	err = models.User{}.UpdatePassword(userID, params.OldPassword, params.NewPassword)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			utils.ReturnError(c, http.StatusBadRequest, "旧密码错误")
@@ -163,9 +167,16 @@ func (UserController) UpdatePassword(c *gin.Context) {
 }
 
 func (UserController) GetAccessToken(c *gin.Context) {
-	data := make(map[string]string)
-	_ = c.BindJSON(&data)
-	user, _ := models.User{Username: data["username"], Password: data["password"]}.QueryUser()
+	var params struct {
+		Username     string `json:"username"`
+		Password     string `json:"password"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	if err := c.ShouldBindJSON(&params); err != nil {
+		utils.ReturnError(c, http.StatusBadRequest, "请求参数错误"+err.Error())
+		return
+	}
+	user, _ := models.User{Username: params.Username, Password: params.Password}.QueryUser()
 	token_access, _ := generateToken(user, 6*60*60)
 	token_refresh, _ := generateToken(user, 7*24*60*60)
 	var tokens []string
@@ -199,6 +210,9 @@ func ParserToken(c *gin.Context) (string, error) {
 	tokenString = strings.Split(tokenString, " ")[1]
 	j := jwtgo.NewJWT()
 	claims, err := j.ParserToken(tokenString)
+	if claims.UserID == "" {
+		return "", errors.New("token无效")
+	}
 	return claims.UserID, err
 }
 
@@ -209,170 +223,4 @@ func (UserController) ValidateToken(c *gin.Context) {
 		return
 	}
 	utils.ReturnSuccess(c, http.StatusOK, "success", "token有效")
-}
-
-// GetAllFriends 获取所有好友
-func (UserController) GetAllFriends(c *gin.Context) {
-	userID, err := ParserToken(c)
-	if err != nil {
-		utils.ReturnError(c, http.StatusUnauthorized, "未授权")
-		return
-	}
-
-	friends, err := models.GetFriendList(userID)
-	if err != nil {
-		utils.ReturnError(c, http.StatusInternalServerError, "获取好友列表失败")
-		return
-	}
-
-	utils.ReturnSuccess(c, http.StatusOK, "success", friends)
-}
-
-// FirendRequest 发送好友请求
-func (UserController) FirendRequest(c *gin.Context) {
-	userID, err := ParserToken(c)
-	if err != nil {
-		utils.ReturnError(c, http.StatusUnauthorized, "未授权")
-		return
-	}
-
-	data := make(map[string]string)
-	if err := c.BindJSON(&data); err != nil {
-		utils.ReturnError(c, http.StatusBadRequest, "请求参数错误"+err.Error())
-		return
-	}
-
-	friendID := data["friend_id"]
-	if friendID == "" {
-		utils.ReturnError(c, http.StatusBadRequest, "好友ID不能为空")
-		return
-	}
-
-	if friendID == userID {
-		utils.ReturnError(c, http.StatusBadRequest, "不能添加自己为好友")
-		return
-	}
-
-	// 检查是否已经是好友或已有请求
-	var existingFriendship models.FriendShips
-	err = dao.MysqlClient.Where("(user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)",
-		userID, friendID, friendID, userID).First(&existingFriendship).Error
-	if err == nil {
-		if existingFriendship.Status == 1 {
-			utils.ReturnError(c, http.StatusBadRequest, "已经是好友关系")
-			return
-		} else {
-			utils.ReturnError(c, http.StatusBadRequest, "已存在待处理的好友请求")
-			return
-		}
-	}
-
-	friendship := &models.FriendShips{
-		UserID:   userID,
-		FriendID: friendID,
-		Status:   0,
-	}
-
-	err = models.CreateFriendRequest(friendship)
-	if err != nil {
-		utils.ReturnError(c, http.StatusInternalServerError, "发送好友请求失败")
-		return
-	}
-
-	utils.ReturnSuccess(c, http.StatusOK, "好友请求发送成功", nil)
-}
-
-// HandleFriendRequest 处理好友请求
-func (UserController) HandleFriendRequest(c *gin.Context) {
-	userID, err := ParserToken(c)
-	if err != nil {
-		utils.ReturnError(c, http.StatusUnauthorized, "未授权")
-		return
-	}
-
-	data := make(map[string]interface{})
-	if err := c.BindJSON(&data); err != nil {
-		utils.ReturnError(c, http.StatusBadRequest, "请求参数错误"+err.Error())
-		return
-	}
-
-	friendshipIDFloat, ok := data["friendship_id"].(float64)
-	if !ok {
-		utils.ReturnError(c, http.StatusBadRequest, "friendship_id 参数错误")
-		return
-	}
-	friendshipID := uint(friendshipIDFloat)
-
-	accept, ok := data["accept"].(bool)
-	if !ok {
-		utils.ReturnError(c, http.StatusBadRequest, "accept 参数错误")
-		return
-	}
-
-	// 验证该好友请求是否是发送给当前用户的
-	var friendship models.FriendShips
-	err = dao.MysqlClient.First(&friendship, friendshipID).Error
-	if err != nil {
-		utils.ReturnError(c, http.StatusNotFound, "好友请求不存在")
-		return
-	}
-
-	if friendship.FriendID != userID {
-		utils.ReturnError(c, http.StatusForbidden, "无权处理此好友请求")
-		return
-	}
-
-	err = models.HandleFriendRequest(friendshipID, accept)
-	if err != nil {
-		utils.ReturnError(c, http.StatusInternalServerError, "处理好友请求失败")
-		return
-	}
-
-	action := "拒绝"
-	if accept {
-		action = "接受"
-	}
-	utils.ReturnSuccess(c, http.StatusOK, "已"+action+"好友请求", nil)
-}
-
-// GetFriendRequestList 获取好友请求列表
-func (UserController) GetFriendRequestList(c *gin.Context) {
-	userID, err := ParserToken(c)
-	if err != nil {
-		utils.ReturnError(c, http.StatusUnauthorized, "未授权")
-		return
-	}
-
-	requests, err := models.GetFriendRequestList(userID)
-	if err != nil {
-		utils.ReturnError(c, http.StatusInternalServerError, "获取好友请求列表失败")
-		return
-	}
-
-	// 查询每个请求的发送者信息
-	type FriendRequestWithUser struct {
-		models.FriendShips
-		Username string  `json:"username"`
-		Nickname *string `json:"nickname"`
-		Avatar   *string `json:"avatar"`
-		Rating   int16   `json:"rating"`
-	}
-
-	var result []FriendRequestWithUser
-	for _, req := range requests {
-		user, err := models.User{}.QueryUserById(req.UserID)
-		if err != nil {
-			continue
-		}
-
-		result = append(result, FriendRequestWithUser{
-			FriendShips: req,
-			Username:    user.Username,
-			Nickname:    user.Nickname,
-			Avatar:      user.Avatar,
-			Rating:      user.Rating,
-		})
-	}
-
-	utils.ReturnSuccess(c, http.StatusOK, "success", result)
 }

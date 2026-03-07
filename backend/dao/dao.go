@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"pkg/config"
-	"pkg/utils/logger"
+
+	"nexus/config"
+	"nexus/utils/logger"
 	"strconv"
 	"time"
 
@@ -94,6 +95,34 @@ func QueryDocument(db, collection string, filter bson.M) ([]bson.M, error) {
 
 	Collection := MongoDBClient.Database(db).Collection(collection)
 	cur, err := Collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	var results []bson.M
+	err = cur.All(ctx, &results)
+	return results, err
+}
+
+func QueryDocumentWithOptions(db, collection string, filter bson.M, sort bson.M, skip int64, limit int64) ([]bson.M, error) {
+	if MongoDBClient == nil {
+		return nil, errors.New("MongoDB 客户端未初始化")
+	}
+
+	Collection := MongoDBClient.Database(db).Collection(collection)
+
+	// 构建查询选项
+	opts := options.Find()
+	if sort != nil {
+		opts.SetSort(sort)
+	}
+	if skip > 0 {
+		opts.SetSkip(skip)
+	}
+	if limit > 0 {
+		opts.SetLimit(limit)
+	}
+
+	cur, err := Collection.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err
 	}

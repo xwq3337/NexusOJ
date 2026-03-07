@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"net/http"
-	"pkg/utils"
+	"nexus/utils"
 
 	"github.com/gin-gonic/gin"
 )

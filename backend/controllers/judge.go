@@ -3,19 +3,13 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"pkg/config"
-	"pkg/models"
-	"pkg/utils/chttp"
+	"nexus/config"
+	"nexus/models"
+	"nexus/utils/chttp"
 	"time"
 )
 
 type JudgeController struct{}
-
-type ReturnStruct struct {
-	Msg  string      `json:"msg"`
-	Err  string      `json:"err"`
-	Info interface{} `json:"info"`
-}
 
 func (JudgeController) EvaluateCode(judgeStruct *models.JudgeInputStruct) (*models.JudgeOutputResult, error) {
 	addr := fmt.Sprintf("%s:%s", config.JudgeServer, config.JudgeServerPort)

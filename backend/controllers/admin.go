@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"pkg/models"
-	"pkg/utils"
+	"nexus/models"
+	"nexus/utils"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -14,12 +14,18 @@ import (
 type AdminController struct{}
 
 func (AdminController) AdminLogin(c *gin.Context) {
-	data := make(map[string]string)
-	_ = c.BindJSON(&data)
-	user, err := models.User{Username: data["username"], Password: data["password"], UserRole: "admin"}.QueryUser()
+	var param struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := c.ShouldBindJSON(&param); err != nil {
+		utils.ReturnError(c, 400, err.Error())
+		return
+	}
+	user, err := models.User{Username: param.Username, Password: param.Password, UserRole: "admin"}.QueryUser()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", data["username"]))
+			utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", param.Username))
 			return
 		} else {
 			utils.ReturnError(c, http.StatusInternalServerError, fmt.Sprintf("查询出错 %v", err))
@@ -27,7 +33,7 @@ func (AdminController) AdminLogin(c *gin.Context) {
 		}
 	}
 	if user.ID == "" {
-		utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", data["username"]))
+		utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", param.Username))
 		return
 	}
 	access_token, _ := generateToken(user, 6*60*60)

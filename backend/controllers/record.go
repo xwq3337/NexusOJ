@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"net/http"
-	"pkg/models"
-	"pkg/utils"
+	"nexus/models"
+	"nexus/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -43,7 +43,7 @@ func (RecodeController) GetList(c *gin.Context) {
 	language := c.Query("language")
 
 	// 调用模型层获取数据
-	results, total, err := models.GetAllRecord(pageInt, pageSizeInt, search, verdict, language)
+	results, total, err := models.Record{}.GetAllRecord(pageInt, pageSizeInt, search, verdict, language)
 
 	if err == nil {
 		utils.ReturnSuccess(c, http.StatusOK, "success", gin.H{

@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"pkg/dao"
-	"pkg/models"
-	"pkg/utils"
-	"pkg/utils/jsonx"
-	"pkg/utils/logger"
+	"nexus/dao"
+	"nexus/models"
+	"nexus/utils"
+	"nexus/utils/jsonx"
+	"nexus/utils/logger"
 	"strconv"
 	"sync"
 	"time"
@@ -32,12 +32,12 @@ var upgrader = websocket.Upgrader{
 }
 
 type MessageStruct struct {
-	Timestamp   int64   `json:"timestamp" gorm:"primaryKey;autoIncrement"`
-	CurrentTime int64   `json:"currenttime" gorm:"autoUpdateTime:nano"`
-	Sender      string  `json:"sender"`
-	Receiver    string  `json:"receiver"`
-	Text        *string `json:"text"`
-	Type        uint    `json:"type"` // 1私信 2群发 3心跳检测
+	Timestamp   int64  `json:"timestamp" gorm:"primaryKey;autoIncrement"`
+	CurrentTime int64  `json:"currenttime" gorm:"autoUpdateTime:nano"`
+	Sender      string `json:"sender"`
+	Receiver    string `json:"receiver"`
+	Text        string `json:"text"`
+	Type        uint   `json:"type"` // 1私信 2群发 3心跳检测
 }
 
 type Client struct {
@@ -83,8 +83,8 @@ func (ChatController) Handler(c *gin.Context) {
 		DataQueue:     make(chan []byte, 1024),
 	}
 	go addClient(sender_id, client)
-	go client.writePump()
-	client.readPump()
+	go client.writePump() // 写消息
+	client.readPump()     // 读消息
 	defer func() {
 		client.Close()
 		removeClient(client)
@@ -197,11 +197,12 @@ func sendPrivateMsg(msg MessageStruct) { //私聊
 	}
 	go func() {
 		chat_record := &models.ChatRecord{
-			SenderID:   msg.Sender,
-			ReceiverID: msg.Receiver,
-			Status:     online,
-			Content:    *msg.Text,
-			CreatedAt:  time.Now(),
+			SenderID:    msg.Sender,
+			ReceiverID:  msg.Receiver,
+			Status:      online,
+			Content:     msg.Text,
+			MessageType: "text",
+			CreatedAt:   time.Now(),
 		}
 		err := models.CreateChatRecord(chat_record)
 		if err != nil {
@@ -216,17 +217,29 @@ func sendPrivateMsg(msg MessageStruct) { //私聊
 	}()
 }
 func sendGroupMsg(msg MessageStruct) { //群聊
-	data := *msg.Text
+	data := msg.Text
 	// sender_client := findClient(msg.Sender)
 	target_id := msg.Receiver
 	logger.Debug("群发消息[%s]到%s", data, target_id)
 }
 
 func (ChatController) GetChatRecord(c *gin.Context) {
-	userID, _ := ParserToken(c)
-	id1 := userID
-	id2 := c.Query("id")
-	chatRecords, err := models.QueryChatRecord(id1, id2)
+	userID, err := ParserToken(c)
+	if err != nil {
+		utils.ReturnError(c, http.StatusUnauthorized, "未授权")
+		return
+	}
+	friend_id := c.Query("friend_id")
+	pageStr := c.DefaultQuery("page", "1")
+	if friend_id == "" {
+		utils.ReturnError(c, http.StatusBadRequest, "缺少好友ID")
+		return
+	}
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1 // 默认第一页
+	}
+	chatRecords, err := models.QueryChatRecord(userID, friend_id, page)
 	if err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return

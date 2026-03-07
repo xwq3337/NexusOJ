@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"nexus/config"
+	"nexus/utils"
 	"os"
 	"path/filepath"
-	"pkg/config"
-	"pkg/utils"
 	"strconv"
 	"strings"
 

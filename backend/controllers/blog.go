@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"net/http"
-	"pkg/models"
-	"pkg/utils"
+	"nexus/models"
+	"nexus/utils"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -19,7 +19,6 @@ func (BlogController) CreateBlog(c *gin.Context) {
 		utils.ReturnError(c, http.StatusInternalServerError, Err)
 		return
 	}
-	data.ID = uuid.New().String()
 	data.UserID, _ = ParserToken(c)
 	if err := (models.CreateBlog(data)); err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, err)
@@ -45,7 +44,12 @@ func (BlogController) UpdateBlog(c *gin.Context) {
 // 删除博客
 func (BlogController) DeleteBlog(c *gin.Context) {
 	id := c.Query("id")
-	err := models.DeleteBlog(id)
+	uuidID, err := uuid.Parse(id)
+	if err != nil {
+		utils.ReturnError(c, http.StatusBadRequest, err)
+		return
+	}
+	err = models.DeleteBlog(uuidID)
 	if err == nil {
 		utils.ReturnSuccess(c, http.StatusOK, "success", nil)
 		return

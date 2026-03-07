@@ -1,14 +1,17 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
-	"pkg/models"
-	"pkg/services"
-	"pkg/utils"
-	"pkg/utils/queue"
+	"nexus/dao"
+	"nexus/models"
+	"nexus/services"
+	"nexus/utils"
+	"nexus/utils/queue"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"github.com/google/go-cmp/cmp"
 	"github.com/yitter/idgenerator-go/idgen"
 )
@@ -42,7 +45,40 @@ func (ProblemController) GetProblemInfo(c *gin.Context) {
 	utils.ReturnError(c, http.StatusNotFound, err)
 }
 func (ProblemController) GetList(c *gin.Context) {
-	result, err := models.Problem{}.GetAllProblem()
+	userID, _ := ParserToken(c)
+	problems, err := models.Problem{}.GetAllProblem()
+	// 获取题目列表的 ID 数组
+	problemIDs := make([]string, len(problems))
+	for i, problem := range problems {
+		problemIDs[i] = fmt.Sprintf("problem:%d", problem.ID)
+	}
+	//	查询Redis，获取用户 题目状态, 并更新到result中
+	ctx := c.Request.Context()
+	hash := fmt.Sprintf("user:%s:problem_status", userID)
+	statuses, err := dao.RedisClient.HMGet(ctx, hash, problemIDs...).Result()
+	if err != nil && err != redis.Nil {
+		utils.ReturnError(c, http.StatusInternalServerError, err)
+		return
+	}
+	fmt.Println(statuses...)
+	// 将题目状态更新到 problems 数组中
+	result := make([]models.ProblemDTO, len(problems))
+	for i, status := range statuses {
+
+		var statusStr string
+		switch status {
+		case nil:
+			statusStr = "unattempted"
+		case "Accepted":
+			statusStr = "solved"
+		default:
+			statusStr = "attempted"
+		}
+		result[i] = models.ProblemDTO{
+			Problem: problems[i],
+			Status:  statusStr,
+		}
+	}
 	if err == nil {
 		utils.ReturnSuccess(c, http.StatusOK, "success", result)
 		return
@@ -126,48 +162,43 @@ func (ProblemController) SubmitProblem(c *gin.Context) {
 		JudgeConfig:  problem.JudgeConfig,
 	}
 
-	// 6. 提交到异步判题队列
-	if err := services.GlobalJudgeQueue.SubmitTask(task); err != nil {
-		utils.ReturnError(c, http.StatusServiceUnavailable, "判题服务暂时不可用")
+	// 6. 提交到判题队列并等待结果
+	result, err := services.GlobalJudgeQueue.SubmitTaskSync(task)
+	if err != nil {
+		utils.ReturnError(c, http.StatusServiceUnavailable, fmt.Sprintf("判题失败: %v", err))
 		return
 	}
 
-	// 7. 立即返回提交ID(异步处理)
-	utils.ReturnSuccess(c, http.StatusAccepted, "提交成功,正在判题中...", map[string]interface{}{
+	// 7. 返回判题结果
+	utils.ReturnSuccess(c, http.StatusOK, "判题完成", map[string]interface{}{
 		"submission_id": submissionID,
 		"problem_id":    data.ProblemID,
-		"status":        "pending",
+		"verdict":       result.Verdict,
+		"max_time":      result.MaxTime,
+		"max_memory":    result.MaxMemory,
+		"result":        result.Result,
+		"status":        "completed",
 	})
-}
-
-// GetSubmissionStatus 查询提交状态
-func (ProblemController) GetSubmissionStatus(c *gin.Context) {
-	submissionID := c.Param("id")
-	if submissionID == "" {
-		utils.ReturnError(c, http.StatusBadRequest, "缺少提交ID")
-		return
+	// 同步状态到 Redis
+	ctx := c.Request.Context()
+	hash := fmt.Sprintf("user:%s:problem_status", userID)
+	key := fmt.Sprintf("problem:%s", data.ProblemID)
+	// 只要是Redis 里是Accepted就不改了，其他都改成当前的结果
+	currentVerdict, err := dao.RedisClient.HGet(ctx, hash, key).Result()
+	if err == redis.Nil {
+		// Redis 里没有这个记录，直接设置当前结果
+		dao.RedisClient.HSet(ctx, hash, key, string(result.Verdict))
+	} else if err != nil {
+		// Redis 错误
+		fmt.Println("Error getting from Redis:", err)
+	} else {
+		// Redis 里有记录，检查是否是 Accepted
+		if currentVerdict != string(models.Accepted) {
+			// 不是 Accepted，更新为当前结果
+			dao.RedisClient.HSet(ctx, hash, key, string(result.Verdict))
+		}
+		// 如果是 Accepted，不做任何操作，保持 Accepted 状态
 	}
-
-	record, err := models.QueryRecordById(submissionID)
-	if err != nil {
-		utils.ReturnError(c, http.StatusNotFound, "提交记录不存在")
-		return
-	}
-
-	// 检查记录是否属于当前用户
-	userID, exists := c.Get("user_id")
-	if exists && userID != record.UserId {
-		utils.ReturnError(c, http.StatusForbidden, "无权访问此提交记录")
-		return
-	}
-
-	utils.ReturnSuccess(c, http.StatusOK, "success", record)
-}
-
-// GetJudgeQueueStatus 获取判题队列状态
-func (ProblemController) GetJudgeQueueStatus(c *gin.Context) {
-	status := services.GetQueueStatus()
-	utils.ReturnSuccess(c, http.StatusOK, "success", status)
 }
 
 func Equal(a, b interface{}) bool {

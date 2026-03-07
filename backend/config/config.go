@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-ini/ini"
+	"gopkg.in/ini.v1"
 )
 
 var (
