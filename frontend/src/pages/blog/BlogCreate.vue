@@ -23,7 +23,9 @@
       <!-- 标题输入 -->
       <n-input v-model:value="blogForm.title" placeholder="请输入文章标题（必填）" size="large" :maxlength="100" show-count
         class="mb-4" @blur="validateTitle" />
-
+      <!-- 摘要输入 -->
+      <n-input v-model:value="blogForm.excerpt" placeholder="请输入文章摘要" size="large" :maxlength="200" show-count
+        class="mb-4" />
       <!-- 标签输入 -->
       <div class="mb-4">
         <div class="flex items-center gap-2 mb-2">
@@ -66,6 +68,7 @@ const message = useMessage()
 const blogForm = ref<createBlogParam>({
   title: '',
   context: '',
+  excerpt : '',
   tags: [],
   status: "Pending",
   is_private: false
@@ -111,6 +114,7 @@ const handleSaveDraft = async () => {
       title: blogForm.value.title.trim(),
       context: blogForm.value.context,
       tags: blogForm.value.tags,
+      excerpt: blogForm.value.excerpt,
       is_private: blogForm.value.is_private,
       status: "Draft"
     }
@@ -147,6 +151,7 @@ const handlePublish = async () => {
     const data: createBlogParam = {
       title: blogForm.value.title.trim(),
       context: blogForm.value.context,
+      excerpt: blogForm.value.excerpt,
       tags: blogForm.value.tags,
       is_private: blogForm.value.is_private,
       status: "Pending"
@@ -181,8 +186,8 @@ const loadBlogData = async (id: string) => {
   try {
     const response = await blogApi.getBlogById(id)
     const blog: Blog = response.info
-    const { title, context, tags, is_private, status } = blog
-    blogForm.value = { title, context, tags: tags ?? [], is_private, status}
+    const { title, context, tags, is_private, status, excerpt } = blog
+    blogForm.value = { title, context, excerpt, tags: tags ?? [], is_private, status}
     blogId.value = blog.id
     isEdit.value = true
   } catch (error: any) {

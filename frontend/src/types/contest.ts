@@ -7,3 +7,6 @@ export interface Contest {
   type: 'Weekly' | 'Biweekly' | 'Cup'
   status: 'Live' | 'Upcoming' | 'Ended'
 }
+
+
+// TODO: add more fields

@@ -68,9 +68,9 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/layouts/UserLayout.vue'),
         children: [
           {
-            path: 'login',
+            path: 'auth',
             component: () => import('@/pages/user/UserAuth.vue'),
-            name: 'Login',
+            name: 'Auth',
             meta: {
               desciption: '登录与注册'
             }

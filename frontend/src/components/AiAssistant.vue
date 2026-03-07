@@ -87,15 +87,21 @@
 
       <!-- Input Area -->
       <div class="p-4 border-t" :style="{ borderColor: 'var(--border-color)' }">
-        <form @submit.prevent="sendMessage" class="flex gap-2">
-          <input v-model="inputMessage" ref="inputRef" type="text" placeholder="输入你的问题..." :disabled="isLoading"
-            class="flex-1 px-4 py-2 rounded-lg outline-none transition-colors text-sm" :style="{
-              backgroundColor: 'var(--input-bg)',
-              border: '1px solid var(--input-border)',
-              color: 'var(--text-primary)'
-            }" :class="`focus:border-(--input-focus)`" @input="handleInput" />
+        <form @submit.prevent="sendMessage" class="flex gap-2 items-end">
+          <n-input
+            type="textarea"
+            v-model:value="inputMessage"
+            ref="inputRef"
+            placeholder="输入你的问题..."
+            :disabled="isLoading"
+            :autosize="{ minRows: 1, maxRows: 6 }"
+            :show-count="false"
+            :input-props="{ style: { fontSize: '0.875rem' } }"
+            class="flex-1"
+            @keydown="handleKeydown"
+          />
           <button type="submit" :disabled="!inputMessage.trim() || isLoading"
-            class="px-4 py-2 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            class="px-4 py-2.5 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
             :style="{
               backgroundColor: inputMessage.trim() && !isLoading ? 'var(--accent-color)' : 'var(--btn-secondary)',
               color: 'white'
@@ -134,8 +140,7 @@ import { useLocalStorage, useEventListener } from '@vueuse/core'
 import { streamResponse } from '@/services/agent'
 import type { ChatMessage } from '@/types/chat'
 import MarkdownIt from 'markdown-it'
-import { NPopconfirm, NButton } from "naive-ui"
-import { useMessage } from 'naive-ui'
+import { NPopconfirm, NButton, NInput, useMessage } from "naive-ui"
 import { formateTimeStamp } from '@/utils/format'
 import { safeJsonParse } from '@/utils/safeJsonParse'
 const message = useMessage()
@@ -214,44 +219,66 @@ const scrollToBottom = () => {
   })
 }
 
+// Escape angle brackets outside code blocks
+const escapeAngleBrackets = (text: string) => {
+  // Protect existing HTML entities first
+  const protectedText = text.replace(/&[a-zA-Z]+;/g, (match) => {
+    return `__HTML_ENTITY_${match}__`
+  })
+
+  // Split text by code blocks (inline and block)
+  const codeBlockRegex = /`[^`]*`|```[\s\S]*?```/g
+  const parts: string[] = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = codeBlockRegex.exec(protectedText)) !== null) {
+    // Add text before code block with escaped angle brackets
+    const beforeCode = protectedText.substring(lastIndex, match.index)
+    parts.push(beforeCode.replace(/</g, '&lt;').replace(/>/g, '&gt;'))
+
+    // Add code block as-is
+    parts.push(match[0])
+    lastIndex = match.index + match[0].length
+  }
+
+  // Add remaining text
+  const remaining = protectedText.substring(lastIndex)
+  parts.push(remaining.replace(/</g, '&lt;').replace(/>/g, '&gt;'))
+
+  // Restore HTML entities
+  return parts.join('').replace(/__HTML_ENTITY_(&[a-zA-Z]+;)__/g, '$1')
+}
+
 // Render message with markdown
 const renderMessage = (text: string) => {
   if (!text) return ''
 
-  // Render markdown
-  let html = md.render(text)
+  // First escape angle brackets outside code blocks to prevent HTML tag parsing
+  let escaped = escapeAngleBrackets(text)
 
-  // Highlight code blocks
+  // Render markdown
+  let html = md.render(escaped)
+
+  // Highlight code blocks (don't escape again - already escaped by escapeAngleBrackets)
   html = html.replace(
     /<pre><code class="language-(\w+)">([\s\S]*?)<\/code><\/pre>/g,
     (match, lang, code) => {
-      return `<pre class="bg-[var(--bg-tertiary)] rounded-lg p-3 overflow-x-auto my-2"><code class="text-sm text-[var(--accent-color)]">${escapeHtml(code.trim())}</code></pre>`
+      return `<pre class="bg-[var(--bg-tertiary)] rounded-lg p-3 overflow-x-auto my-2"><code class="text-sm text-[var(--accent-color)]">${code.trim()}</code></pre>`
     }
   )
 
-  // Highlight inline code
+  // Highlight inline code (don't escape again - already escaped by escapeAngleBrackets)
   html = html.replace(
     /<code>([\s\S]*?)<\/code>/g,
     (match, code) => {
-      return `<code class="px-1.5 py-0.5 rounded text-sm" style="background-color: var(--bg-tertiary); color: var(--accent-color);">${escapeHtml(code)}</code>`
+      return `<code class="px-1.5 py-0.5 rounded text-sm" style="background-color: var(--bg-tertiary); color: var(--accent-color);">${code}</code>`
     }
   )
 
   return html
 }
 
-// Escape HTML
-const escapeHtml = (text: string) => {
-  const div = document.createElement('div')
-  div.textContent = text
-  return div.innerHTML
-}
-
-
-// Handle input
-const handleInput = () => {
-  // Auto-resize if needed
-}
 
 // Send quick prompt
 const sendQuickPrompt = (prompt: string) => {
@@ -341,6 +368,12 @@ const handleKeydown = (e: KeyboardEvent) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
     e.preventDefault()
     toggleChat()
+  }
+
+  // Enter to send, Shift + Enter for new line
+  if (e.key === 'Enter' && !e.shiftKey && !isLoading.value && inputMessage.value.trim()) {
+    e.preventDefault()
+    sendMessage()
   }
 }
 useEventListener('keydown', handleKeydown)

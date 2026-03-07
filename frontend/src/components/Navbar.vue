@@ -9,7 +9,7 @@
       <div class="flex items-center gap-8">
         <RouterLink to="/" class="flex items-center gap-2 font-bold text-xl text-white">
           <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-mono">
-            &gt;_
+            >_
           </div>
           <span :style="{ color: 'var(--text-primary)' }">NexusOJ</span>
         </RouterLink>
@@ -53,13 +53,15 @@
           <Moon v-else :size="20" />
         </button>
         <!-- 消息按钮 -->
-        <n-badge class="hidden md:flex" :value="unRead" :max="99">
-          <button :class="`hover:${currentTheme === 'dark' ? 'text-white' : 'text-black'}`"
-            class="items-center justify-center w-10 h-10 rounded-full text-gray-400 cursor-pointer"
-            :style="{ backgroundColor: 'var(--surface-primary)' }" @click="$router.push({ name: 'Messages' })">
-            <MessageCircleMore :size="20" />
-          </button>
-        </n-badge>
+        <n-dropdown trigger="hover" :options="messageOptions" placement="bottom-start" @select="handleMessageSelect">
+          <n-badge class="hidden md:flex" :value="unRead" :max="99">
+            <button :class="`hover:${currentTheme === 'dark' ? 'text-white' : 'text-black'}`"
+              class="items-center justify-center w-10 h-10 rounded-full text-gray-400 cursor-pointer"
+              :style="{ backgroundColor: 'var(--surface-primary)' }">
+              <MessageSquareText :size="20" />
+            </button>
+          </n-badge>
+        </n-dropdown>
         <!-- 登录/头像 -->
         <button v-if="isAuthorization" :class="`hover:${currentTheme === 'dark' ? 'text-white' : 'text-black'}`"
           class="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 cursor-pointer"
@@ -68,7 +70,7 @@
         </button>
         <button v-else
           class="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-sm font-medium transition-colors"
-          @click="$router.push({ name: `Login` })">
+          @click="$router.push({ name: `Auth` })">
           登录
         </button>
       </div>
@@ -89,17 +91,17 @@
 
 <script setup lang="ts">
 import { useRoute, RouterLink } from 'vue-router'
-import { NButton, NBadge, NAvatar, NDropdown, useMessage } from 'naive-ui'
+import { NButton, NBadge, NAvatar, NDropdown } from 'naive-ui'
 import {
   LibraryBig,
   MessageCircleMore,
   Trophy,
-  BarChart2,
   Hash,
   Sun,
   Moon,
   FileText,
   Menu,
+  MessageSquareText,
   BookOpen
 } from 'lucide-vue-next'
 import { useTheme } from '@/composables/useTheme'
@@ -174,6 +176,27 @@ const options = [
   }
 ]
 
+
+const messageOptions = [
+  {
+    label: '私信',
+    key: 'message',
+    icon: () => h(MessageCircleMore, { size: 16 })
+  },
+  {
+    label: '系统通知',
+    key: 'info',
+    icon: () => h('span', { class: 'text-lg' }, '🔔')
+  }
+]
+
+function handleMessageSelect(key: string | number) {
+  if (key === 'message') {
+    router.push({ name: 'Messages' })
+  } else if (key === 'info') {
+    router.push({ name: 'Infos' })
+  }
+}
 function handleSelect(key: string | number) {
   router.push({ name: String(key) })
 }

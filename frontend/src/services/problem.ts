@@ -1,10 +1,10 @@
 import { VerdictType } from './../constants/index'
 import Request from '@/services/api'
-import { ApiResponse } from '@/types/api'
-import { Problem } from '@/types/problem'
+import { ApiResponse } from '@/types'
+import { Problem, ProblemListDTO } from '@/types/problem'
 
 export const problemApi = {
-  getProblemList: (): Promise<ApiResponse<Problem[]>> => {
+  getProblemList: (): Promise<ApiResponse<ProblemListDTO[]>> => {
     return Request.get('/problem/list')
   },
   getProblemDetail: (id: string): Promise<ApiResponse<Problem>> => {

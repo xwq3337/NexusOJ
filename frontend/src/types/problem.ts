@@ -27,3 +27,8 @@ export interface JudgeConfig {
   time_limit: number
   memory_limit: number
 }
+
+
+export interface ProblemListDTO extends Problem {
+  status: "unattempted" | "attempted" | "solved"
+}

@@ -15,13 +15,38 @@
             <h1 class="text-2xl font-bold mb-2" :style="{ color: 'var(--text-primary)' }">
               {{ problem.title }}
             </h1>
-            <div class="flex gap-4 text-sm">
-              <span class="font-medium" :class="difficultyMap[Number(problem.difficulty) - 1]?.color">{{
-                difficultyMap[Number(problem.difficulty) - 1]?.text }}</span>
-              <span class="text-black">通过率: {{ formatAcceptance(problem.accept, problem.submission) }}</span>
-              <span class="text-black">标签: {{ problem.tags.join(', ') }}</span>
-              <span class="text-black">判题配置: {{ problem.judge_config.time_limit }}s
-                {{ problem.judge_config.memory_limit }}MB</span>
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+              <!-- 难度标签 -->
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-medium text-xs"
+                :class="difficultyMap[Number(problem.difficulty) - 1]?.color" :style="{
+                  backgroundColor: `var(--surface-tertiary)`
+                }">
+                {{ difficultyMap[Number(problem.difficulty) - 1]?.text }}
+              </span>
+
+              <!-- 通过率 -->
+              <span class="inline-flex items-center gap-1.5" :style="{ color: 'var(--text-secondary)' }">
+                <Target :size="14" />
+                <span>{{ formatAcceptance(problem.accept, problem.submission) }}</span>
+              </span>
+
+              <!-- 标签 -->
+              <span class="inline-flex items-center gap-1.5" :style="{ color: 'var(--text-secondary)' }">
+                <Tag :size="14" />
+                <span>{{ problem.tags.join(', ') || '暂无标签' }}</span>
+              </span>
+
+              <!-- 时间限制 -->
+              <span class="inline-flex items-center gap-1.5" :style="{ color: 'var(--text-secondary)' }">
+                <Clock :size="14" />
+                <span>{{ problem.judge_config.time_limit }}s</span>
+              </span>
+
+              <!-- 内存限制 -->
+              <span class="inline-flex items-center gap-1.5" :style="{ color: 'var(--text-secondary)' }">
+                <Cpu :size="14" />
+                <span>{{ problem.judge_config.memory_limit }}MB</span>
+              </span>
             </div>
           </div>
           <v-md-preview :text="ProblemContext" style="height: 50rem;" :style="{
@@ -31,91 +56,100 @@
         </div>
       </template>
       <template #2>
-        <div class="h-12 border-b flex items-center justify-between px-4" :style="{
-          backgroundColor: 'var(--surface-primary)',
-          borderColor: 'var(--border-color)',
-          borderWidth: '1px',
-          borderStyle: 'solid'
-        }">
-          <div class="flex items-center gap-2">
-            <!-- TODO: 题目页 主题切换 -->
-            <n-select v-model:value="Language"
-              :options="Object.values(LANGUAGE_CONFIG).map(config => ({ value: config.value, label: config.label }))"
-              :style="{ width: '140px' }" :dropdown-props="{ style: { maxHeight: '200px', overflowY: 'auto' } }"
-              placeholder="选择语言">
-            </n-select>
-            <n-popover trigger="click" placement="bottom">
-              <template #trigger>
-                <n-button :style="{ color: 'var(--text-primary)' }"
-                  class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors">
-                  <Settings :size="14" /> 设置
-                </n-button>
-              </template>
-              <n-grid x-gap="12" :cols="2" :style="{ width: '15rem' }">
-                <n-gi>
-                  <n-select v-model:value="Theme" :options="EDITOR_THEME_OPTIONS.map(
-                    (i) => {
-                      return { label: i, value: i }
-                    }
-                  )" :dropdown-props="{
-                    style: { maxHeight: '200px', overflowY: 'auto' }
-                  }" placeholder="选择主题">
-                  </n-select>
-                </n-gi>
-                <n-gi>
-                  <n-input-number v-model:value="fontSize" :update-value-on-input="false" placeholder="" :min="10"
-                    :max="30" />
-                </n-gi>
-              </n-grid>
-            </n-popover>
+        <!-- TODO移动端的工具栏，应采用flex布局 -->
+        <div class="flex flex-col h-full">
+          <div class="h-12 border-b flex items-center justify-between px-4 shrink-0" :style="{
+            backgroundColor: 'var(--surface-primary)',
+            borderColor: 'var(--border-color)',
+            borderWidth: '1px',
+            borderStyle: 'solid'
+          }">
+            <div class="flex items-center gap-2">
+              <!-- TODO: 题目页 主题切换 -->
+              <n-select v-model:value="Language"
+                :options="Object.values(LANGUAGE_CONFIG).map(config => ({ value: config.value, label: config.label }))"
+                :style="{ width: '140px' }" :dropdown-props="{ style: { maxHeight: '200px', overflowY: 'auto' } }"
+                placeholder="选择语言">
+              </n-select>
+              <n-popover trigger="click" placement="bottom">
+                <template #trigger>
+                  <n-button :style="{ color: 'var(--text-primary)' }"
+                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors">
+                    <Settings :size="14" /> 设置
+                  </n-button>
+                </template>
+                <n-grid x-gap="12" :cols="2" :style="{ width: '15rem' }">
+                  <n-gi>
+                    <n-select v-model:value="Theme" :options="EDITOR_THEME_OPTIONS.map(
+                      (i) => {
+                        return { label: i, value: i }
+                      }
+                    )" :dropdown-props="{
+                      style: { maxHeight: '200px', overflowY: 'auto' }
+                    }" placeholder="选择主题">
+                    </n-select>
+                  </n-gi>
+                  <n-gi>
+                    <n-input-number v-model:value="fontSize" :update-value-on-input="false" placeholder="" :min="10"
+                      :max="30" />
+                  </n-gi>
+                </n-grid>
+              </n-popover>
+            </div>
+            <!-- 操作按钮(重置，运行，提交) -->
+            <div class="flex items-center gap-2">
+              <n-button class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors"
+                :style="{
+                  color: 'var(--text-primary)',
+                  backgroundColor: hoverBgColor2
+                }" @mouseenter="() => (hoverBgColor2 = 'var(--surface-tertiary)')"
+                @mouseleave="() => (hoverBgColor2 = 'transparent')"
+                @click="code = indexedDBService.getDefaultCode(Language)">
+                <RotateCcw :size="14" /> 重置
+              </n-button>
+              <n-button @click="handleTest" :disabled="isTesting"
+                class="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded transition-colors"
+                :style="{ color: 'var(--text-primary)' }" :class="isTesting ? 'opacity-70 cursor-wait' : ''">
+                <Play :size="14" /> {{ isTesting ? '测试中...' : '自测运行' }}
+              </n-button>
+              <n-button @click="handleRun" :disabled="isRunning" type="success"
+                class="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded transition-colors"
+                :style="{ color: 'var(--text-primary)' }" :class="isRunning ? 'opacity-70 cursor-wait' : ''">
+                {{ isRunning ? '提交中...' : '提交代码' }}
+              </n-button>
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            <n-button class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors"
-              :style="{
-                color: 'var(--text-primary)',
-                backgroundColor: hoverBgColor2
-              }" @mouseenter="() => (hoverBgColor2 = 'var(--surface-tertiary)')"
-              @mouseleave="() => (hoverBgColor2 = 'transparent')">
-              <RotateCcw :size="14" /> 重置
-            </n-button>
-            <n-button @click="handleTest" :disabled="isTesting"
-              class="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded transition-colors"
-              :style="{ color: 'var(--text-primary)' }" :class="isTesting ? 'opacity-70 cursor-wait' : ''">
-              <Play :size="14" /> {{ isTesting ? '测试中...' : '自测运行' }}
-            </n-button>
-            <n-button @click="handleRun" :disabled="isRunning" type="success"
-              class="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded transition-colors"
-              :style="{ color: 'var(--text-primary)' }" :class="isRunning ? 'opacity-70 cursor-wait' : ''">
-              {{ isRunning ? '提交中...' : '提交代码' }}
-            </n-button>
-          </div>
-        </div>
 
-        <div class="flex-1 relative font-mono" style="height: 66%">
-          <codeEditor @change="handleEditorChange" :value="code" " :theme="Theme"
-            :language="LANGUAGE_CONFIG[Language].aceMode" />
-        </div>
-
-        <div class="h-full border-t px-2 py-0 font-mono text-sm overflow-y-auto" :style="{
-          backgroundColor: 'var(--surface-secondary)',
-          borderColor: 'var(--border-color)',
-          borderTopWidth: '1px',
-          borderStyle: 'solid'
-        }">
-          <n-tabs type="line" animated>
-            <n-tab-pane name="Case" tab="测试用例">
-              <n-grid x-gap="12" :cols="2" :style="{ height: '100%' }">
-                <n-gi>
-                  <n-input autosize type="textarea" v-model:value="test_case.input" placeholder="输入"></n-input>
-                </n-gi>
-                <n-gi>
-                  <n-input autosize disabled type="textarea" v-model:value="test_case.output"
-                    placeholder="输出"></n-input>
-                </n-gi>
-              </n-grid>
-            </n-tab-pane>
-            <n-tab-pane name="console" tab="控制台"> 模拟 {{ result }} </n-tab-pane>
-          </n-tabs>
+          <n-split direction="vertical" :default-size="0.7" :min="0.3" :max="0.8">
+            <template #1>
+              <div class="h-full font-mono">
+                <codeEditor @change="handleEditorChange" :value="code" :theme="Theme"
+                  :language="LANGUAGE_CONFIG[Language].aceMode" />
+              </div>
+            </template>
+            <template #2>
+              <div class="border-t px-2 py-0 font-mono text-sm overflow-y-auto h-full" :style="{
+                backgroundColor: 'var(--surface-secondary)',
+                borderColor: 'var(--border-color)',
+                borderTopWidth: '1px',
+                borderStyle: 'solid'
+              }">
+                <n-tabs type="line" animated>
+                  <n-tab-pane name="Case" tab="测试用例">
+                    <n-grid x-gap="12" :cols="2">
+                      <n-gi>
+                        <n-input type="textarea" autosize v-model:value="test_case.input" placeholder="输入" />
+                      </n-gi>
+                      <n-gi class="overflow-y-scroll">
+                        <n-input type="textarea" autosize disabled v-model:value="test_case.output" placeholder="输出" />
+                      </n-gi>
+                    </n-grid>
+                  </n-tab-pane>
+                  <n-tab-pane name="console" tab="控制台"> 模拟 {{ result }} </n-tab-pane>
+                </n-tabs>
+              </div>
+            </template>
+          </n-split>
         </div>
       </template>
     </n-split>
@@ -139,7 +173,7 @@ import {
   NInputNumber,
 } from 'naive-ui'
 import { LANGUAGE_CONFIG, EDITOR_THEME_OPTIONS, type EDITOR_THEHE, type LanguageValue, LANGUAGE_OPTIONS } from '@/constants'
-import { Play, RotateCcw, Settings } from 'lucide-vue-next'
+import { Play, RotateCcw, Settings, Target, Tag, Clock, Cpu } from 'lucide-vue-next'
 import AiAssistant from '@/components/AiAssistant.vue'
 import { useLocalStorage } from '@vueuse/core'
 import { RemovableRef } from '@vueuse/core'
@@ -340,10 +374,10 @@ const handleTest = async () => {
   })
     .then((response) => {
       const { info, code } = response
-      if (info.verdict == 'CompilationError') {
+      if (info.verdict == 'WrongAnswer' || info.verdict == 'Accepted') {
+        test_case.value.output = info.result[0].stdout ?? info.result[0].stderr ?? ''
+      } else {
         test_case.value.output = info.result[0].stderr ?? ''
-      } else if (info.verdict == 'WrongAnswer' || info.verdict == 'Accepted') {
-        test_case.value.output = info.result[0].stdout
       }
     })
     .catch((err) => {

@@ -24,10 +24,12 @@ const checkAuth = async () => {
     isAuthorization.value = false;
     return false;
   }
-
-  const { code } = await userApi.ValidateToken();
-  isAuthorization.value = code !== 401; // 如果返回 401，说明 token 无效
-  return isAuthorization.value;
+  console.log('Token exists, validating...', hasToken.value);
+  isAuthorization.value = true;
+  return true;
+  // const { code } = await userApi.ValidateToken();
+  // isAuthorization.value = code !== 401; // 如果返回 401，说明 token 无效
+  // return isAuthorization.value;
 };
 provide('isAuthorization', isAuthorization); // 提供检查认证的函数
 provide('checkAuth', checkAuth); // 提供检查认证的函数

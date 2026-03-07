@@ -17,8 +17,8 @@
 <script setup lang="ts">
 import { ref, computed, h, renderList, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Search, Filter, CheckCircle2, Circle, ArrowRight } from 'lucide-vue-next'
-import { NTag, NSpace, NDataTable, useMessage, NTab, NCol } from 'naive-ui'
+import { CheckCircle2, Circle, AlertCircle, ArrowRight } from 'lucide-vue-next'
+import { NTag, NDataTable, useMessage, NTab, NCol } from 'naive-ui'
 const message = useMessage()
 import { difficultyMap } from '@/constants'
 const pagination = {
@@ -31,12 +31,35 @@ const columns = [
     key: 'status',
     width: 60,
     render(row) {
-      return h(row.status === 'solved' ? CheckCircle2 : Circle, {
+      let icon
+      let iconClass
+      let statusText
+      
+      switch (row.status) {
+        case 'solved':
+          icon = CheckCircle2
+          iconClass = 'text-green-500'
+          statusText = '已解决'
+          break
+        case 'attempted':
+          icon = AlertCircle
+          iconClass = 'text-yellow-500'
+          statusText = '尝试过'
+          break
+        case 'unattempted':
+        default:
+          icon = Circle
+          iconClass = 'text-gray-600'
+          statusText = '未尝试'
+          break
+      }
+      
+      return h(icon, {
         size: 18,
-        class: row.status === 'solved' ? 'text-green-500' : 'text-gray-600',
+        class: iconClass,
         onMouseenter: () => {
-          // TODO 展示已解决/未解决 tooltip
-          console.log(row.status === 'solved' ? '已解决' : '未解决')
+          // TODO 展示已解决/尝试过/未尝试 tooltip
+          console.log(statusText)
         }
       })
     }
@@ -105,9 +128,10 @@ const columns = [
   }
 ]
 
-const Problems = ref([])
+const Problems = ref<ProblemListDTO[]>([])
 import { formatAcceptance } from '@/utils/format'
 import { problemApi } from '@/services/problem'
+import { ProblemListDTO } from '@/types/problem'
 onMounted(async () => {
   await problemApi.getProblemList()
     .then((res) => {

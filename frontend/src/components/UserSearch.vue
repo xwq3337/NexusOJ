@@ -121,7 +121,7 @@ const sendFriendRequest = async () => {
 
     sendingRequest.value = true
     try {
-        const res = await userApi.FirendRequest(
+        const res = await userApi.FriendRequest(
             selectedUser.value.id,
             verificationMessage.value || undefined
         )

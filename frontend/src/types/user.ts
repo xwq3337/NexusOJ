@@ -24,8 +24,20 @@ export interface FriendShip {
   id: string
   user_id: string
   friend_id: string
-  status: number // // 0 待处理 1 已接受 2 已拒绝
+  friend_username: string
+  friend_nickname: string
+  friend_avatar: string
+  remark: string
   created_at: string
-  updated_at: string
-  deleted_at?: string
+}
+export interface FriendShipRequest {
+  id: string
+  user_id: string
+  friend_id: string
+  friend_username: string
+  friend_nickname: string
+  friend_avatar: string
+  message: string
+  status: string // 0 待处理 1 已接受 2 已拒绝
+  created_at: string
 }

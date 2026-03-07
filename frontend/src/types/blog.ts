@@ -17,11 +17,11 @@ export interface Blog {
 
 export interface createBlogParam extends Pick<
   Blog,
-  'title' | 'context' | 'tags' | 'is_private' | 'status'
+  'title' | 'context' | 'tags' | 'is_private' | 'status' | 'excerpt'
 > {}
 
 export interface UpdateBlogParam extends Partial<
-  Pick<Blog, 'title' | 'context' | 'tags' | 'is_private' | 'status'>
+  Pick<Blog, 'title' | 'context' | 'tags' | 'is_private' | 'status' | 'excerpt'>
 > {
   id: string
 }

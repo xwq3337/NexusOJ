@@ -174,6 +174,6 @@ const handleLogout = () => {
   accessToken.value = ''
   refreshToken.value = ''
   isAuthorization.value = false
-  router.push('/user/login')
+  router.push('/user/auth')
 }
 </script>

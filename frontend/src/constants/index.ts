@@ -380,7 +380,7 @@ export const LANGUAGE_CONFIG = {
     },
     defaultCode: `#include <stdio.h>
 int main() {
-    // Your code here
+    printf("Hello, World!\\n");
     return 0;
 }`
   },
@@ -398,7 +398,7 @@ int main() {
 using namespace std;
 
 int main() {
-    // Your code here
+    cout << "Hello, World!" << endl;
     return 0;
 }`
   },
@@ -413,7 +413,6 @@ int main() {
       borderColor: 'rgba(24, 160, 88, 0.3)'
     },
     defaultCode: `def main():
-    # Your code here
     pass
 
 if __name__ == "__main__":
@@ -431,7 +430,7 @@ if __name__ == "__main__":
     },
     defaultCode: `public class Main {
     public static void main(String[] args) {
-        // Your code here
+        System.out.println("Hello, World!");
     }
 }`
   },
@@ -445,7 +444,7 @@ if __name__ == "__main__":
       textColor: 'rgb(240, 160, 32)',
       borderColor: 'rgba(240, 160, 32, 0.3)'
     },
-    defaultCode: `// Your code here
+    defaultCode: `
 console.log("Hello, World!");`
   },
   go: {
@@ -476,8 +475,9 @@ func main(){
       textColor: '#f0a020',
       borderColor: 'rgba(240, 160, 32, 0.3)'
     },
-    defaultCode: `fn main(){
-  println!("Hello world")
+    defaultCode: `
+fn main(){
+    println!("Hello world")
 }`
   },
   csharp: {
@@ -494,7 +494,7 @@ func main(){
 
 class Program {
     static void Main() {
-        // Your code here
+        Console.WriteLine("Hello, World!");
     }
 }`
   },
@@ -508,7 +508,10 @@ class Program {
       textColor: 'rgb(240, 160, 32)',
       borderColor: 'rgba(240, 160, 32, 0.3)'
     },
-    defaultCode: ''
+    defaultCode: `const std = @import("std");
+pub fn main() {
+    std.debug.print("Hello, World!\\n", .{});
+}`
   }
 } as const
 
