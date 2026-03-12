@@ -8,6 +8,7 @@ import os
 from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain_community.chat_models import ChatZhipuAI
+
 from tools.rag_tool import rag_tool
 
 app = FastAPI()

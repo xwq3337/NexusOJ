@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"nexus/utils"
 	"strings"
 	"time"
 
@@ -23,34 +24,33 @@ func Auth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 从请求头中获取token
 		if c.Request.Header.Get("Authorization") == "" {
-			c.JSON(http.StatusOK, gin.H{
-				"code": http.StatusUnauthorized,
-				"msg":  "请求未携带token,无权限访问",
-			})
+			utils.ReturnError(c, http.StatusUnauthorized, "请求未携带token,无权限访问")
 			c.Abort()
 			return
 		}
 		tokenString := strings.Split(c.Request.Header.Get("Authorization"), " ")[1]
 		j := NewJWT()
 		claims, err := j.ParserToken(tokenString)
-		if err != nil {
+		fmt.Println("用户 ID: ", claims.UserID)
+		if err != nil || claims.UserID == "" {
 			if errors.Is(err, TokenExpired) {
-				c.JSON(http.StatusOK, gin.H{
-					"code": http.StatusUnauthorized,
-					"msg":  "token授权已过期,请重新申请授权",
-				})
+				utils.ReturnError(c, http.StatusUnauthorized, "token授权已过期,请重新申请授权")
 				c.Abort()
 				return
 			}
-			c.JSON(http.StatusOK, gin.H{
-				"code": http.StatusUnauthorized,
-				"msg":  err.Error(),
-			})
-
+			if errors.Is(err, TokenMalformed) {
+				utils.ReturnError(c, http.StatusUnauthorized, "token格式错误")
+				c.Abort()
+				return
+			}
+			errorMsg := "token无效"
+			if err != nil {
+				errorMsg = err.Error()
+			}
+			utils.ReturnError(c, http.StatusUnauthorized, errorMsg)
 			c.Abort()
 			return
 		}
-		c.Set("claims", claims)
 	}
 }
 

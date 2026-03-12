@@ -31,13 +31,12 @@ var upgrader = websocket.Upgrader{
 	HandshakeTimeout: 10 * time.Second,
 }
 
-type MessageStruct struct {
-	Timestamp   int64  `json:"timestamp" gorm:"primaryKey;autoIncrement"`
-	CurrentTime int64  `json:"currenttime" gorm:"autoUpdateTime:nano"`
-	Sender      string `json:"sender"`
-	Receiver    string `json:"receiver"`
-	Text        string `json:"text"`
-	Type        uint   `json:"type"` // 1私信 2群发 3心跳检测
+type Message struct {
+	SenderID    string `json:"sender_id"`
+	ReceiverID  string `json:"receiver_id"`  // 群聊时为群ID
+	MessageType string `json:"message_type"` // 消息类型 text/image/file/video/voice
+	Content     string `json:"content"`      // 消息内容
+	Timestamp   int64  `json:"timestamp"`    // 消息发送时间戳
 }
 
 type Client struct {
@@ -61,6 +60,12 @@ func (c *Client) Close() {
 	c.Conn.Close()
 	close(c.DataQueue)
 }
+func (c *Client) Send(data []byte) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	err := c.Conn.WriteMessage(websocket.TextMessage, data)
+	return err
+}
 
 func (ChatController) Handler(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -69,20 +74,20 @@ func (ChatController) Handler(c *gin.Context) {
 		logger.Error("WebSocket 升级失败", err)
 		return
 	}
-	sender_id := c.Query("id")
-	if sender_id == "" {
-		conn.WriteMessage(websocket.CloseMessage, []byte("缺少用户ID"))
+	UserID, err := ParserTokenByString(c.Query("token"))
+	if err != nil {
+		conn.WriteMessage(websocket.CloseMessage, []byte("用户ID解析失败"+err.Error()))
 		return
 	}
-	currentTime := uint64(time.Now().Unix())
+	// 创建客户端实例
 	client := &Client{
 		Conn:          conn,
 		Addr:          conn.RemoteAddr().String(),
-		User:          sender_id,
-		HeartBeatTime: currentTime,
+		User:          UserID,
+		HeartBeatTime: uint64(time.Now().Unix()),
 		DataQueue:     make(chan []byte, 1024),
 	}
-	go addClient(sender_id, client)
+	go addClient(UserID, client)
 	go client.writePump() // 写消息
 	client.readPump()     // 读消息
 	defer func() {
@@ -112,9 +117,7 @@ func (client *Client) writePump() {
 	for {
 		select {
 		case data := <-client.DataQueue:
-			client.mu.Lock()
-			err := client.Conn.WriteMessage(websocket.TextMessage, data)
-			client.mu.Unlock()
+			err := client.Send(data)
 			if err != nil {
 				logger.Error("发送消息错误", err)
 				return
@@ -144,51 +147,41 @@ func (client *Client) readPump() {
 			return
 		}
 		if bytes.Equal(message, []byte("ping")) {
-			client.mu.Lock()
-			client.Conn.WriteMessage(websocket.TextMessage, []byte("pong"))
-			client.mu.Unlock()
+			client.Send([]byte("pong"))
 			logger.Debug("收到心跳")
 		} else {
-			var msg MessageStruct
+			var msg Message
 			err = json.Unmarshal([]byte(message), &msg)
 			if err != nil {
 				logger.Error("解码失败", err)
 				continue
 			}
-			logger.Debugf("收到消息: %s , 来自 %s", message, msg.Sender)
+			logger.Debugf("收到消息: %s , 来自 %s", message, msg.SenderID)
 			dispatch(msg)
 		}
 		client.HeartBeatTime = uint64(time.Now().Unix())
-
 	}
 }
-func dispatch(msg MessageStruct) {
-	switch msg.Type {
-	case 1:
-		sendPrivateMsg(msg)
-	case 2:
-		sendGroupMsg(msg)
-	default:
-		logger.Debug("未知消息类型: %d", msg.Type)
-	}
+func dispatch(msg Message) {
+	sendPrivateMsg(msg)
+	// sendGroupMsg(msg)
 }
-func broadMsg(msg MessageStruct) error { // 局域网广播
+func broadMsg(_ Message) error { // 局域网广播
 	return nil
 }
 
-func sendPrivateMsg(msg MessageStruct) { //私聊
-	// --- TODO
-	channel := "unread_record:" + msg.Receiver
+func sendPrivateMsg(msg Message) { //私聊
+	channel := "unread_record:" + msg.ReceiverID
 	ctx := context.Background()
-	count, _ := models.QueryUnReadRecord(msg.Receiver)
+	count, _ := models.QueryUnReadRecord(msg.ReceiverID)
 	err := dao.RedisClient.Publish(ctx, channel, strconv.Itoa(count+1)).Err()
 	if err != nil {
 		logger.Error("redis publish error", err)
 	}
 	logger.Debug(count, "未读消息")
 	// ----
-	target_client := findClient(msg.Receiver)
-	sender_client := findClient(msg.Sender)
+	target_client := findClient(msg.ReceiverID)
+	sender_client := findClient(msg.SenderID)
 	var online bool
 	if target_client != nil {
 		online = true
@@ -197,10 +190,10 @@ func sendPrivateMsg(msg MessageStruct) { //私聊
 	}
 	go func() {
 		chat_record := &models.ChatRecord{
-			SenderID:    msg.Sender,
-			ReceiverID:  msg.Receiver,
+			SenderID:    msg.SenderID,
+			ReceiverID:  msg.ReceiverID,
 			Status:      online,
-			Content:     msg.Text,
+			Content:     msg.Content,
 			MessageType: "text",
 			CreatedAt:   time.Now(),
 		}
@@ -208,6 +201,9 @@ func sendPrivateMsg(msg MessageStruct) { //私聊
 		if err != nil {
 			return
 		} else {
+			// 更新好友关系的未读数和最新消息
+			models.UpdateFriendshipForNewMessage(msg.SenderID, msg.ReceiverID, msg.Content)
+
 			message, _ := jsonx.Marshal(chat_record)
 			if target_client != nil && target_client != sender_client {
 				target_client.DataQueue <- []byte(message)
@@ -216,10 +212,10 @@ func sendPrivateMsg(msg MessageStruct) { //私聊
 		}
 	}()
 }
-func sendGroupMsg(msg MessageStruct) { //群聊
-	data := msg.Text
-	// sender_client := findClient(msg.Sender)
-	target_id := msg.Receiver
+func sendGroupMsg(msg Message) { //群聊
+	data := msg.Content
+	// sender_client := findClient(msg.SenderID)
+	target_id := msg.ReceiverID
 	logger.Debug("群发消息[%s]到%s", data, target_id)
 }
 
@@ -245,6 +241,36 @@ func (ChatController) GetChatRecord(c *gin.Context) {
 		return
 	}
 	utils.ReturnSuccess(c, http.StatusOK, "success", chatRecords)
+}
+
+func (ChatController) MarkMessagesAsRead(c *gin.Context) {
+	userID, err := ParserToken(c)
+	if err != nil {
+		utils.ReturnError(c, http.StatusUnauthorized, "未授权")
+		return
+	}
+
+	friendID := c.Query("friend_id")
+	if friendID == "" {
+		utils.ReturnError(c, http.StatusBadRequest, "缺少好友ID")
+		return
+	}
+
+	totalCount, err := models.ResetFriendshipUnreadCount(userID, friendID)
+	if err != nil {
+		utils.ReturnError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	// 触发 Redis 推送更新后的未读数
+	channel := "unread_record:" + userID
+	ctx := context.Background()
+	err = dao.RedisClient.Publish(ctx, channel, strconv.Itoa(totalCount)).Err()
+	if err != nil {
+		logger.Error("redis publish error", err)
+	}
+
+	utils.ReturnSuccess(c, http.StatusOK, "标记成功", nil)
 }
 
 func (ChatController) GetUnReadRecord(c *gin.Context) {

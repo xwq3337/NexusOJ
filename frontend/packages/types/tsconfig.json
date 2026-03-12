@@ -1,0 +1,12 @@
+{
+  "extends": "@nexusoj/typescript/index.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "verbatimModuleSyntax": true,
+    "tsBuildInfoFile": "./node_modules/.cache/tsbuildinfo.json"
+  },
+  "include": ["**/*.ts", "index.ts"],
+  "exclude": ["node_modules", "dist"]
+}

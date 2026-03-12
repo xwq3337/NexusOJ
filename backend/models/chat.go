@@ -1,11 +1,14 @@
 package models
 
 import (
+	"context"
 	"nexus/dao"
+	"strconv"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"gorm.io/gorm"
 )
 
 type ChatRecord struct {
@@ -58,6 +61,12 @@ func QueryChatRecord(user_id string, friend_id string, page int) ([]ChatRecord, 
 	// 异步更新消息状态（标记为已读）
 	go func() {
 		dao.UpdateDocument("chat", "chat_record", bson.M{"sender_id": friend_id, "receiver_id": user_id}, bson.M{"status": true})
+		// 重置好友关系的未读消息数并触发推送
+		totalCount, _ := ResetFriendshipUnreadCount(user_id, friend_id)
+		// 触发 Redis 推送更新后的未读数
+		channel := "unread_record:" + user_id
+		ctx := context.Background()
+		dao.RedisClient.Publish(ctx, channel, strconv.Itoa(totalCount))
 	}()
 
 	return chatRecords, nil
@@ -66,4 +75,36 @@ func QueryChatRecord(user_id string, friend_id string, page int) ([]ChatRecord, 
 func QueryUnReadRecord(id string) (int, error) {
 	results, err := dao.QueryDocument("chat", "chat_record", bson.M{"receiver_id": id, "status": false})
 	return len(results), err
+}
+
+// UpdateFriendshipForNewMessage 当有新消息时更新好友关系
+func UpdateFriendshipForNewMessage(senderID, receiverID, content string) error {
+	// 更新接收者的好友关系：增加未读数，更新最新消息
+	err := dao.MysqlClient.Model(&FriendShips{}).
+		Where("user_id = ? AND friend_id = ?", receiverID, senderID).
+		Updates(map[string]interface{}{
+			"unread_count":   gorm.Expr("unread_count + ?", 1),
+			"latest_message": content,
+		}).Error
+
+	// 更新发送者的好友关系：仅更新最新消息（不增加未读数）
+	err = dao.MysqlClient.Model(&FriendShips{}).
+		Where("user_id = ? AND friend_id = ?", senderID, receiverID).
+		Update("latest_message", content).Error
+
+	return err
+}
+
+// ResetFriendshipUnreadCount 重置好友关系的未读消息数，并返回更新后的总未读数
+func ResetFriendshipUnreadCount(userID, friendID string) (int, error) {
+	err := dao.MysqlClient.Model(&FriendShips{}).
+		Where("user_id = ? AND friend_id = ?", userID, friendID).
+		Update("unread_count", 0).Error
+
+	if err != nil {
+		return 0, err
+	}
+
+	// 获取更新后的总未读数
+	return GetTotalUnreadCount(userID)
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"nexus/config"
 	"nexus/controllers"
+	"nexus/microapps"
 	"nexus/middleware/jwt"
 	"nexus/utils"
 	"time"
@@ -42,6 +43,7 @@ func Router() *gin.Engine {
 	}))
 	// r.Use(ipinterceptor.Interceptor())
 	// r.Use(middleware.RequestLogger(middleware.DefaultRequestLoggerConfig()))
+	microapps.MicroRouter(r) // 微应用路由
 	wsGroup := r.Group("/ws")
 	{
 		wsGroup.GET("/chat", controllers.ChatController{}.Handler)
@@ -73,8 +75,9 @@ func Router() *gin.Engine {
 	}
 	chatGroup := r.Group("/chat")
 	{
-		chatGroup.GET("/record", controllers.ChatController{}.GetChatRecord)   // 获取聊天记录
-		chatGroup.GET("/unread", controllers.ChatController{}.GetUnReadRecord) // 获取未读消息
+		chatGroup.GET("/record", controllers.ChatController{}.GetChatRecord)          // 获取聊天记录
+		chatGroup.GET("/unread", controllers.ChatController{}.GetUnReadRecord)        // 获取未读消息
+		chatGroup.POST("/mark-read", controllers.ChatController{}.MarkMessagesAsRead) // 标记消息已读
 	}
 	//#####################################################################
 	// -----------------------以下为JWT验证相关代码---------------------------

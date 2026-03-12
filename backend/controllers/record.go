@@ -60,11 +60,30 @@ func (RecodeController) CreateRecord(c *gin.Context) {
 }
 
 func (RecodeController) GetRecodeListByUser(c *gin.Context) {
-	results, err := models.QueryRecordByUserId(c.Param("id"))
+	userID := c.Param("id")
+
+	// 获取分页参数，默认第1页，每页20条
+	pageStr := c.DefaultQuery("page", "1")
+	pageSizeStr := c.DefaultQuery("page_size", "20")
+
+	// 转换分页参数
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+	pageSize, err := strconv.Atoi(pageSizeStr)
+	if err != nil || pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	// 获取筛选参数
+	verdict := c.Query("verdict")
+	language := c.Query("language")
+
+	results, err := models.QueryRecordByUserId(userID, page, pageSize, verdict, language)
 	if err != nil {
 		utils.ReturnError(c, http.StatusNotFound, err)
 		return
 	}
 	utils.ReturnSuccess(c, http.StatusOK, "success", results)
-
 }

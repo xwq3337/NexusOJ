@@ -47,9 +47,14 @@ func QueryRecord(record Record) (Record, error) {
 /**
  * 根据用户id获取记录
  */
-func QueryRecordByUserId(userID string) ([]map[string]interface{}, error) {
+func QueryRecordByUserId(userID string, page int, pageSize int, verdict string, language string) ([]map[string]interface{}, error) {
 	var record []map[string]interface{}
-	err := dao.MysqlClient.Table("record").
+
+	// 计算偏移量
+	offset := (page - 1) * pageSize
+
+	// 构建查询
+	query := dao.MysqlClient.Table("record").
 		Select(`
 			record.id AS id,
 			record.problem_id AS problem_id,
@@ -59,11 +64,28 @@ func QueryRecordByUserId(userID string) ([]map[string]interface{}, error) {
 			record.max_memory AS max_memory,
 			record.created_at AS created_at,
 			problem.title AS problem_title
-	`).Joins(`INNER JOIN user ON user.id = record.user_id`).
+		`).Joins(`INNER JOIN user ON user.id = record.user_id`).
 		Joins(`INNER JOIN problem ON problem.id = record.problem_id`).
-		Where("record.user_id = ?", userID).Order("created_at DESC").Scan(&record).Error
-	return record, err
+		Where("record.user_id = ?", userID)
 
+	// 添加状态筛选
+	if verdict != "" {
+		query = query.Where("record.verdict = ?", verdict)
+	}
+
+	// 添加语言筛选
+	if language != "" {
+		query = query.Where("record.language = ?", language)
+	}
+
+	// 获取分页数据
+	err := query.
+		Order("created_at DESC").
+		Limit(pageSize).
+		Offset(offset).
+		Scan(&record).Error
+
+	return record, err
 }
 
 /**

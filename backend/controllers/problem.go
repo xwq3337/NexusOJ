@@ -60,7 +60,6 @@ func (ProblemController) GetList(c *gin.Context) {
 		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
 	}
-	fmt.Println(statuses...)
 	// 将题目状态更新到 problems 数组中
 	result := make([]models.ProblemDTO, len(problems))
 	for i, status := range statuses {

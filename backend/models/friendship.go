@@ -10,13 +10,15 @@ import (
 
 // 单向好友关系, 只记录用户A添加了用户B为好友, 不记录用户B是否也添加了用户A为好友
 type FriendShips struct {
-	ID        uint           `json:"id" gorm:"primarykey autoIncrement"`
-	UserID    string         `json:"user_id" gorm:"index"`
-	FriendID  string         `json:"friend_id" gorm:"index"`
-	Remark    *string        `json:"remark"` // 好友备注
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+	ID            uint           `json:"id" gorm:"primarykey autoIncrement"`
+	UserID        string         `json:"user_id" gorm:"index"`
+	FriendID      string         `json:"friend_id" gorm:"index"`
+	Remark        *string        `json:"remark"`         // 好友备注
+	UnreadCount   int            `json:"unread_count"`   // 未读消息数量
+	LatestMessage *string        `json:"latest_message"` // 最新消息内容
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 }
 
 // 好友请求表, 记录用户A向用户B发送好友请求的记录, 包括请求状态等信息
@@ -115,6 +117,8 @@ func (FriendShips) GetFriendList(userID string) ([]FriendshipDTO, error) {
 			"fs.user_id",
 			"fs.friend_id",
 			"fs.remark",
+			"fs.unread_count",
+			"fs.latest_message",
 			"fs.created_at",
 			"u.username AS friend_username",
 			"u.nickname AS friend_nickname",
@@ -143,4 +147,14 @@ func (FriendShipRequest) GetFriendRequestList(userID string) ([]FriendshipReques
 		Where("fr.friend_id = ?", userID).
 		Scan(&requests).Error
 	return requests, err
+}
+
+// GetTotalUnreadCount 获取用户所有好友关系的总未读消息数
+func GetTotalUnreadCount(userID string) (int, error) {
+	var total int64
+	err := dao.MysqlClient.Model(&FriendShips{}).
+		Where("user_id = ?", userID).
+		Select("COALESCE(SUM(unread_count), 0)").
+		Scan(&total).Error
+	return int(total), err
 }

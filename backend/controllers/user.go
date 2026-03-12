@@ -204,6 +204,9 @@ func generateToken(user models.User, Time int64) (string, error) {
 
 func ParserToken(c *gin.Context) (string, error) {
 	tokenString := c.Request.Header.Get("Authorization")
+	return ParserTokenByString(tokenString)
+}
+func ParserTokenByString(tokenString string) (string, error) {
 	if tokenString == "" || !strings.HasPrefix(tokenString, "Bearer ") {
 		return "", errors.New("请求未携带token或token不完整,无权限访问")
 	}
@@ -217,8 +220,8 @@ func ParserToken(c *gin.Context) (string, error) {
 }
 
 func (UserController) ValidateToken(c *gin.Context) {
-	_, err := ParserToken(c)
-	if err != nil {
+	UserID, err := ParserToken(c)
+	if err != nil || UserID == "" {
 		utils.ReturnError(c, http.StatusUnauthorized, "token无效")
 		return
 	}

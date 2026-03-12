@@ -1,0 +1,13 @@
+{
+  "name": "@nexusoj/typescript",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.json",
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
