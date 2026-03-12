@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -23,13 +24,14 @@ const (
 
 // 日志配置结构
 type Config struct {
-	Level      LogLevel `json:"level" yaml:"level"`           // 日志级别
-	Filename   string   `json:"filename" yaml:"filename"`     // 日志文件路径
-	MaxSize    int      `json:"maxSize" yaml:"maxSize"`       // 文件最大大小(MB)
-	MaxBackups int      `json:"maxBackups" yaml:"maxBackups"` // 最大备份数量
-	MaxAge     int      `json:"maxAge" yaml:"maxAge"`         // 最大保存天数
-	Compress   bool     `json:"compress" yaml:"compress"`     // 是否压缩备份
-	Console    bool     `json:"console" yaml:"console"`       // 是否输出到控制台
+	Level       LogLevel `json:"level" yaml:"level"`             // 日志级别
+	Filename    string   `json:"filename" yaml:"filename"`       // 日志文件路径
+	MaxSize     int      `json:"maxSize" yaml:"maxSize"`         // 文件最大大小(MB)
+	MaxBackups  int      `json:"maxBackups" yaml:"maxBackups"`   // 最大备份数量
+	MaxAge      int      `json:"maxAge" yaml:"maxAge"`           // 最大保存天数
+	Compress    bool     `json:"compress" yaml:"compress"`       // 是否压缩备份
+	Console     bool     `json:"console" yaml:"console"`         // 是否输出到控制台
+	DailyRotate bool     `json:"dailyRotate" yaml:"dailyRotate"` // 是否按天分割日志
 }
 
 // Logger 封装结构
@@ -72,18 +74,35 @@ func NewLogger(cfg Config) (*Logger, error) {
 
 	// 文件输出核心
 	if cfg.Filename != "" {
-		// 确保目录存在
-		if err := os.MkdirAll(filepath.Dir(cfg.Filename), 0755); err != nil {
-			return nil, err
+		var fileWriter zapcore.WriteSyncer
+
+		if cfg.DailyRotate {
+			// 使用按天分割的 writer
+			baseDir := filepath.Dir(cfg.Filename)
+			baseName := "app"
+			ext := ".log"
+
+			dailyWriter, err := NewDailyWriter(baseDir, baseName, ext, cfg.MaxBackups)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create daily writer: %w", err)
+			}
+			fileWriter = zapcore.AddSync(dailyWriter)
+		} else {
+			// 使用 lumberjack 进行大小切割
+			// 确保目录存在
+			if err := os.MkdirAll(filepath.Dir(cfg.Filename), 0755); err != nil {
+				return nil, err
+			}
+
+			fileWriter = zapcore.AddSync(&lumberjack.Logger{
+				Filename:   cfg.Filename,
+				MaxSize:    cfg.MaxSize,
+				MaxBackups: cfg.MaxBackups,
+				MaxAge:     cfg.MaxAge,
+				Compress:   cfg.Compress,
+			})
 		}
 
-		fileWriter := zapcore.AddSync(&lumberjack.Logger{
-			Filename:   cfg.Filename,
-			MaxSize:    cfg.MaxSize,
-			MaxBackups: cfg.MaxBackups,
-			MaxAge:     cfg.MaxAge,
-			Compress:   cfg.Compress,
-		})
 		fileCore := zapcore.NewCore(
 			zapcore.NewJSONEncoder(encoderCfg),
 			fileWriter,

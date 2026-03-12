@@ -20,6 +20,7 @@ func FormatterHandler(c *gin.Context) {
 	res, err := service.FormatCode(params.Code, params.Language)
 	if err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, "格式化失败"+err.Error())
+		return
 	}
 	utils.ReturnSuccess(c, http.StatusOK, "success", res)
 }

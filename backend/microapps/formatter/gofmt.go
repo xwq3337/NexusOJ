@@ -10,7 +10,7 @@ func NewGofmtFormatter() *GofmtFormatter {
 	base := NewCommandFormatter(
 		"gofmt",
 		"gofmt",
-		[]string{"Go"},
+		[]string{"go"},
 		[]string{}, // gofmt reads from stdin by default
 	)
 

@@ -14,7 +14,7 @@ func NewBlackFormatter() *BlackFormatter {
 	base := NewCommandFormatter(
 		"black",
 		"black",
-		[]string{"Python"},
+		[]string{"python"},
 		[]string{"-", "-"}, // Read from stdin, output to stdout
 	)
 

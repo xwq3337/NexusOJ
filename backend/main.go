@@ -41,13 +41,14 @@ func main() {
 
 func loggerConfig() logger.Config {
 	cfg := logger.Config{
-		Level:      logger.DebugLevel,
-		Filename:   filepath.Join(config.LogDir, "app.log"),
-		MaxSize:    100, // MB
-		MaxBackups: 7,   // 保留7天
-		MaxAge:     30,  // 保留30天
-		Compress:   true,
-		Console:    true,
+		Level:       logger.DebugLevel,
+		Filename:    filepath.Join(config.LogDir, "app.log"),
+		MaxSize:     100, // MB
+		MaxBackups:  7,   // 保留7天
+		MaxAge:      30,  // 保留30天
+		Compress:    true,
+		Console:     true,
+		DailyRotate: true, // 启用按天分割日志
 	}
 	return cfg
 }

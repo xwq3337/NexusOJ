@@ -10,7 +10,7 @@ func NewRustfmtFormatter() *RustfmtFormatter {
 	base := NewCommandFormatter(
 		"rustfmt",
 		"rustfmt",
-		[]string{"Rust"},
+		[]string{"rust"},
 		[]string{"--emit", "stdout"}, // Emit to stdout instead of modifying in-place
 	)
 

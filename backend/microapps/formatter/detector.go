@@ -52,15 +52,15 @@ func (d *LanguageDetector) detectByShebang(code string) string {
 
 	// Common shebang patterns
 	shebangMap := map[string]string{
-		"python":  "Python",
-		"python3": "Python",
-		"python2": "Python",
-		"bash":    "Shell",
-		"sh":      "Shell",
-		"node":    "JavaScript",
-		"ruby":    "Ruby",
-		"perl":    "Perl",
-		"php":     "PHP",
+		"python":  "python",
+		"python3": "python",
+		"python2": "python",
+		"bash":    "shell",
+		"sh":      "shell",
+		"node":    "javascript",
+		"ruby":    "ruby",
+		"perl":    "perl",
+		"php":     "php",
 	}
 
 	for pattern, lang := range shebangMap {
@@ -76,16 +76,19 @@ func (d *LanguageDetector) detectByShebang(code string) string {
 func (d *LanguageDetector) normalizeLanguage(lang string) string {
 	// Map enry language names to our supported languages
 	normalization := map[string]string{
-		"C":           "C",
-		"C++":         "C++",
-		"Java":        "Java",
-		"Python":      "Python",
-		"Go":          "Go",
-		"JavaScript":  "JavaScript",
-		"TypeScript":  "JavaScript", // Use Prettier for both
-		"Rust":        "Rust",
-		"Objective-C": "C", // Use clang-format
-		"C#":          "C", // Use clang-format
+		"C":           "c",
+		"C++":         "cpp",
+		"Java":        "java",
+		"Python":      "python",
+		"Go":          "go",
+		"JavaScript":  "javascript",
+		"TypeScript":  "typescript", // Use Prettier for both
+		"Rust":        "rust",
+		"Objective-C": "objc", // Use clang-format
+		"C#":          "csharp", // Use clang-format if we add support
+		"JSON":        "json",
+		"CSS":         "css",
+		"HTML":        "html",
 	}
 
 	if normalized, ok := normalization[lang]; ok {

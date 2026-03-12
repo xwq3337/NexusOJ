@@ -23,16 +23,17 @@ type RequestLoggerConfig struct {
 // DefaultRequestLoggerConfig 默认配置
 func DefaultRequestLoggerConfig() RequestLoggerConfig {
 	return RequestLoggerConfig{
-		SkipPaths:        []string{"/health", "/metrics", "/favicon.ico"},
+		SkipPaths:        []string{"/health", "/metrics", "/favicon.ico", "/log/date", "/log/list"},
 		MaxBodyLogSize:   1024, // 1KB
-		LogRequestHeader: true,
-		LogResponseBody:  false, // 默认不记录响应体
-		LogRequestBody:   true,
+		LogRequestHeader: true, // 默认记录请求头
+		LogRequestBody:   true, // 默认记录请求体
+		LogResponseBody:  true, // 默认不记录响应体
 	}
 }
 
 // RequestLogger 请求日志中间件
-func RequestLogger(config RequestLoggerConfig) gin.HandlerFunc {
+func RequestLogger() gin.HandlerFunc {
+	config := DefaultRequestLoggerConfig()
 	skip := make(map[string]bool, len(config.SkipPaths))
 	for _, path := range config.SkipPaths {
 		skip[path] = true

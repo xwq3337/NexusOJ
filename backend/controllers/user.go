@@ -53,11 +53,13 @@ func (UserController) CreateUser(c *gin.Context) {
 	}
 	utils.ReturnSuccess(c, http.StatusOK, "success", user)
 }
+
+// TODO
 func (UserController) UserLogin(c *gin.Context) {
 	// 解析请求参数
 	var params struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
+		Username string `json:"username" binding:"required"`
+		Password string `json:"password" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&params); err != nil {
 		utils.ReturnError(c, 400, err.Error())
@@ -166,17 +168,34 @@ func (UserController) UpdatePassword(c *gin.Context) {
 	utils.ReturnSuccess(c, http.StatusOK, "密码更新成功", nil)
 }
 
-func (UserController) GetAccessToken(c *gin.Context) {
-	var params struct {
-		Username     string `json:"username"`
-		Password     string `json:"password"`
-		RefreshToken string `json:"refresh_token"`
-	}
-	if err := c.ShouldBindJSON(&params); err != nil {
-		utils.ReturnError(c, http.StatusBadRequest, "请求参数错误"+err.Error())
+// TODO
+func (UserController) RefreshToken(c *gin.Context) {
+	// var params struct {
+	// 	Username     string `json:"username"`
+	// 	Password     string `json:"password"`
+	// 	RefreshToken string `json:"refresh_token" binding:"required"`
+	// }
+	// if err := c.ShouldBindJSON(&params); err != nil {
+	// 	utils.ReturnError(c, http.StatusBadRequest, "请求参数错误"+err.Error())
+	// 	return
+	// }
+	fmt.Println(c.Request.Header.Get("Authorization"))
+	_id, err := ParserToken(c)
+	if err != nil {
+		utils.ReturnError(c, http.StatusUnauthorized, "未授权"+err.Error())
 		return
 	}
-	user, _ := models.User{Username: params.Username, Password: params.Password}.QueryUser()
+
+	user, err := models.User{}.QueryUserById(_id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", "ID"))
+			return
+		} else {
+			utils.ReturnError(c, http.StatusInternalServerError, fmt.Sprintf("查询出错 %v", err))
+			return
+		}
+	}
 	token_access, _ := generateToken(user, 6*60*60)
 	token_refresh, _ := generateToken(user, 7*24*60*60)
 	var tokens []string
@@ -213,7 +232,10 @@ func ParserTokenByString(tokenString string) (string, error) {
 	tokenString = strings.Split(tokenString, " ")[1]
 	j := jwtgo.NewJWT()
 	claims, err := j.ParserToken(tokenString)
-	if claims.UserID == "" {
+	if err != nil {
+		return "", err
+	}
+	if claims != nil && claims.UserID == "" {
 		return "", errors.New("token无效")
 	}
 	return claims.UserID, err

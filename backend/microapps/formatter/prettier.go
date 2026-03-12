@@ -15,7 +15,7 @@ func NewPrettierFormatter() *PrettierFormatter {
 	base := NewCommandFormatter(
 		"prettier",
 		"prettier",
-		[]string{"JavaScript", "TypeScript", "JSON", "CSS", "HTML"},
+		[]string{"javascript", "typescript", "json", "css", "html"},
 		[]string{}, // Args will be set in Format method
 	)
 
@@ -26,11 +26,11 @@ func NewPrettierFormatter() *PrettierFormatter {
 func (f *PrettierFormatter) Format(ctx context.Context, code string, options FormatOptions) (string, error) {
 	// Determine file extension based on language
 	extensions := map[string]string{
-		"JavaScript": "js",
-		"TypeScript": "ts",
-		"JSON":       "json",
-		"CSS":        "css",
-		"HTML":       "html",
+		"javascript": "js",
+		"typescript": "ts",
+		"json":       "json",
+		"css":        "css",
+		"html":       "html",
 	}
 
 	ext := "js" // default

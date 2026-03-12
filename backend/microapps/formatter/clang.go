@@ -15,7 +15,7 @@ func NewClangFormatFormatter() *ClangFormatFormatter {
 	base := NewCommandFormatter(
 		"clang-format",
 		"clang-format",
-		[]string{"C", "C++", "Java", "JavaScript", "Objective-C"},
+		[]string{"c", "cpp", "java", "javascript", "objc"},
 		[]string{}, // Args will be set in Format method
 	)
 
@@ -26,11 +26,11 @@ func NewClangFormatFormatter() *ClangFormatFormatter {
 func (f *ClangFormatFormatter) Format(ctx context.Context, code string, options FormatOptions) (string, error) {
 	// Determine file extension based on language
 	extensions := map[string]string{
-		"C":           "c",
-		"C++":         "cpp",
-		"Java":        "java",
-		"JavaScript":  "js",
-		"Objective-C": "m",
+		"c":          "c",
+		"cpp":        "cpp",
+		"java":       "java",
+		"javascript": "js",
+		"objc":       "m",
 	}
 
 	ext := "cpp" // default
@@ -47,8 +47,9 @@ func (f *ClangFormatFormatter) Format(ctx context.Context, code string, options 
 	}
 
 	// Set args for this format call
+	// Google LLVM Chromium Mozilla WebKit Microsoft GNU
 	f.args = []string{
-		"-style=Google",
+		"-style=Microsoft",
 		fmt.Sprintf("-assume-filename=%s", filename),
 	}
 

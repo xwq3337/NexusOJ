@@ -5,6 +5,7 @@ import (
 	"nexus/config"
 	"nexus/controllers"
 	"nexus/microapps"
+	"nexus/middleware"
 	"nexus/middleware/jwt"
 	"nexus/utils"
 	"time"
@@ -42,7 +43,8 @@ func Router() *gin.Engine {
 		MaxAge:           50 * time.Second,
 	}))
 	// r.Use(ipinterceptor.Interceptor())
-	// r.Use(middleware.RequestLogger(middleware.DefaultRequestLoggerConfig()))
+	// 请求日志
+	r.Use(middleware.RequestLogger())
 	microapps.MicroRouter(r) // 微应用路由
 	wsGroup := r.Group("/ws")
 	{
@@ -79,12 +81,13 @@ func Router() *gin.Engine {
 		chatGroup.GET("/unread", controllers.ChatController{}.GetUnReadRecord)        // 获取未读消息
 		chatGroup.POST("/mark-read", controllers.ChatController{}.MarkMessagesAsRead) // 标记消息已读
 	}
+	userGroup.GET("/refresh", controllers.UserController{}.RefreshToken) // 刷新token
+
 	//#####################################################################
 	// -----------------------以下为JWT验证相关代码---------------------------
 
 	r.Use(jwt.Auth())
 	{
-		userGroup.POST("/refresh", controllers.UserController{}.GetAccessToken)                              // 刷新token
 		userGroup.POST("/update", controllers.UserController{}.UpdateUser)                                   // 更新用户信息
 		userGroup.POST("/update-avatar", controllers.UserController{}.UpdateAvatar)                          // 更改头像
 		userGroup.POST("/update-password", controllers.UserController{}.UpdatePassword)                      // 更改密码
@@ -159,6 +162,10 @@ func Router() *gin.Engine {
 		fileDownload.GET("/chunk", controllers.FileDownloadController{}.GetChunk) // 分块下载接口
 	}
 	r.GET("/cloud-storage", controllers.FileUploadController{}.GetDirStruct) // 获取云存储目录结构
-
+	logGroup := r.Group("/log")
+	{
+		logGroup.GET("/date", controllers.LogController{}.GetDate) // 获取所有日志日期
+		logGroup.GET("/list", controllers.LogController{}.GetList) // 获取某一天的日志列表
+	}
 	return r
 }

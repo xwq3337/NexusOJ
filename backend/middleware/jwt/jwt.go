@@ -28,26 +28,20 @@ func Auth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		tokenString := strings.Split(c.Request.Header.Get("Authorization"), " ")[1]
-		j := NewJWT()
-		claims, err := j.ParserToken(tokenString)
-		fmt.Println("用户 ID: ", claims.UserID)
-		if err != nil || claims.UserID == "" {
-			if errors.Is(err, TokenExpired) {
-				utils.ReturnError(c, http.StatusUnauthorized, "token授权已过期,请重新申请授权")
-				c.Abort()
-				return
-			}
-			if errors.Is(err, TokenMalformed) {
-				utils.ReturnError(c, http.StatusUnauthorized, "token格式错误")
-				c.Abort()
-				return
-			}
-			errorMsg := "token无效"
-			if err != nil {
-				errorMsg = err.Error()
-			}
-			utils.ReturnError(c, http.StatusUnauthorized, errorMsg)
+		tokens := strings.Split(c.Request.Header.Get("Authorization"), " ")
+		if len(tokens) != 2 {
+			utils.ReturnError(c, http.StatusUnauthorized, "请求token格式有误")
+			c.Abort()
+			return
+		}
+		claims, err := NewJWT().ParserToken(tokens[1])
+		if err != nil {
+			utils.ReturnError(c, http.StatusUnauthorized, err.Error())
+			c.Abort()
+			return
+		}
+		if claims != nil && claims.UserID == "" {
+			utils.ReturnError(c, http.StatusUnauthorized, "用户不存在")
 			c.Abort()
 			return
 		}
