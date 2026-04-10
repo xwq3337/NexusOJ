@@ -128,22 +128,23 @@ type Response = {
 
 watch(isAuthorization, (auth) => {
   if (auth) {
-    const { close } = useNexusEventSource(`/sse/chat/unread?id=${id}`, {
-      onMessage: (msg: Response) => {
-        console.log("message: ", msg)
-        if (msg.event === "heartbeat") return
-        unRead.value = Number(msg.data)
-      },
+    const { close, addListener } = useNexusEventSource(`/sse/chat/unread?id=${id}`, {
       onError(err) {
-        console.log("err", err)
+        console.log("unread err", err)
       },
       onOpen() {
-        console.log('open')
+        console.log('unread open')
       },
       onClose() {
-        console.log('close')
+        console.log('unread close')
       }
     })
+    addListener('message', (msg : Response) => {
+      unRead.value = Number(msg.data)
+     })
+    addListener('heartbeat', (msg : Response) => {
+      console.log('unread heartbeat')
+     })
   }
 }, { immediate: true })
 

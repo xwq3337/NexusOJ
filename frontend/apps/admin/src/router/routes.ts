@@ -67,7 +67,7 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           title: '比赛信息管理',
         },
-        component: () => import('@/views/Contest/ContestInfo.vue'),
+        component: () => import('@/views/Contest/ContestList.vue'),
       },
       {
         path: '/contest-create',
@@ -76,6 +76,14 @@ export const routes: RouteRecordRaw[] = [
           title: '比赛创建',
         },
         component: () => import('@/views/Contest/ContestCreate.vue'),
+      },
+      {
+        path: '/contest/:id',
+        name: 'contest-detail',
+        meta: {
+          title: '比赛详情',
+        },
+        component: () => import('@/views/Contest/ContestDetail.vue'),
       },
       {
         path: '/problem-info',

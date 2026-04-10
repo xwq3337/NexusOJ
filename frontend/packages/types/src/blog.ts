@@ -1,7 +1,7 @@
 export type BlogStatus = 'Pending' | 'Draft' | 'Normal' | 'Violation' | 'Deleted'
 export interface Blog {
   id: string
-  user_id: string
+  user_id: Number
   title: string
   context: string
   excerpt: string

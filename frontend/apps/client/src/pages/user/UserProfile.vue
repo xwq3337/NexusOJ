@@ -47,7 +47,7 @@ const { avatar } = storeToRefs(useUserStore())
 const handleAvatarChange = async (options: any) => {
   await userApi.updateAvatar(options.file.file).then(response => {
     if (response.code == 200) {
-      avatar.value = response.info + `?t=${Date.now()}`
+      avatar.value = response.info
       message.success('头像更新成功')
     }
     else {

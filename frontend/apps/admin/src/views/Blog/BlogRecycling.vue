@@ -3,7 +3,7 @@ import { blogApi } from '@nexusoj/server'
 import { onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
-import { safeJsonParse } from '@/utils/index'
+import { safeJsonParse } from '@nexusoj/utils'
 import { ElMessage } from 'element-plus'
 import type { Blog } from '@nexusoj/type'
 const RecyclingBlogList = ref<Blog[]>([])
@@ -43,7 +43,7 @@ const cancel = (e: MouseEvent) => {
 
     <el-table-column prop="tags" label="标签" align="center" width="200">
       <template #default="{ row }">
-        <el-tag v-for="(tag, index) in safeJsonParse(row.tags).value" :key="index" effect="dark">
+        <el-tag v-for="(tag, index) in safeJsonParse(row.tags).data" :key="index" effect="dark">
           {{ tag }}
         </el-tag>
       </template>

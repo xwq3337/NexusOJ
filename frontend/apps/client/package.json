@@ -19,6 +19,7 @@
     "@nexusoj/server": "workspace:*",
     "@nexusoj/type": "workspace:*",
     "@nexusoj/config": "workspace:*",
+    "@nexusoj/utils": "workspace:*",
     "@codemirror/lang-cpp": "^6.0.3",
     "@codemirror/lang-java": "^6.0.2",
     "@codemirror/lang-javascript": "^6.2.4",

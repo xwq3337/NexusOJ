@@ -92,7 +92,6 @@ const parseLogContent = (content: string): Log[] => {
           ip: '',
           latency: '',
           user_agent: '',
-          time: dayjs().format(),
           headers: {},
           response_body: {}
         })
@@ -316,6 +315,12 @@ onMounted(() => {
                 <el-descriptions-item label="延迟">
                   {{ formatLatency(row.latency) }}
                 </el-descriptions-item>
+                <el-descriptions-item label="ID">
+                  <div class="user-id">{{ row.user_id || '-' }}</div>
+                </el-descriptions-item>
+                <el-descriptions-item label="参数">
+                  <div class="user-id">{{ row.parameters || '-' }}</div>
+                </el-descriptions-item>
                 <el-descriptions-item label="UA" :span="2">
                   <div class="user-agent">{{ row.user_agent || '-' }}</div>
                 </el-descriptions-item>
@@ -447,7 +452,11 @@ onMounted(() => {
   font-size: 13px;
   color: #606266;
 }
-
+.user-id {
+  word-break: break-all;
+  font-size: 13px;
+  color: #606266;
+}
 .log-message {
   margin: 0;
   padding: 10px;

@@ -17,6 +17,7 @@
   "dependencies": {
     "@nexusoj/server": "workspace:*",
     "@nexusoj/type": "workspace:*",
+    "@nexusoj/utils": "workspace:*",
     "@ant-design/icons-vue": "^7.0.1",
     "@element-plus/icons-vue": "^2.3.1",
     "@kangc/v-md-editor": "^2.3.18",

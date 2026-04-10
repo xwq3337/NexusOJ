@@ -6,7 +6,7 @@
         <div class="lg:col-span-1">
           <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div class="text-center">
-              <n-avatar :size="80" :src="avatar + `?t=${Date.now()}`" class="mx-auto mb-4">
+              <n-avatar :size="80" :src="avatar" class="mx-auto mb-4">
                 <UserIcon v-if="!avatar" />
               </n-avatar>
               <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
@@ -53,7 +53,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, h, computed } from 'vue'
 import { useUserStore } from '@/stores/useUserStore'
-const {id, username, nickname,avatar,rating} = useUserStore()
+const {id, username, nickname,avatar, rating} = useUserStore()
 import {
   User,
   Settings,

@@ -143,7 +143,7 @@ import type { ChatMessage } from '@nexusoj/type'
 import MarkdownIt from 'markdown-it'
 import { NPopconfirm, NButton, NInput, useMessage } from "naive-ui"
 import { formateTimeStamp } from '@/utils/format'
-import { safeJsonParse } from '@/utils/safeJsonParse'
+import { safeJsonParse } from '@nexusoj/utils'
 const message = useMessage()
 // Initialize markdown-it
 const AiAssistantMessages = useLocalStorage('ai-assistant-messages', null)
@@ -175,7 +175,10 @@ const quickPrompts = [
 onMounted(() => {
   if (AiAssistantMessages.value) {
     try {
-      messages.value = safeJsonParse(AiAssistantMessages.value).value
+      const { data ,err } = safeJsonParse(AiAssistantMessages.value)
+      if(!err){
+         messages.value = data
+      }
     } catch (e) {
       console.error('Failed to load messages:', e)
     }

@@ -28,8 +28,8 @@
         <div class="flex justify-end p-4">
           <n-pagination v-model:page="pagination.page" v-model:page-size="pagination.pageSize"
             :page-count="Math.ceil(Number(totalRecords / pagination.pageSize))" :page-sizes="pagination.pageSizes"
-            size="medium" :show-size-picker="pagination.showSizePicker"
-            @update-page="pagination.onUpdatePage" @update-page-size="pagination.onUpdatePageSize" />
+            size="medium" :show-size-picker="pagination.showSizePicker" @update-page="pagination.onUpdatePage"
+            @update-page-size="pagination.onUpdatePageSize" />
         </div>
       </n-card>
     </div>
@@ -87,9 +87,12 @@ const fetchRecords = async () => {
     }
 
     await recordApi.getRecordList(params).then((res) => {
-      const { info } = res
-      records.value = info.data || []
-      totalRecords.value = info.total || 0
+      const { code, info } = res
+      if (code === 200 && info) {
+        records.value = info.data || []
+        totalRecords.value = info.total || 0
+      }
+
     })
   } catch (error) {
     console.error('获取记录失败:', error)
@@ -123,7 +126,7 @@ import { LANGUAGE_OPTIONS, LANGUAGE_CONFIG, STATUS_OPTIONS, STATUS_COLORS } from
 
 import { formatMemory, formatDate, formatTime } from '@/utils/format'
 import { recordApi } from '@nexusoj/server'
-import { JudgeVerdictType, GetRecordListParams,GetRecordListResponse } from '@nexusoj/type'
+import { JudgeVerdictType, GetRecordListParams, GetRecordListResponse } from '@nexusoj/type'
 
 // 更新路由参数
 const updateRouteQuery = () => {
@@ -190,14 +193,14 @@ const columns = [
       return h('div', [
         h('div', {
           style: { fontWeight: 'bold', color: 'var(--text-primary)', cursor: 'pointer' },
-          onClick: () => { router.push({ name: 'UserHomePage', params: { id: row.user_id } }) }
+          onClick: () => { router.push({ name: 'UserHomePage', params: { id: row.user_id as number } }) }
         }, row.username),
         h(
           'div',
           {
             style: { fontSize: '12px', color: 'var(--text-secondary)' },
           },
-          `ID: ${row.user_id.substring(0, 8)}...`,
+          `ID: ${String(row.user_id).substring(0, 8)}...`,
         )
       ])
     }

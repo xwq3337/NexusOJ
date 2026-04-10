@@ -1,5 +1,5 @@
 export interface User {
-  id: string
+  id: Number
   username: string
   password?: string
   email: string
@@ -22,8 +22,8 @@ export interface User {
 }
 export interface FriendShip {
   id: string
-  user_id: string
-  friend_id: string
+  user_id: Number
+  friend_id: Number
   friend_username: string
   friend_nickname: string
   unread_count : number
@@ -34,8 +34,8 @@ export interface FriendShip {
 }
 export interface FriendShipRequest {
   id: string
-  user_id: string
-  friend_id: string
+  user_id: Number
+  friend_id: Number
   friend_username: string
   friend_nickname: string
   friend_avatar: string

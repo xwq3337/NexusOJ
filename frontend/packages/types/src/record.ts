@@ -1,7 +1,7 @@
 export interface Record {
     id : number
     problem_id : number
-    user_id : string
+    user_id : Number
     max_time : number
     max_memory : number
     code : string

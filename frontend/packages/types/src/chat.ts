@@ -1,7 +1,7 @@
 export interface ChatMessage {
   id?: string
-  sender_id : string
-  receiver_id : string
+  sender_id : Number
+  receiver_id : Number
   status: boolean
   message_type: 'text' | 'image' | 'voice' | 'video' | 'file'
   content: string

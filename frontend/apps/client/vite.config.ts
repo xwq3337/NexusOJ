@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [vue()],
     define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+      // 'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY)
     },
     resolve: {
       alias: {

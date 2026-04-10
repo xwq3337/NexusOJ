@@ -7,9 +7,9 @@ export interface Log {
     method : string // http method
     path : string // http path
     ip : string // client ip
+    user_id? : string // user id
     latency : string // request latency 335.791µs
     user_agent : string // client user agent
-    time : string // same as ts
     headers : Object  // 
     response_body : Object //
 }

@@ -129,8 +129,36 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/contest/:id',
+    name: 'ContestDetail',
     component: () => import('@/pages/contest/ContestDetail.vue'),
-    name: 'ContestDetail'
+    redirect: (to) => ({ name: 'ContestProblems', params: to.params }),
+    children: [
+      {
+        path: '',
+        name: 'ContestProblems',
+        component: () => import('@/pages/contest/ContestProblems.vue')
+      },
+      {
+        path: 'submissions',
+        name: 'ContestSubmissions',
+        component: () => import('@/pages/contest/ContestSubmissions.vue')
+      },
+      {
+        path: 'ranking',
+        name: 'ContestRanking',
+        component: () => import('@/pages/contest/ContestRanking.vue')
+      },
+      {
+        path: 'editorial',
+        name: 'ContestEditorial',
+        component: () => import('@/pages/contest/ContestEditorial.vue')
+      }
+    ]
+  },
+  {
+    path: '/contest/:id/:label',
+    component: () => import('@/pages/contest/ContestProblem.vue'),
+    name: 'ContestProblem'
   },
   {
     path: '/user/:id',

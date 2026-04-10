@@ -82,6 +82,9 @@ export const userApi = {
   Count: (): Promise<ApiResponse<number>> => {
     return Request.get(`/user/count`)
   },
+  getTopRating: (): Promise<ApiResponse<User[]>> => {
+    return Request.get('/user/top-rating')
+  },
   getUserRecordList: (
     id: string,
     params: Partial<GetRecordListParams>

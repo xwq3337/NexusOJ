@@ -110,24 +110,6 @@ import { API_BASE_URL } from '@nexusoj/config'
 
 ## 开发工作流
 
-### 添加新应用
-
-1. 在 `apps/` 下创建目录：`apps/new-app/`
-2. 创建 `package.json`：
-   ```json
-   {
-     "name": "@nexusoj/new-app",
-     "private": true,
-     "scripts": {
-       "dev": "vite",
-       "build": "vite build",
-       "lint": "eslint .",
-       "type-check": "tsc --noEmit"
-     }
-   }
-   ```
-3. 如需，在根 `package.json` 中添加快捷脚本
-
 ### 添加共享包
 
 1. 在 `packages/` 下创建目录：`packages/new-package/`
