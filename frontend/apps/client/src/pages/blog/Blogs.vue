@@ -198,8 +198,8 @@ const blogs = ref<(Blog & { user_id: string, username: string })[]>()
 // 加载博客数据
 const loadBlogs = async (query = '') => {
   try {
-    const { info: { data: blogs, total} } = await blogApi.getAvailableList(query, pagination.page, pagination.pageSize)
-    blogs.value = blogs
+    const { info: { data, total} } = await blogApi.getAvailableList(query, pagination.page, pagination.pageSize)
+    blogs.value = data
     totalBlogs.value = total
   } catch (error) {
     console.error('获取博客数据失败:', error)

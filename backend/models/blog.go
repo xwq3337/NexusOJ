@@ -2,6 +2,7 @@ package models
 
 import (
 	"nexus/dao"
+	"nexus/utils"
 	"time"
 
 	"github.com/google/uuid"
@@ -83,16 +84,23 @@ type BlogDetail struct {
 	Avatar   string `json:"avatar"`
 }
 
+// BlogListItem 博客列表项（含分页总数）
+type BlogListItem struct {
+	Blog
+	Username string `json:"username"`
+	Total    int64  `json:"-" gorm:"column:total"`
+}
+
 // 某个用户能够查看的博客列表，使用窗口函数一次查询返回数据和总数
-func (Blog) GetAvailableBlog(user_id uint64, keywords string, page int, page_size int) ([]map[string]interface{}, int64, error) {
+func (Blog) GetAvailableBlog(user_id uint64, keywords string, page int, page_size int) ([]BlogListItem, int64, error) {
 	offset := (page - 1) * page_size
 
-	var results []map[string]interface{}
+	var results []BlogListItem
 	err := dao.MysqlClient.Model(&Blog{}).
 		Select("blog.id", "blog.view", "blog.excerpt", "blog.user_id", "blog.title", "blog.like", "blog.tags", "blog.collection", "blog.created_at", "blog.updated_at", "user.username", "COUNT(*) OVER() AS total").
 		Joins("LEFT JOIN user ON blog.user_id = user.id").
 		Where("blog.status = ?", "Normal").
-		Where("(MATCH(blog.title) AGAINST(? IN BOOLEAN MODE) OR blog.tags LIKE CONCAT('%',?,'%')) AND blog.deleted_at IS NULL AND (blog.user_id = ? OR blog.is_private = 0)", keywords, keywords, user_id).
+		Where("(MATCH(blog.title) AGAINST(? IN BOOLEAN MODE) OR blog.tags LIKE CONCAT('%',?,'%')) AND blog.deleted_at IS NULL AND (blog.user_id = ? OR blog.is_private = 0)", utils.SanitizeFTSSearch(keywords), keywords, user_id).
 		Order("blog.created_at DESC").
 		Offset(offset).
 		Limit(page_size).
@@ -103,13 +111,7 @@ func (Blog) GetAvailableBlog(user_id uint64, keywords string, page int, page_siz
 
 	var total int64
 	if len(results) > 0 {
-		if t, ok := results[0]["total"]; ok {
-			total = t.(int64)
-		}
-	}
-
-	for i := range results {
-		delete(results[i], "total")
+		total = results[0].Total
 	}
 
 	return results, total, nil

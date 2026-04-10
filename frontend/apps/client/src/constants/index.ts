@@ -237,11 +237,26 @@ export const STATUS_OPTIONS = [
   { label: '超时', value: 'TimeLimitExceeded' },
   { label: '内存超限', value: 'MemoryLimitExceeded' },
   { label: '运行错误', value: 'RuntimeError' },
-  { label: '编译错误', value: 'CompilationError' }
+  { label: '编译错误', value: 'CompilationError' },
+  { label: '系统错误', value: 'SystemError' },
+  { label: '系统调用限制', value: 'RestrictedSystemCall' }
 ]
-
-
-export const STATUS_COLORS = {
+export const STATUS_MESSAGE = {
+  Accepted: '恭喜你🎉 通过了!!!',
+  WrongAnswer: '很遗憾，答案错误了哦~',
+  TimeLimitExceeded: '很遗憾，超时了哦~',
+  MemoryLimitExceeded: '很遗憾，内存超限了哦~',
+  RuntimeError: '很遗憾，运行错误了哦~',
+  CompilationError: '很遗憾，编译错误了哦~',
+  SystemError: '很遗憾，系统错误了哦~',
+  RestrictedSystemCall: '很遗憾，系统调用限制错误了哦~'
+}
+interface StatusColor {
+  color: string
+  textColor: string
+  borderColor: string
+}
+export const STATUS_COLORS : Record<string, StatusColor> = {
   // success
   Accepted: {
     color: '#18a0581a',
@@ -277,5 +292,26 @@ export const STATUS_COLORS = {
     color: '#2080f01a',
     textColor: 'rgb(32, 128, 240)',
     borderColor: 'rgba(32, 128, 240, 0.3)'
+  },
+  // primary
+  RestrictedSystemCall: {
+    color: '#2080f01a',
+    textColor: 'rgb(32, 128, 240)',
+    borderColor: 'rgba(32, 128, 240, 0.3)'
+  },
+  // primary
+  SystemError: {
+    color: '#2080f01a',
+    textColor: 'rgb(32, 128, 240)',
+    borderColor: 'rgba(32, 128, 240, 0.3)'
+  }
+}
+
+
+export const convertToCss = ({color, textColor, borderColor} : StatusColor) => {
+  return {
+    backgroundColor: color,
+    color: textColor,
+    borderColor: borderColor
   }
 }

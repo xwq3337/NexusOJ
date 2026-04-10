@@ -41,9 +41,10 @@ func (RecodeController) GetList(c *gin.Context) {
 	search := c.Query("search")
 	verdict := c.Query("verdict")
 	language := c.Query("language")
+	problemID := c.Query("problem_id")
 
 	// 调用模型层获取数据
-	results, total, err := models.Record{}.GetAllRecord(pageInt, pageSizeInt, search, verdict, language)
+	results, total, err := models.Record{}.GetAllRecord(pageInt, pageSizeInt, search, verdict, language, problemID)
 
 	if err == nil {
 		utils.ReturnSuccess(c, http.StatusOK, "success", gin.H{
@@ -60,7 +61,7 @@ func (RecodeController) CreateRecord(c *gin.Context) {
 }
 
 func (RecodeController) GetRecodeListByUser(c *gin.Context) {
-	userID := c.Param("id")
+	userId := c.Param("id")
 
 	// 获取分页参数，默认第1页，每页20条
 	pageStr := c.DefaultQuery("page", "1")
@@ -80,10 +81,13 @@ func (RecodeController) GetRecodeListByUser(c *gin.Context) {
 	verdict := c.Query("verdict")
 	language := c.Query("language")
 
-	results, err := models.QueryRecordByUserId(userID, page, pageSize, verdict, language)
+	records, total, err := models.QueryRecordByUserId(userId, page, pageSize, verdict, language)
 	if err != nil {
-		utils.ReturnError(c, http.StatusNotFound, err)
+		utils.ReturnError(c, http.StatusInternalServerError, "查询失败")
 		return
 	}
-	utils.ReturnSuccess(c, http.StatusOK, "success", results)
+	utils.ReturnSuccess(c, http.StatusOK, "success", gin.H{
+		"records": records,
+		"total":  total,
+	})
 }

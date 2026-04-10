@@ -6,13 +6,13 @@ export interface Problem {
   input_description: string
   output_description: string
   judge_case : JudgeCase[]
-  judge_config? : JudgeConfig
+  judge_config : JudgeConfig
   judge_sample : JudgeCase[]
   tips?: string
   difficulty: number
   tags: string[]
   accept: number
-  submission?: number
+  submission: number
   collection?: number
   created_at?: string
   updated_at?: string

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"nexus/dao"
+	"nexus/utils"
 	"sort"
 	"time"
 
@@ -81,7 +82,7 @@ func (Contest) GetAllContests(page, pageSize int, search string) ([]Contest, int
 
 	query := dao.MysqlClient.Model(&Contest{})
 	if search != "" {
-		query = query.Where("MATCH(title) AGAINST(? IN BOOLEAN MODE)", search)
+		query = query.Where("MATCH(title) AGAINST(? IN BOOLEAN MODE)", utils.SanitizeFTSSearch(search))
 	}
 
 	err := query.Count(&total).Error

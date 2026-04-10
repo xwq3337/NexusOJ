@@ -128,6 +128,11 @@ const routes: RouteRecordRaw[] = [
     name: 'BlogCreate'
   },
   {
+    path: '/solution/create',
+    component: () => import('@/pages/solution/SolutionCreate.vue'),
+    name: 'SolutionCreate'
+  },
+  {
     path: '/contest/:id',
     name: 'ContestDetail',
     component: () => import('@/pages/contest/ContestDetail.vue'),

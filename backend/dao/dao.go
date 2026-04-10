@@ -64,9 +64,10 @@ func mySql() {
 		panic(err)
 	}
 	db, _ := MysqlClient.DB()
-	db.SetMaxIdleConns(10)  // 空闲连接数
-	db.SetMaxOpenConns(100) // 打开最大连接
-	db.SetConnMaxLifetime(time.Hour)
+	db.SetMaxIdleConns(10)             // 空闲连接数
+	db.SetMaxOpenConns(100)            // 打开最大连接
+	db.SetConnMaxLifetime(time.Hour)   // 连接最大存活时间
+	db.SetConnMaxIdleTime(5 * time.Minute) // 空闲连接最大存活时间
 }
 func init() {
 	db, _ := strconv.ParseUint(config.RedisDbName, 10, 64)

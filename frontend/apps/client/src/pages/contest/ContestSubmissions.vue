@@ -118,6 +118,16 @@ const columns = [
       ])
   },
   {
+    title: '用户',
+    key: 'username',
+    ellipsis: true,
+    render: (row: ContestRecordItem) =>
+      h('div', { 
+        class: 'flex items-center gap-2' ,
+        onClick : () => router.push({ name: 'UserHomePage', params: { id: row.user_id } }),
+      }, row.username)
+  },
+  {
     title: '语言',
     key: 'language',
     width: 130,
@@ -196,7 +206,5 @@ onMounted(() => {
           @update:page-size="currentPage = 1; fetchRecords()" />
       </div>
     </NCard>
-
-    <NResult v-if="!loading && records.length === 0" description="暂无提交记录" />
   </div>
 </template>

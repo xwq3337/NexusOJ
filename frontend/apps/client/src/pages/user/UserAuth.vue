@@ -150,8 +150,8 @@ const { initStore } = useUserStore()
 const regex = /redirect=([^&]+)/
 const redirectPath = route.fullPath.match(regex)?.slice(1)[0] ?? '/'
 
-const AccessToken = useLocalStorage('access_token', null)
-const RefreshToken = useLocalStorage('refresh_token', null)
+const AccessToken = useLocalStorage('access_token', '')
+const RefreshToken = useLocalStorage('refresh_token', '')
 const checkAuth = inject('checkAuth') as () => Promise<void>
 const message = useMessage()
 
@@ -236,14 +236,18 @@ const handleValidateButtonClick = (e: MouseEvent) => {
   formRef.value?.validate((errors) => {
     if (!errors) {
       userApi
-        .Login(modelRef.value.username, modelRef.value.password)
+        .Login(modelRef.value.username as string, modelRef.value.password as string)
         .then((res) => {
           console.log(res)
 
           const { msg, info, code } = res
-          if (code === HttpStatusCode.Ok) {
+          if (code === HttpStatusCode.Ok && info && Array.isArray(msg)) { 
+            if (!msg || msg.length < 2 || typeof msg[0] !== 'string' || typeof msg[1] !== 'string') {
+              message.error('登录失败，服务器返回数据异常')
+              return
+            }
             AccessToken.value = msg[0]
-            RefreshToken.value = msg[1]
+            RefreshToken.value = msg[1] 
             initStore({
               Id: info.id,
               Username: modelRef.value.username,

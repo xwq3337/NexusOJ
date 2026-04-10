@@ -6,13 +6,16 @@ export const problemApi = {
   getProblemList: (): Promise<ApiResponse<ProblemListDTO[]>> => {
     return Request.get('/problem/list')
   },
-  getProblemDetail: (id: string): Promise<ApiResponse<Problem>> => {
+  getProblemDetail: (id: string): Promise<ApiResponse<{
+    problem : Problem,
+    my_status : "unattempted" | "attempted" | "accepted",
+  }>> => {
     return Request.get(`/problem/${id}`)
   },
   Count: (): Promise<ApiResponse<number>> => {
     return Request.get(`/problem/count`)
   },
-  SubmitCode: (options: SubmitCodeOptions): Promise<ApiResponse<string>> => {
+  SubmitCode: (options: SubmitCodeOptions): Promise<ApiResponse<any>> => {
     return Request.post('/problem/submit', { ...options })
   },
   // TODO:标明类型

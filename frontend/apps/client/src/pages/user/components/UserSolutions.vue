@@ -66,7 +66,7 @@
           </span>
           <div class="flex items-center gap-2 text-xs" :style="{ color: 'var(--text-tertiary)' }">
             <Eye :size="14" />
-            <span>{{ solution.views }} 阅读</span>
+            <span>{{ solution.view }} 阅读</span>
           </div>
         </div>
 
@@ -77,7 +77,7 @@
 
         <!-- Problem Name -->
         <p class="text-sm mb-3 truncate" :style="{ color: 'var(--text-secondary)' }">
-          {{ solution.problemTitle }}
+          {{ solution.problem_title }}
         </p>
 
         <!-- Tags -->
@@ -99,7 +99,7 @@
         <div class="flex items-center justify-between text-xs" :style="{ color: 'var(--text-tertiary)' }">
           <span class="flex items-center gap-1">
             <ThumbsUp :size="12" />
-            {{ solution.likes }}
+            {{ solution.like }}
           </span>
           <span>{{ formatRelativeTime(solution.created_at) }}</span>
         </div>
@@ -136,6 +136,7 @@ import {
 } from 'lucide-vue-next'
 import { formatRelativeTime } from '@/utils/format'
 import { difficultyMap } from '@/constants'
+import { solutionApi } from '@nexusoj/server'
 
 const props = defineProps<{
   userId?: string
@@ -189,21 +190,16 @@ const getDifficultyLabel = (difficulty: number) => {
 const fetchSolutions = async () => {
   loading.value = true
   try {
-    // TODO: Replace with actual API call
-    // const params = {
-    //   page: currentPage.value,
-    //   page_size: pageSize.value,
-    //   difficulty: filters.value.difficulty || undefined,
-    //   tag: filters.value.tag || undefined,
-    //   search: filters.value.search || undefined
-    // }
-    // const response = await solutionApi.getUserSolutions(props.userId || '', params)
-    // solutions.value = response.data
-    // totalPages.value = Math.ceil(response.total / pageSize.value)
-
-    // Mock data
-    solutions.value = []
-    totalPages.value = 0
+    const params = {
+      page: currentPage.value,
+      page_size: pageSize.value,
+      user_id: props.userId ? Number(props.userId) : undefined,
+      tag: filters.value.tag || undefined,
+      keyword: filters.value.search || undefined
+    }
+    const response = await solutionApi.getSolutions(params)
+    solutions.value = response.info?.solutions || []
+    totalPages.value = Math.ceil((response.info?.total || 0) / pageSize.value)
   } catch (error) {
     console.error('Failed to fetch solutions:', error)
   } finally {

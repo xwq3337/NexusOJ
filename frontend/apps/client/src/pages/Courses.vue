@@ -81,7 +81,6 @@
     <div class="mt-8 flex justify-center">
       <n-pagination
         v-model:page="currentPage"
-        :page-count="totalPages"
         :page-size="pageSize"
         :item-count="courses.length"
       />

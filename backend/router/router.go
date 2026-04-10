@@ -86,6 +86,7 @@ func Router() *gin.Engine {
 
 	//#####################################################################
 	// -----------------------以下为JWT验证相关代码---------------------------
+	r.Use(jwt.Auth())
 
 	{
 		userGroup.POST("/update", controllers.UserController{}.UpdateUser)                                   // 更新用户信息
@@ -151,7 +152,15 @@ func Router() *gin.Engine {
 		contest.GET("/:id/ranking/stream", controllers.ContestController{}.StreamContestRanking)         // SSE排名推送
 		contest.GET("/:id/my-status", controllers.ContestController{}.GetMyContestStatus)                // 用户参赛状态
 	}
-	r.Use(jwt.Auth())
+
+	solution := r.Group("/solution")
+	{
+		solution.GET("/list", controllers.SolutionController{}.GetSolutions)          // 题解列表
+		solution.GET("/:id", controllers.SolutionController{}.GetSolutionDetail)      // 题解详情
+		solution.POST("/create", controllers.SolutionController{}.CreateSolution)     // 创建题解
+		solution.POST("/update/:id", controllers.SolutionController{}.UpdateSolution) // 更新题解
+		solution.POST("/delete/:id", controllers.SolutionController{}.DeleteSolution) // 删除题解
+	}
 
 	adminContest := r.Group("/admin/contest")
 	{
@@ -166,6 +175,7 @@ func Router() *gin.Engine {
 		adminContest.GET("/:id/import-preview", controllers.ContestController{}.GetImportPreview)        // 预览可导入题目
 		adminContest.POST("/:id/import-problems", controllers.ContestController{}.ImportContestProblems) // 导入题目到题库
 	}
+
 	file := r.Group("/file")
 	{
 		file.POST("/upload", controllers.FileUploadController{}.UploadFile)            // 文件上传

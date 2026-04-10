@@ -2,6 +2,7 @@ package models
 
 import (
 	"nexus/dao"
+	"nexus/utils"
 	"time"
 
 	"gorm.io/datatypes"
@@ -87,8 +88,7 @@ func (Problem) QueryProblemByKeyword(keyword string) ([]ProblemDetail, error) {
 	var problems []ProblemDetail
 	err := dao.MysqlClient.Model(Problem{}).
 		Select("problem.title, problem.id", "user.username").
-		Where("MATCH(problem.title) AGAINST(? IN BOOLEAN MODE)", keyword).
-		// Or("problem.context LIKE ?", "%"+keyword+"%").
+		Where("MATCH(problem.title) AGAINST(? IN BOOLEAN MODE)", utils.SanitizeFTSSearch(keyword)).
 		Joins("LEFT JOIN user ON user.id = problem.user_id").
 		Find(&problems).Error
 	if err != nil {

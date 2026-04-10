@@ -6,7 +6,7 @@
       <!-- 筛选和搜索区域 -->
       <div class="mb-6 flex gap-4 p-4 rounded-lg" :style="{ backgroundColor: 'var(--surface-primary)' }">
         <n-input v-model:value="searchKeyword" placeholder="搜索题目或用户..." style="max-width: 300px"
-          :style="{ backgroundColor: 'var(--surface-tertiary)' }" clearable>
+          :style="{ backgroundColor: 'var(--surface-tertiary)' }" clearable @keydown.enter="fetchRecords">
           <template #prefix>
             <Search :size="18" />
           </template>
@@ -16,7 +16,7 @@
           clearable />
 
         <n-select v-model:value="languageFilter"
-          :options="LANGUAGE_OPTIONS.map(lang => ({ label: LANGUAGE_CONFIG[lang].label, value: lang }))"
+          :options="LANGUAGE_OPTIONS.map(lang => ({ label: LANGUAGE_CONFIG[lang as keyof typeof LANGUAGE_CONFIG].label, value: lang }))"
           placeholder="语言" style="min-width: 120px" clearable />
 
         <n-button @click="resetFilters" type="default">重置</n-button>
@@ -27,8 +27,8 @@
         <n-data-table :columns="columns" :data="records" :loading="loading" size="small" :row-key="(row) => row.id" />
         <div class="flex justify-end p-4">
           <n-pagination v-model:page="pagination.page" v-model:page-size="pagination.pageSize"
-            :page-count="Math.ceil(Number(totalRecords / pagination.pageSize))" :page-sizes="pagination.pageSizes"
-            size="medium" :show-size-picker="pagination.showSizePicker" @update-page="pagination.onUpdatePage"
+            :item-count="totalRecords" :page-sizes="pagination.pageSizes" size="medium"
+            :show-size-picker="pagination.showSizePicker" @update-page="pagination.onUpdatePage"
             @update-page-size="pagination.onUpdatePageSize" />
         </div>
       </n-card>
@@ -114,7 +114,7 @@ onMounted(() => {
 // 重置筛选条件
 const resetFilters = () => {
   searchKeyword.value = ''
-  statusFilter.value = null
+  statusFilter.value = undefined
   languageFilter.value = null
   currentPage.value = 1
   updateRouteQuery()
@@ -233,10 +233,10 @@ const columns = [
         {
           size: 'small',
           style: { margin: '2px' },
-          color: LANGUAGE_CONFIG[row.language].color
+          color: LANGUAGE_CONFIG[row.language as keyof typeof LANGUAGE_CONFIG].color
         },
         {
-          default: () => LANGUAGE_CONFIG[row.language].label
+          default: () => LANGUAGE_CONFIG[row.language as keyof typeof LANGUAGE_CONFIG].label
         }
       )
     }
@@ -302,7 +302,7 @@ watch(totalRecords, (newTotal) => {
 })
 
 // 监听筛选条件变化，重新获取数据
-watch([searchKeyword, statusFilter, languageFilter], () => {
+watch([statusFilter, languageFilter], () => {
   currentPage.value = 1
   updateRouteQuery()
   fetchRecords()

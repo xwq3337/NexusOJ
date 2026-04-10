@@ -164,7 +164,7 @@ def read_files(directory):
 
 
 def vectorize_and_insert(collection, data, batch_size=10):
-    """将新闻数据向量化并批量插入Milvus"""
+    """将数据向量化并批量插入Milvus"""
     total = len(data)
     logger.info(f"开始向量化和插入 {total} 条新闻数据")
     

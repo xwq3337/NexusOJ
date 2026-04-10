@@ -66,7 +66,7 @@
               :style="{
                 backgroundColor: index < 3 ? 'var(--surface-secondary)' : 'transparent'
               }"
-              @click="$router.push({ name: 'UserPersonalCenter', params: { id: user.username } })"
+              @click="$router.push({ name: 'UserHomePage', params: { id: String(user.id) } })"
             >
               <div
                 class="w-6 h-6 flex items-center justify-center text-xs font-bold rounded"

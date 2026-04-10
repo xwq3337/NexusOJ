@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"nexus/config"
 	"nexus/dao"
+	"nexus/utils"
 	"time"
 
 	"gorm.io/gorm"
@@ -54,7 +55,7 @@ func (User) QueryUserById(id uint64) (User, error) {
 }
 func (User) FuzzyQuery(key string) ([]User, error) {
 	var users []User
-	err := dao.MysqlClient.Where("id = ? OR MATCH(username) AGAINST(? IN BOOLEAN MODE) OR MATCH(nickname) AGAINST(? IN BOOLEAN MODE)", key, key, key).Find(&users).Error
+	err := dao.MysqlClient.Where("id = ? OR MATCH(username) AGAINST(? IN BOOLEAN MODE) OR MATCH(nickname) AGAINST(? IN BOOLEAN MODE)", key, utils.SanitizeFTSSearch(key), utils.SanitizeFTSSearch(key)).Find(&users).Error
 	return users, err
 }
 func (user User) QueryUser() (User, error) {

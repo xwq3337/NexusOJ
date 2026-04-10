@@ -2,6 +2,7 @@ package models
 
 import (
 	"nexus/dao"
+	"nexus/utils"
 	"time"
 
 	"gorm.io/datatypes"
@@ -47,45 +48,55 @@ func QueryRecord(record Record) (Record, error) {
 /**
  * 根据用户id获取记录
  */
-func QueryRecordByUserId(userID string, page int, pageSize int, verdict string, language string) ([]map[string]interface{}, error) {
-	var record []map[string]interface{}
+// UserRecordItem 用户提交记录列表项
+type UserRecordItem struct {
+	ID            int64     `json:"id"`
+	ProblemID     string    `json:"problem_id"`
+	Language      string    `json:"language"`
+	Verdict       string    `json:"verdict"`
+	MaxTime       float32   `json:"max_time"`
+	MaxMemory     float32   `json:"max_memory"`
+	CreatedAt     time.Time `json:"created_at"`
+	ProblemTitle  string    `json:"problem_title"`
+	Total         int64     `json:"-" gorm:"column:total"`
+}
 
-	// 计算偏移量
+func QueryRecordByUserId(userID string, page int, pageSize int, verdict string, language string) ([]UserRecordItem, int64, error) {
+	var records []UserRecordItem
+
 	offset := (page - 1) * pageSize
 
-	// 构建查询
 	query := dao.MysqlClient.Table("record").
-		Select(`
-			record.id AS id,
+		Select(`record.id AS id,
 			record.problem_id AS problem_id,
 			record.language AS language,
 			record.verdict AS verdict,
 			record.max_time AS max_time,
 			record.max_memory AS max_memory,
 			record.created_at AS created_at,
-			problem.title AS problem_title
-		`).Joins(`INNER JOIN user ON user.id = record.user_id`).
+			problem.title AS problem_title,
+			COUNT(*) OVER() AS total`).
 		Joins(`INNER JOIN problem ON problem.id = record.problem_id`).
 		Where("record.user_id = ?", userID)
 
-	// 添加状态筛选
 	if verdict != "" {
 		query = query.Where("record.verdict = ?", verdict)
 	}
-
-	// 添加语言筛选
 	if language != "" {
 		query = query.Where("record.language = ?", language)
 	}
 
-	// 获取分页数据
-	err := query.
-		Order("created_at DESC").
-		Limit(pageSize).
-		Offset(offset).
-		Scan(&record).Error
+	err := query.Order("created_at DESC").Limit(pageSize).Offset(offset).Scan(&records).Error
+	if err != nil {
+		return nil, 0, err
+	}
 
-	return record, err
+	var total int64
+	if len(records) > 0 {
+		total = records[0].Total
+	}
+
+	return records, total, nil
 }
 
 /**
@@ -110,7 +121,7 @@ func QueryRecordById(id string) (*RecordDetail, error) {
 /**
  * 获取所有记录（支持分页和查询），使用窗口函数一次查询返回数据和总数
  */
-func (Record) GetAllRecord(page, pageSize int, search, verdict, language string) ([]map[string]interface{}, int64, error) {
+func (Record) GetAllRecord(page, pageSize int, search, verdict, language, problemID string) ([]map[string]interface{}, int64, error) {
 	var results []map[string]interface{}
 
 	query := dao.MysqlClient.Table("record").
@@ -130,13 +141,16 @@ func (Record) GetAllRecord(page, pageSize int, search, verdict, language string)
 		Joins(`JOIN problem ON problem.id = record.problem_id`)
 
 	if search != "" {
-		query = query.Where("MATCH(problem.title) AGAINST(? IN BOOLEAN MODE) OR MATCH(user.username) AGAINST(? IN BOOLEAN MODE)", search, search)
+		query = query.Where("MATCH(problem.title) AGAINST(? IN BOOLEAN MODE) OR MATCH(user.username) AGAINST(? IN BOOLEAN MODE)", utils.SanitizeFTSSearch(search), utils.SanitizeFTSSearch(search))
 	}
 	if verdict != "" {
 		query = query.Where("record.verdict = ?", verdict)
 	}
 	if language != "" {
 		query = query.Where("record.language = ?", language)
+	}
+	if problemID != "" {
+		query = query.Where("record.problem_id = ?", problemID)
 	}
 
 	offset := (page - 1) * pageSize

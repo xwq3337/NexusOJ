@@ -66,7 +66,7 @@ export interface ContestRecordItem {
 
 export interface ContestRankItem {
   rank: number
-  user_id: Number
+  user_id: number
   username: string
   avatar?: string
   solved: number

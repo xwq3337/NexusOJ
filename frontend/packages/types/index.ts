@@ -20,3 +20,5 @@ export * from './src/contest';
 export * from './src/problem';
 
 export * from './src/log'
+
+export * from './src/solution'

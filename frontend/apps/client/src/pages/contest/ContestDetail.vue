@@ -22,7 +22,8 @@ import {
   FileCode,
   BarChart,
   Trophy,
-  BookOpen
+  BookOpen,
+  ArrowLeft
 } from 'lucide-vue-next'
 import { contestApi } from '@nexusoj/server'
 
@@ -73,7 +74,10 @@ const handleRegister = async () => {
 }
 
 const handleEnterContest = () => {
-  router.push({ name: 'ContestProblem', params: { id: contestId, label: 'A' } })
+  // 默认进入第一个未通过的题目，若全部通过则进入第一个题目
+  const firstUnsolved = problems.value.find((p: any) => p.my_status !== 'accepted')
+  const targetLabel = firstUnsolved ? firstUnsolved.label : problems.value[0]?.label
+  router.push({ name: 'ContestProblem', params: { id: contestId, label: targetLabel } })
 }
 
 const handleShare = () => {
@@ -172,25 +176,29 @@ onUnmounted(() => {
 
 <template>
   <div class="animate-fade-in max-w-7xl mx-auto">
+
     <!-- Hero Section -->
-    <NCard
-      :style="{
-        background: 'linear-gradient(135deg, var(--contest-hero-from) 0%, var(--contest-hero-to) 100%)',
-        border: '1px solid var(--contest-hero-border)'
-      }"
-      :bordered="true"
-      class="mb-6"
-      content-style="padding: 32px;"
-    >
+    <NCard :style="{
+      background: 'linear-gradient(135deg, var(--contest-hero-from) 0%, var(--contest-hero-to) 100%)',
+      border: '1px solid var(--contest-hero-border)'
+    }" :bordered="true" class="mb-6" content-style="padding: 32px;">
       <div class="flex items-start justify-between flex-wrap gap-4">
         <div class="flex-1 min-w-0">
           <NSpace align="center" class="mb-3">
+            <NButton quaternary circle class="mb-4" @click="router.push({ name: 'Contests' })">
+              <template #icon>
+                <NIcon :size="20">
+                  <ArrowLeft />
+                </NIcon>
+              </template>
+            </NButton>
             <NTag :type="contest?.contest_type === 'ACM' ? 'info' : 'warning'" size="small" round>
               {{ contest?.contest_type || '' }} 赛制
             </NTag>
             <NTag v-if="contest?.status === 'Live'" type="success" size="small" round>
               <template #icon>
-                <NIcon><span class="inline-block w-1.5 h-1.5 rounded-full animate-pulse" style="background: currentColor" /></NIcon>
+                <NIcon><span class="inline-block w-1.5 h-1.5 rounded-full animate-pulse"
+                    style="background: currentColor" /></NIcon>
               </template>
               进行中
             </NTag>
@@ -204,25 +212,29 @@ onUnmounted(() => {
 
           <NSpace :size="20" class="text-sm" :style="{ color: 'var(--contest-subtitle)' }">
             <NSpace :size="4" align="center">
-              <NIcon :size="16"><Calendar /></NIcon>
+              <NIcon :size="16">
+                <Calendar />
+              </NIcon>
               <span>{{ formatContestTime(contest?.begin_at) }}</span>
             </NSpace>
             <NSpace :size="4" align="center">
-              <NIcon :size="16"><Clock /></NIcon>
+              <NIcon :size="16">
+                <Clock />
+              </NIcon>
               <span>{{ contest?.duration || 0 }} 分钟</span>
             </NSpace>
             <NSpace :size="4" align="center">
-              <NIcon :size="16"><Users /></NIcon>
+              <NIcon :size="16">
+                <Users />
+              </NIcon>
               <span>{{ contest?.participants }} 人参加</span>
             </NSpace>
           </NSpace>
         </div>
 
         <!-- Countdown Timer -->
-        <div
-          class="text-center px-6 py-4 rounded-xl"
-          :style="{ background: 'var(--contest-timer-bg)', border: '1px solid var(--contest-timer-border)' }"
-        >
+        <div class="text-center px-6 py-4 rounded-xl"
+          :style="{ background: 'var(--contest-timer-bg)', border: '1px solid var(--contest-timer-border)' }">
           <div class="text-xs mb-1" :style="{ color: 'var(--contest-timer-label)' }">
             {{ contest?.status === 'Live' ? '剩余时间' : contest?.status === 'Upcoming' ? '距离开始' : '已结束' }}
           </div>
@@ -238,7 +250,11 @@ onUnmounted(() => {
         <NButton v-if="!isRegistered" type="primary" @click="handleRegister">立即报名</NButton>
         <NButton v-else type="primary" @click="handleEnterContest">进入比赛</NButton>
         <NButton @click="handleShare">
-          <template #icon><NIcon><Share2 /></NIcon></template>
+          <template #icon>
+            <NIcon>
+              <Share2 />
+            </NIcon>
+          </template>
           分享
         </NButton>
       </NSpace>
@@ -253,8 +269,7 @@ onUnmounted(() => {
 
   <!-- Password Modal -->
   <NModal v-model:show="passwordModal" preset="dialog" title="输入比赛密码" positive-text="确认" negative-text="取消"
-    @positive-click="handleRegister"
-  >
+    @positive-click="handleRegister">
     <NInput v-model:value="passwordInput" type="password" show-password-on="click" placeholder="请输入比赛密码" />
   </NModal>
 </template>

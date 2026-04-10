@@ -20,6 +20,7 @@ func Migrate() {
 		&models.ContestRecord{},
 		&models.FriendShips{},
 		&models.FriendShipRequest{},
+		&models.Solution{},
 	)
 
 	// 回填已有 contest_problem 的题目数据（从 problem 表拷贝）
@@ -41,7 +42,7 @@ func Migrate() {
 		))
 	}
 
-	// 创建全文索引（如果不存在）
+	// 创建全文索引（使用 ngram 解析器，支持中文部分字符搜索）
 	type fulltextIndex struct {
 		table  string
 		column string
@@ -54,18 +55,14 @@ func Migrate() {
 		{"training", "title", "ft_training_title"},
 		{"user", "username", "ft_user_username"},
 		{"user", "nickname", "ft_user_nickname"},
+		{"solution", "title", "ft_solution_title"},
 	}
 	for _, idx := range indexes {
-		// 先检查索引是否已存在
-		var count int64
-		dao.MysqlClient.Raw(
-			"SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?",
-			idx.table, idx.name,
-		).Scan(&count)
-		if count == 0 {
-			sql := fmt.Sprintf("ALTER TABLE %s ADD FULLTEXT INDEX %s(%s)", idx.table, idx.name, idx.column)
-			dao.MysqlClient.Exec(sql)
-		}
+		// 先删除已有索引（可能是旧的普通全文索引，需重建为 ngram）
+		dao.MysqlClient.Exec(fmt.Sprintf("ALTER TABLE %s DROP INDEX %s", idx.table, idx.name))
+		// 重建为 ngram 全文索引
+		sql := fmt.Sprintf("ALTER TABLE %s ADD FULLTEXT INDEX %s(%s) WITH PARSER ngram", idx.table, idx.name, idx.column)
+		dao.MysqlClient.Exec(sql)
 	}
 }
 

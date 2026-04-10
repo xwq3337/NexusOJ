@@ -88,7 +88,7 @@ export const userApi = {
   getUserRecordList: (
     id: string,
     params: Partial<GetRecordListParams>
-  ): Promise<ApiResponse<GetRecordListResponse[]>> => {
+  ): Promise<ApiResponse<{ records: GetRecordListResponse[], total: number }>> => {
     return Request.get(`/record/user/${id}`, { params: params })
   },
   getChatRecordList: (friend_id: string, page: number = 1): Promise<ApiResponse<ChatMessage[]>> => {

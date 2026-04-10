@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"nexus/dao"
@@ -35,11 +36,32 @@ func (ProblemController) CreateProblem(c *gin.Context) {
 func (ProblemController) GetProblemInfo(c *gin.Context) {
 	id := c.Param("id")
 	problem, err := models.Problem{}.QueryProblemById(id)
-	if err == nil {
-		utils.ReturnSuccess(c, http.StatusOK, "success", problem)
+	if err != nil {
+		utils.ReturnError(c, http.StatusNotFound, err)
 		return
 	}
-	utils.ReturnError(c, http.StatusNotFound, err)
+
+	// 获取用户题目状态
+	myStatus := "unattempted"
+	userID, err := ParserToken(c)
+	if err == nil && userID > 0 {
+		ctx := context.Background()
+		hash := fmt.Sprintf("user:%d:problem_status", userID)
+		key := fmt.Sprintf("problem:%s", id)
+		verdict, err := dao.RedisClient.HGet(ctx, hash, key).Result()
+		if err == nil {
+			if verdict == string(models.Accepted) {
+				myStatus = "accepted"
+			} else {
+				myStatus = "attempted"
+			}
+		}
+	}
+
+	utils.ReturnSuccess(c, http.StatusOK, "success", gin.H{
+		"problem":   problem,
+		"my_status": myStatus,
+	})
 }
 func (ProblemController) GetList(c *gin.Context) {
 	userID, _ := ParserToken(c)
@@ -177,7 +199,7 @@ func (ProblemController) SubmitProblem(c *gin.Context) {
 	})
 	// 同步状态到 Redis
 	ctx := c.Request.Context()
-	hash := fmt.Sprintf("user:%s:problem_status", userID)
+	hash := fmt.Sprintf("user:%d:problem_status", userID)
 	key := fmt.Sprintf("problem:%s", data.ProblemID)
 	// 只要是Redis 里是Accepted就不改了，其他都改成当前的结果
 	currentVerdict, err := dao.RedisClient.HGet(ctx, hash, key).Result()

@@ -158,5 +158,4 @@ def search(query, top_k=5):
 rag_tool = RAGTool()
 
 
-
-
+print(rag_tool._run("二叉树"))

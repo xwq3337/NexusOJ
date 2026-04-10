@@ -25,13 +25,15 @@ import {
   type EDITOR_THEHE,
   type LanguageValue,
   difficultyMap,
-  STATUS_COLORS
+  STATUS_COLORS,
+  STATUS_MESSAGE
 } from '@/constants'
 import { Play, RotateCcw, Settings, Target, Tag, Clock, Cpu, ArrowLeft } from 'lucide-vue-next'
 import { contestApi, ideApi } from '@nexusoj/server'
 import { useUserStore } from '@/stores/useUserStore'
 import indexedDBService from '@/services/indexedDB'
 import { formatAcceptance } from '@/utils/format'
+import { JudgeVerdictType } from '@nexusoj/type'
 
 const codeEditor = defineAsyncComponent(() => import('@/components/AceEditor/AceEditor.vue'))
 const message = useMessage()
@@ -153,7 +155,7 @@ watch(Language, async (newLang, oldLang) => {
 const fetchData = async () => {
   // 获取完整题目详情
   try {
-    const {code, info} = await contestApi.getContestProblemDetail(contestId, problemLabel)
+    const { code, info } = await contestApi.getContestProblemDetail(contestId, problemLabel)
     if (code === 200 && info) {
       problem.value = info.problem
       contest.value = info.contest
@@ -241,9 +243,14 @@ const handleRun = async () => {
       code: code.value,
       language: languageToApi(Language.value)
     })
-    if (res.code === 200 && res.info) {
-      result.value = res.info.verdict
-      message.success('提交成功')
+    const { info } = res
+    if (res.code === 200 && info) {
+      result.value = info.verdict
+      if (info.verdict === 'Accepted') {
+        message.success(STATUS_MESSAGE[info.verdict as JudgeVerdictType])
+      } else {
+        message.error(STATUS_MESSAGE[info.verdict as JudgeVerdictType])
+      }
     }
   } catch (e: any) {
     message.error('提交失败: ' + (e?.message || '未知错误'))
@@ -304,12 +311,18 @@ onUnmounted(() => {
           }">
             <div class="flex items-center gap-3 mb-2">
               <NButton quaternary circle size="small" @click="goBack">
-                <template #icon><NIcon :size="18"><ArrowLeft /></NIcon></template>
+                <template #icon>
+                  <NIcon :size="18">
+                    <ArrowLeft />
+                  </NIcon>
+                </template>
               </NButton>
               <h1 class="text-2xl font-bold" :style="{ color: 'var(--text-primary)' }">
                 {{ problemLabel }}. {{ problem.title || '加载中...' }}
               </h1>
-              <NTag v-if="contestStatus" :type="isContestLive ? 'success' : contestStatus === 'Upcoming' ? 'warning' : 'default'" size="small" round>
+              <NTag v-if="contestStatus"
+                :type="isContestLive ? 'success' : contestStatus === 'Upcoming' ? 'warning' : 'default'" size="small"
+                round>
                 {{ isContestLive ? '比赛中' : contestStatus === 'Upcoming' ? '未开始' : '已结束' }}
               </NTag>
               <span v-if="isContestLive" class="font-mono text-sm" :style="{ color: 'var(--contest-timer-value)' }">
@@ -317,11 +330,9 @@ onUnmounted(() => {
               </span>
             </div>
             <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-              <span
-                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-medium text-xs"
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-medium text-xs"
                 :class="difficultyMap[Math.max(0, Number(problem.difficulty) - 1)]?.color"
-                :style="{ backgroundColor: 'var(--surface-tertiary)' }"
-              >
+                :style="{ backgroundColor: 'var(--surface-tertiary)' }">
                 {{ difficultyMap[Math.max(0, Number(problem.difficulty) - 1)]?.text }}
               </span>
               <span class="inline-flex items-center gap-1.5" :style="{ color: 'var(--text-secondary)' }">
@@ -332,11 +343,13 @@ onUnmounted(() => {
                 <Tag :size="14" />
                 <span>{{ problem.tags?.join(', ') || '暂无标签' }}</span>
               </span>
-              <span v-if="problem.judge_config?.time_limit" class="inline-flex items-center gap-1.5" :style="{ color: 'var(--text-secondary)' }">
+              <span v-if="problem.judge_config?.time_limit" class="inline-flex items-center gap-1.5"
+                :style="{ color: 'var(--text-secondary)' }">
                 <Clock :size="14" />
                 <span>{{ problem.judge_config.time_limit }}s</span>
               </span>
-              <span v-if="problem.judge_config?.memory_limit" class="inline-flex items-center gap-1.5" :style="{ color: 'var(--text-secondary)' }">
+              <span v-if="problem.judge_config?.memory_limit" class="inline-flex items-center gap-1.5"
+                :style="{ color: 'var(--text-secondary)' }">
                 <Cpu :size="14" />
                 <span>{{ problem.judge_config.memory_limit }}MB</span>
               </span>
@@ -361,27 +374,23 @@ onUnmounted(() => {
             borderStyle: 'solid'
           }">
             <NSpace :size="8" align="center">
-              <NSelect
-                v-model:value="Language"
+              <NSelect v-model:value="Language"
                 :options="Object.values(LANGUAGE_CONFIG).map(c => ({ value: c.value, label: c.label }))"
-                :style="{ width: '140px' }"
-                :dropdown-props="{ style: { maxHeight: '200px', overflowY: 'auto' } }"
-                placeholder="选择语言"
-              />
+                :style="{ width: '140px' }" :dropdown-props="{ style: { maxHeight: '200px', overflowY: 'auto' } }"
+                placeholder="选择语言" />
               <NPopover trigger="click" placement="bottom">
                 <template #trigger>
-                  <NButton :style="{ color: 'var(--text-primary)' }" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded">
-                    <NIcon><Settings :size="14" /></NIcon> 设置
+                  <NButton :style="{ color: 'var(--text-primary)' }"
+                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded">
+                    <NIcon>
+                      <Settings :size="14" />
+                    </NIcon> 设置
                   </NButton>
                 </template>
                 <NGrid x-gap="12" :cols="2" :style="{ width: '15rem' }">
                   <NGi>
-                    <NSelect
-                      v-model:value="Theme"
-                      :options="EDITOR_THEME_OPTIONS.map(i => ({ label: i, value: i }))"
-                      :dropdown-props="{ style: { maxHeight: '200px', overflowY: 'auto' } }"
-                      placeholder="选择主题"
-                    />
+                    <NSelect v-model:value="Theme" :options="EDITOR_THEME_OPTIONS.map(i => ({ label: i, value: i }))"
+                      :dropdown-props="{ style: { maxHeight: '200px', overflowY: 'auto' } }" placeholder="选择主题" />
                   </NGi>
                   <NGi>
                     <NInputNumber v-model:value="fontSize" :update-value-on-input="false" :min="10" :max="30" />
@@ -391,17 +400,22 @@ onUnmounted(() => {
             </NSpace>
 
             <NSpace :size="8" align="center">
-              <NButton
-                :style="{ color: 'var(--text-primary)', backgroundColor: hoverBgColor2 }"
-                @mouseenter="hoverBgColor2 = 'var(--surface-tertiary)'"
-                @mouseleave="hoverBgColor2 = 'transparent'"
-                @click="code = indexedDBService.getDefaultCode(Language)"
-              >
-                <template #icon><NIcon><RotateCcw :size="14" /></NIcon></template>
+              <NButton :style="{ color: 'var(--text-primary)', backgroundColor: hoverBgColor2 }"
+                @mouseenter="hoverBgColor2 = 'var(--surface-tertiary)'" @mouseleave="hoverBgColor2 = 'transparent'"
+                @click="code = indexedDBService.getDefaultCode(Language)">
+                <template #icon>
+                  <NIcon>
+                    <RotateCcw :size="14" />
+                  </NIcon>
+                </template>
                 重置
               </NButton>
               <NButton :disabled="isTesting" @click="handleTest">
-                <template #icon><NIcon><Play :size="14" /></NIcon></template>
+                <template #icon>
+                  <NIcon>
+                    <Play :size="14" />
+                  </NIcon>
+                </template>
                 {{ isTesting ? '测试中...' : '自测运行' }}
               </NButton>
               <NButton type="success" :disabled="isRunning || !isContestLive" @click="handleRun">

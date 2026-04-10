@@ -41,6 +41,7 @@ export interface GetRecordListParams {
     search : string
     verdict : JudgeVerdictType
     language : string
+    problem_id : string
 }
 
 export interface GetRecordListResponse extends Record {
