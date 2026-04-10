@@ -171,7 +171,7 @@ func broadMsg(_ Message) error { // 局域网广播
 }
 
 func sendPrivateMsg(msg Message) { //私聊
-	channel := "unread_record:" + string(msg.ReceiverID)
+	channel := "unread_record:" + strconv.FormatUint(msg.ReceiverID, 10)
 	ctx := context.Background()
 	count, _ := models.QueryUnReadRecord(msg.ReceiverID)
 	err := dao.RedisClient.Publish(ctx, channel, strconv.Itoa(count+1)).Err()
@@ -262,7 +262,7 @@ func (ChatController) MarkMessagesAsRead(c *gin.Context) {
 	}
 
 	// 触发 Redis 推送更新后的未读数
-	channel := "unread_record:" + string(userID)
+	channel := "unread_record:" + strconv.FormatUint(userID, 10)
 	ctx := context.Background()
 	err = dao.RedisClient.Publish(ctx, channel, strconv.Itoa(totalCount)).Err()
 	if err != nil {
@@ -278,7 +278,7 @@ func (ChatController) GetUnReadRecord(c *gin.Context) {
 		utils.ReturnError(c, http.StatusBadRequest, "缺少用户ID")
 		return
 	}
-	channel := "unread_record:" + string(id)
+	channel := "unread_record:" + strconv.FormatUint(id, 10)
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")

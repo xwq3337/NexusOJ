@@ -64,7 +64,7 @@ func QueryChatRecord(user_id uint64, friend_id uint64, page int) ([]ChatRecord, 
 		// 重置好友关系的未读消息数并触发推送
 		totalCount, _ := ResetFriendshipUnreadCount(user_id, friend_id)
 		// 触发 Redis 推送更新后的未读数
-		channel := "unread_record:" + string(user_id)
+		channel := "unread_record:" + strconv.FormatUint(user_id, 10)
 		ctx := context.Background()
 		dao.RedisClient.Publish(ctx, channel, strconv.Itoa(totalCount))
 	}()

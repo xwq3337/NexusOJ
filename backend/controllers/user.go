@@ -152,7 +152,7 @@ func (UserController) UpdateAvatar(c *gin.Context) {
 		utils.ReturnError(c, http.StatusInternalServerError, "解码图片失败, err: "+err.Error())
 		return
 	}
-	filename := fmt.Sprintf("/%s%s", userID, ext)
+	filename := fmt.Sprintf("/%d%s", userID, ext)
 	// 创建输出文件路径
 	filePath := filepath.Join(DirPath, filename)
 	// 检查文件大小，如果超过 500KB 则压缩
@@ -173,7 +173,7 @@ func (UserController) UpdateAvatar(c *gin.Context) {
 			// 默认使用 jpeg 格式压缩
 			compressErr = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 85})
 			ext = ".jpg"
-			filename = fmt.Sprintf("/%s%s", userID, ext)
+			filename = fmt.Sprintf("/%d%s", userID, ext)
 			filePath = filepath.Join(DirPath, filename)
 		}
 
@@ -190,7 +190,7 @@ func (UserController) UpdateAvatar(c *gin.Context) {
 				return
 			}
 			ext = ".jpg"
-			filename = fmt.Sprintf("/%s%s", userID, ext)
+			filename = fmt.Sprintf("/%d%s", userID, ext)
 			filePath = filepath.Join(DirPath, filename)
 		}
 
