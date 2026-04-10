@@ -69,7 +69,7 @@
       </template>
       <template #2>
         <!-- TODO移动端的工具栏，应采用flex布局 -->
-        <div class="flex flex-col h-full">
+        <div class="@container flex flex-col h-full">
           <div class="h-12 border-b flex items-center justify-between px-4 shrink-0" :style="{
             backgroundColor: 'var(--surface-primary)',
             borderColor: 'var(--border-color)',
@@ -87,7 +87,7 @@
                 <template #trigger>
                   <n-button :style="{ color: 'var(--text-primary)' }"
                     class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded transition-colors">
-                    <Settings :size="14" /> 设置
+                    <Settings :size="14" /> <span class="@md:inline hidden">设置</span>
                   </n-button>
                 </template>
                 <n-grid x-gap="12" :cols="2" :style="{ width: '15rem' }">
@@ -117,17 +117,17 @@
                 }" @mouseenter="() => (hoverBgColor2 = 'var(--surface-tertiary)')"
                 @mouseleave="() => (hoverBgColor2 = 'transparent')"
                 @click="code = indexedDBService.getDefaultCode(Language)">
-                <RotateCcw :size="14" /> 重置
+                <RotateCcw :size="14" /> <span class="@md:inline hidden">重置</span>
               </n-button>
               <n-button @click="handleTest" :disabled="isTesting"
                 class="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded transition-colors"
                 :style="{ color: 'var(--text-primary)' }" :class="isTesting ? 'opacity-70 cursor-wait' : ''">
-                <Play :size="14" /> {{ isTesting ? '测试中...' : '自测运行' }}
+                <Play :size="14" /> <span class="@md:inline hidden">{{ isTesting ? '测试中...' : '自测运行' }}</span>
               </n-button>
               <n-button @click="handleRun" :disabled="isRunning" type="success"
                 class="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium rounded transition-colors"
                 :style="{ color: 'var(--text-primary)' }" :class="isRunning ? 'opacity-70 cursor-wait' : ''">
-                {{ isRunning ? '提交中...' : '提交代码' }}
+                <Send :size="14" /> <span class="@md:inline hidden">{{ isRunning ? '提交中...' : '提交代码' }}</span>
               </n-button>
             </div>
           </div>
@@ -374,7 +374,7 @@ import {
   NTooltip,
 } from 'naive-ui'
 import { LANGUAGE_CONFIG, EDITOR_THEME_OPTIONS, type EDITOR_THEHE, type LanguageValue, LANGUAGE_OPTIONS, convertToCss, STATUS_MESSAGE } from '@/constants'
-import { Play, RotateCcw, Settings, Target, Tag, Clock, Cpu, BookOpen, History, Plus } from 'lucide-vue-next'
+import { Play, RotateCcw, Settings, Target, Tag, Clock, Cpu, BookOpen, History, Plus, Send } from 'lucide-vue-next'
 import AiAssistant from '@/components/AiAssistant.vue'
 import MarkdownPreviewV2 from '@/components/MarkdownPreviewV2.vue'
 import { useLocalStorage } from '@vueuse/core'

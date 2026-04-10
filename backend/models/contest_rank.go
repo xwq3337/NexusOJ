@@ -79,6 +79,7 @@ type ContestRankSummary struct {
 type ContestProblemRankDetail struct {
 	Attempts int32  `json:"attempts"`
 	Accepted bool   `json:"accepted"`
-	Time     string `json:"time,omitempty"`  // AC 时间格式化
-	Score    int32  `json:"score,omitempty"` // OI 分数
+	Time     string `json:"time,omitempty"`   // AC 时间格式化
+	Score    int32  `json:"score,omitempty"`  // OI 分数
+	Penalty  int32  `json:"penalty,omitempty"` // ACM 罚时(秒)
 }

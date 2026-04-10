@@ -80,6 +80,7 @@ export interface ContestProblemRankDetail {
   accepted: boolean
   time?: string
   score?: number
+  penalty?: number
 }
 
 export interface RegisterContestParams {

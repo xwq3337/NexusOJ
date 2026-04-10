@@ -273,6 +273,7 @@ func GetContestRankingFromRedis(contestID string, count int64) ([]models.Contest
 				rank.Solved++
 			}
 			rank.Score += p.Score
+				rank.TotalPenalty += p.Penalty
 		}
 
 		rankings = append(rankings, rank)
@@ -324,6 +325,7 @@ func ComputeACMRankingFromDB(contestID string, contest models.Contest) ([]models
 				Attempts: item.Attempts,
 				Accepted: item.IsAccepted,
 				Score:    item.Score,
+				Penalty:  item.TotalPenalty,
 			}
 			if item.AcceptedAt != nil {
 				elapsed := item.AcceptedAt.Sub(contest.BeginAt)
@@ -574,6 +576,7 @@ func rebuildUserACMRank(contestID string, userID uint64, contest models.Contest)
 			Attempts: item.Attempts,
 			Accepted: item.IsAccepted,
 			Score:    item.Score,
+			Penalty:  item.TotalPenalty,
 		}
 		if item.AcceptedAt != nil {
 			elapsed := item.AcceptedAt.Sub(contest.BeginAt)
