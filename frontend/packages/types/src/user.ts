@@ -1,7 +1,7 @@
 export interface User {
   id: Number
   username: string
-  password?: string
+  password: string
   email: string
   nickname: string
   introduction: string
@@ -15,7 +15,7 @@ export interface User {
   codeforces: string
   birthday: string
   status: number // // 0 正常 1 封禁
-  created_at?: string
+  created_at: string
   updated_at: string
   banned_to: string
   balance: number // "DouDou" / Beans

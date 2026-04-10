@@ -205,7 +205,7 @@ const getRatingColor = (rating: number) => {
   if (rating >= 1800) return '#ffff00'
   if (rating >= 1600) return '#00ff00'
   if (rating >= 1400) return '#00ffff'
-  if (rating >= 1200) return '#0000ff'
+  if (rating >= 1200) return '#38bdf8'
   return '#808080'
 }
 

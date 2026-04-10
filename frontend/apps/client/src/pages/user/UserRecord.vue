@@ -69,7 +69,7 @@ const columns: DataTableColumns<any> = [
     width: 150,
     render(row) {
       return h('div',{
-        class : 'font-medium text-blue-600 hover:underline',
+        style: { color: 'var(--accent-color)' },
       }, [
         h('div', { style: { fontWeight: 'bold', color: 'var(--text-primary)', cursor: 'pointer' }, onClick: () => router.push({ name: 'ProblemDetail', params: { id: row.problem_id } }) }, row.problem_title),
         h('div', { style: { fontSize: '12px', color: 'var(--text-secondary)' } }, `ID: ${row.problem_id}`)

@@ -3,19 +3,17 @@
     class="rounded-xl p-6 h-full"
     :style="{
       backgroundColor: 'var(--surface-primary)',
-      borderColor: 'var(--border-color)',
-      borderWidth: '1px',
-      borderStyle: 'solid'
+      border: '1px solid var(--border-color)'
     }"
   >
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h3 class="text-lg font-bold text-white">Global Activity</h3>
-        <p class="text-sm text-gray-400">本周所有的提交数量</p>
+        <h3 class="text-lg font-bold" :style="{ color: 'var(--text-primary)' }">Global Activity</h3>
+        <p class="text-sm" :style="{ color: 'var(--text-tertiary)' }">本周所有的提交数量</p>
       </div>
       <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-        <span class="text-xs text-gray-400">提交数量</span>
+        <span class="w-2 h-2 rounded-full" :style="{ backgroundColor: 'var(--accent-color)' }"></span>
+        <span class="text-xs" :style="{ color: 'var(--text-tertiary)' }">提交数量</span>
       </div>
     </div>
 
@@ -43,7 +41,7 @@ const option = ref({
   tooltip: {
     trigger: 'axis',
     backgroundColor: '#0f172a',
-    borderColor: '#334155',
+    borderColor: '#1e3a5f',
     textStyle: { color: '#e2e8f0' }
   },
   xAxis: {
@@ -58,7 +56,7 @@ const option = ref({
     axisLine: { show: false },
     axisTick: { show: false },
     axisLabel: { color: '#94a3b8' },
-    splitLine: { lineStyle: { color: '#334155' } }
+    splitLine: { lineStyle: { color: '#1e3a5f' } }
   },
   grid: { left: '3%', right: '3%', bottom: '10%', top: '10%' },
   series: [
@@ -67,11 +65,16 @@ const option = ref({
       type: 'line',
       smooth: true,
       symbol: 'none',
-      lineStyle: { color: '#3b82f6', width: 3 },
+      lineStyle: {
+        color: '#0ea5e9',
+        width: 3,
+        shadowColor: 'rgba(14, 165, 233, 0.4)',
+        shadowBlur: 10
+      },
       areaStyle: {
         color: new (echarts as any).graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(59,130,246,0.3)' },
-          { offset: 1, color: 'rgba(59,130,246,0)' }
+          { offset: 0, color: 'rgba(14, 165, 233, 0.25)' },
+          { offset: 1, color: 'rgba(14, 165, 233, 0)' }
         ])
       }
     }

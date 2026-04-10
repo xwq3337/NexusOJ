@@ -2,8 +2,8 @@
   "extends": "@nexusoj/typescript/index.json",
   "compilerOptions": {
     "composite": true,
-    "ignoreDeprecations": "6.0",
     "verbatimModuleSyntax": true,
+    "ignoreDeprecations": "6.0",
     "tsBuildInfoFile": "./node_modules/.cache/tsbuildinfo.json",
     "paths": {
       "@/*": ["./src/*"]

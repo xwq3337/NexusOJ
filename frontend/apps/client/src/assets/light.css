@@ -6,7 +6,8 @@ body.light {
     sans-serif;
   color: #0f172a;
   --contrast-color: #000;
-  /* Tailwind light theme colors */
+
+  /* === Base Palette === */
   --color-light-50: #f8fafc;
   --color-light-100: #f1f5f9;
   --color-light-200: #e2e8f0;
@@ -17,107 +18,127 @@ body.light {
   --color-light-700: #334155;
   --color-light-800: #1e293b;
   --color-light-900: #0f172a;
-  /* Background colors */
+
+  /* === Background === */
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
   --bg-tertiary: #f1f5f9;
   --bg-card: #ffffff;
   --bg-modal: #ffffff;
-  /* Text colors */
-  --text-primary: #000000;
-  --text-secondary: #64748b;
-  --text-tertiary: #94a3b8;
-  --text-disabled: #cbd5e1;
-  /* Border colors */
+
+  /* === Text === */
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-tertiary: #64748b;
+  --text-disabled: #94a3b8;
+
+  /* === Border === */
   --border-color: #e2e8f0;
   --border-light: #f1f5f9;
-  --border-focus: #3b82f6;
-  /* Accent colors - aligned with Tailwind config */
-  --accent-color: #3b82f6;
-  --accent-hover: #2563eb;
-  --primary: #3b82f6;
-  --secondary: #6366f1;
-  /* Status colors */
+  --border-focus: #0ea5e9;
+
+  /* === Accent === */
+  --accent-color: #0284c7;
+  --accent-hover: #0369a1;
+  --primary: #0ea5e9;
+  --secondary: #64748b;
+
+  /* === Status === */
   --success-color: #10b981;
-  --success-bg: #d1fae5;
+  --success-bg: #ecfdf5;
   --warning-color: #f59e0b;
-  --warning-bg: #fef3c7;
+  --warning-bg: #fffbeb;
   --error-color: #ef4444;
-  --error-bg: #fee2e2;
-  --info-color: #3b82f6;
-  --info-bg: #dbeafe;
-  /* Button colors */
-  --btn-primary: #3b82f6;
-  --btn-primary-hover: #2563eb;
-  --btn-secondary: #6b7280;
-  --btn-secondary-hover: #374151;
+  --error-bg: #fef2f2;
+  --info-color: #0ea5e9;
+  --info-bg: #f0f9ff;
+
+  /* === Button === */
+  --btn-primary: #0ea5e9;
+  --btn-primary-hover: #0284c7;
+  --btn-secondary: #475569;
+  --btn-secondary-hover: #334155;
   --btn-success: #10b981;
   --btn-success-hover: #059669;
   --btn-warning: #f59e0b;
   --btn-warning-hover: #d97706;
   --btn-danger: #ef4444;
   --btn-danger-hover: #dc2626;
-  /* Input colors */
+
+  /* === Input === */
   --input-bg: #ffffff;
   --input-border: #e2e8f0;
-  --input-focus: #3b82f6;
-  --input-placeholder: #94a3b8;
-  /* Card and surface colors */
+  --input-focus: #0ea5e9;
+  --input-placeholder: #64748b;
+
+  /* === Surface === */
   --surface-primary: #ffffff;
   --surface-secondary: #f8fafc;
   --surface-tertiary: #f1f5f9;
-  /* Shadow colors */
-  --shadow-color: rgba(0, 0, 0, 0.1);
-  --shadow-light: rgba(0, 0, 0, 0.05);
-  /* Selection colors */
-  --selection-bg: #3b82f6;
+
+  /* === Shadow === */
+  --shadow-color: rgba(14, 165, 233, 0.06);
+  --shadow-light: rgba(14, 165, 233, 0.03);
+
+  /* === Selection === */
+  --selection-bg: #0ea5e9;
   --selection-text: #ffffff;
 
-  /* Home hero section */
-  --hero-bg-from: rgba(59, 130, 246, 0.15);
-  --hero-bg-to: rgba(99, 102, 241, 0.15);
-  --hero-bg-start: rgba(59, 130, 246, 0.2);
-  --hero-bg-end: rgba(99, 102, 241, 0.15);
-  --hero-border: rgba(0, 0, 0, 0.08);
-  --hero-title-color: #1e293b;
-  --hero-desc-color: #475569;
+  /* === Neon Variables (light mode - desaturated) === */
+  --neon-cyan: #0284c7;
+  --neon-magenta: #c026d3;
+  --neon-glow-cyan: rgba(56, 189, 248, 0.12);
+  --neon-glow-magenta: rgba(192, 38, 211, 0.10);
+  --grid-line-color: rgba(14, 165, 233, 0.05);
+  --scanline-color: rgba(14, 165, 233, 0.015);
+  --glow-border: 0 0 6px rgba(56, 189, 248, 0.10);
+  --glow-text: 0 0 8px rgba(56, 189, 248, 0.10);
+
+  /* === Home Hero === */
+  --hero-bg-from: rgba(14, 165, 233, 0.06);
+  --hero-bg-to: rgba(56, 189, 248, 0.06);
+  --hero-bg-start: rgba(14, 165, 233, 0.08);
+  --hero-bg-end: rgba(56, 189, 248, 0.06);
+  --hero-border: rgba(14, 165, 233, 0.10);
+  --hero-title-color: #0f172a;
+  --hero-desc-color: #334155;
   --hero-subtitle-color: #64748b;
-  --hero-text-color: #475569;
-  --hero-glow-blue: rgba(59, 130, 246, 0.12);
-  --hero-glow-purple: rgba(168, 85, 247, 0.08);
-  --hero-accent: #6366f1;
-  --hero-accent-secondary: #8b5cf6;
-  --hero-btn-primary-bg: #3b82f6;
-  --hero-btn-primary-hover: #2563eb;
-  --hero-btn-primary-shadow: rgba(59, 130, 246, 0.25);
+  --hero-text-color: #334155;
+  --hero-glow-blue: rgba(14, 165, 233, 0.06);
+  --hero-glow-purple: rgba(56, 189, 248, 0.05);
+  --hero-accent: #0284c7;
+  --hero-accent-secondary: #0ea5e9;
+  --hero-btn-primary-bg: #0ea5e9;
+  --hero-btn-primary-hover: #0284c7;
+  --hero-btn-primary-shadow: rgba(14, 165, 233, 0.2);
   --hero-btn-secondary-bg: #e2e8f0;
   --hero-btn-secondary-hover: #cbd5e1;
 
-  /* Contest page */
-  --contest-hero-from: rgba(59, 130, 246, 0.12);
-  --contest-hero-to: rgba(99, 102, 241, 0.08);
-  --contest-hero-border: rgba(0, 0, 0, 0.08);
-  --contest-glow: rgba(59, 130, 246, 0.15);
-  --contest-title: #1e293b;
-  --contest-subtitle: #64748b;
-  --contest-type-bg: rgba(59, 130, 246, 0.1);
-  --contest-type-color: #2563eb;
-  --contest-live-bg: rgba(16, 185, 129, 0.1);
+  /* === Contest Page === */
+  --contest-hero-from: rgba(14, 165, 233, 0.05);
+  --contest-hero-to: rgba(56, 189, 248, 0.05);
+  --contest-hero-border: rgba(14, 165, 233, 0.08);
+  --contest-glow: rgba(14, 165, 233, 0.08);
+  --contest-title: #0f172a;
+  --contest-subtitle: #334155;
+  --contest-type-bg: rgba(14, 165, 233, 0.06);
+  --contest-type-color: #0284c7;
+  --contest-live-bg: rgba(16, 185, 129, 0.06);
   --contest-live-color: #059669;
   --contest-live-dot: #10b981;
-  --contest-timer-bg: rgba(59, 130, 246, 0.08);
-  --contest-timer-border: rgba(59, 130, 246, 0.2);
-  --contest-timer-label: #64748b;
-  --contest-timer-value: #1e293b;
-  --contest-btn-primary: #3b82f6;
-  --contest-btn-primary-hover: #2563eb;
+  --contest-timer-bg: rgba(14, 165, 233, 0.05);
+  --contest-timer-border: rgba(14, 165, 233, 0.12);
+  --contest-timer-label: #334155;
+  --contest-timer-value: #0f172a;
+  --contest-btn-primary: #0ea5e9;
+  --contest-btn-primary-hover: #0284c7;
   --contest-btn-primary-text: #ffffff;
-  --contest-btn-secondary: #64748b;
+  --contest-btn-secondary: #334155;
   --contest-btn-secondary-text: #ffffff;
-  --contest-btn-ghost: rgba(0, 0, 0, 0.04);
-  --contest-btn-ghost-text: #64748b;
-  --contest-problem-solved-bg: rgba(16, 185, 129, 0.08);
-  --contest-gold: #fbbf24;
+  --contest-btn-ghost: rgba(14, 165, 233, 0.03);
+  --contest-btn-ghost-text: #334155;
+  --contest-problem-solved-bg: rgba(16, 185, 129, 0.05);
+  --contest-gold: #f59e0b;
   --contest-silver: #94a3b8;
   --contest-bronze: #b45309;
 

@@ -1,43 +1,47 @@
 <template>
-  <nav class="sticky top-0 z-50 w-full border-b backdrop-blur" :style="{
-    backgroundColor: 'var(--surface-primary)',
-    borderColor: 'transparent',
-    borderWidth: '1px',
-    borderStyle: 'solid'
+  <nav class="sticky top-0 z-50 w-full backdrop-blur-md" :style="{
+    backgroundColor: 'color-mix(in srgb, var(--surface-primary) 85%, transparent)',
+    boxShadow: '0 1px 0 var(--border-color), 0 4px 20px rgba(14, 165, 233, 0.06)'
   }">
     <div class="container mx-auto px-4 h-16 flex items-center justify-between">
       <div class="flex items-center gap-8">
-        <RouterLink to="/" class="flex items-center gap-2 font-bold text-xl text-white">
-          <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-mono">
-            >_
+        <RouterLink to="/" class="flex items-center gap-2 font-bold text-xl">
+          <div
+            class="w-8 h-8 rounded-md flex items-center justify-center text-xs font-terminal font-bold neon-border"
+            :style="{
+              backgroundColor: 'var(--neon-cyan)',
+              color: '#0a0e1a',
+              boxShadow: '0 0 10px var(--neon-glow-cyan)'
+            }">
+            &gt;_
           </div>
           <span :style="{ color: 'var(--text-primary)' }">NexusOJ</span>
         </RouterLink>
 
         <div class="hidden md:flex items-center gap-1 whitespace-nowrap">
           <RouterLink to="/problems"
-            class="px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
-            :class="isActive('/problems')">
+            class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2"
+            :style="isActiveStyle('/problems')">
             <Hash :size="16" /> 题目
           </RouterLink>
           <RouterLink to="/records"
-            class="px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
-            :class="isActive('/records')">
+            class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2"
+            :style="isActiveStyle('/records')">
             <FileText :size="16" /> 记录
           </RouterLink>
           <RouterLink to="/contests"
-            class="px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
-            :class="isActive('/contests')">
+            class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2"
+            :style="isActiveStyle('/contests')">
             <Trophy :size="16" /> 竞赛
           </RouterLink>
           <RouterLink to="/courses"
-            class="px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
-            :class="isActive('/courses')">
+            class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2"
+            :style="isActiveStyle('/courses')">
             <BookOpen :size="16" /> 课程
           </RouterLink>
           <RouterLink to="/blogs"
-            class="px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
-            :class="isActive('/blogs')">
+            class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2"
+            :style="isActiveStyle('/blogs')">
             <LibraryBig :size="16" /> 博客
           </RouterLink>
         </div>
@@ -46,30 +50,46 @@
 
       <div class="hidden md:flex items-center gap-4">
         <!-- 主题切换按钮 -->
-        <button @click="toggleTheme" :class="`hover:${currentTheme === 'dark' ? 'text-white' : 'text-black'}`"
-          class="items-center justify-center w-10 h-10 rounded-full text-gray-400 cursor-pointer"
-          :style="{ backgroundColor: 'var(--surface-primary)' }">
-          <Sun v-if="currentTheme === 'dark'" :size="20" />
-          <Moon v-else :size="20" />
+        <button @click="toggleTheme"
+          class="flex items-center justify-center w-9 h-9 rounded-md transition-all duration-200 cursor-pointer"
+          :style="{
+            color: 'var(--text-secondary)',
+            // backgroundColor: 'var(--surface-secondary)',
+            // border: '1px solid var(--border-color)'
+          }">
+          <Sun v-if="currentTheme === 'dark'" :size="18" />
+          <Moon v-else :size="18" />
         </button>
         <!-- 消息按钮 -->
         <n-dropdown trigger="hover" :options="messageOptions" placement="bottom-start" @select="handleMessageSelect">
-          <n-badge class="hidden md:flex w-7 mr-3 h-10 rounded-full" :value="unRead" :max="99">
-            <button :class="`hover:${currentTheme === 'dark' ? 'text-white' : 'text-black'}`"
-              class="items-center justify-center text-gray-400 cursor-pointer"
-              :style="{ backgroundColor: 'var(--surface-primary)' }">
-              <MessageSquareText :size="20" />
+          <n-badge class="hidden md:flex w-7 mr-2 h-10 rounded-full" :value="unRead" :max="99">
+            <button
+              class="flex items-center justify-center w-9 h-9 rounded-md transition-all duration-200 cursor-pointer"
+              :style="{
+                color: 'var(--text-secondary)',
+                // backgroundColor: 'var(--surface-secondary)',
+                // border: '1px solid var(--border-color)'
+              }">
+              <MessageSquareText :size="18" />
             </button>
           </n-badge>
         </n-dropdown>
         <!-- 登录/头像 -->
-        <button v-if="isAuthorization" :class="`hover:${currentTheme === 'dark' ? 'text-white' : 'text-black'}`"
-          class="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 cursor-pointer"
-          :style="{ backgroundColor: 'var(--surface-primary)' }" @click="$router.push({ name: 'Profile' })">
+        <button v-if="isAuthorization"
+          class="flex items-center justify-center w-9 h-9 rounded-full cursor-pointer transition-all duration-200"
+          :style="{
+            border: '2px solid var(--accent-color)',
+            boxShadow: '0 0 8px var(--neon-glow-cyan)'
+          }"
+          @click="$router.push({ name: 'Profile' })">
           <n-avatar round :src="avatar" size="small" />
         </button>
         <button v-else
-          class="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md text-sm font-medium transition-colors"
+          class="whitespace-nowrap text-white px-5 py-2 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer"
+          :style="{
+            backgroundColor: 'var(--btn-primary)',
+            boxShadow: '0 0 12px var(--neon-glow-cyan)'
+          }"
           @click="$router.push({ name: `Auth` })">
           登录
         </button>
@@ -114,10 +134,18 @@ const { id, avatar } = useUserStore()
 const route = useRoute()
 const { theme: currentTheme, toggleTheme } = useTheme()
 const isAuthorization: Ref<boolean> = inject('isAuthorization')!
-const isActive = (path: string) =>
-  route.path === path
-    ? 'text-blue-400'
-    : `text-gray-400 hover:${currentTheme.value === 'dark' ? 'text-white' : 'text-black'}`
+const isActiveStyle = (path: string) => {
+  if (route.path === path) {
+    return {
+      color: 'var(--accent-color)',
+      backgroundColor: 'var(--surface-secondary)',
+      boxShadow: '0 0 8px var(--neon-glow-cyan)'
+    }
+  }
+  return {
+    color: 'var(--text-secondary)'
+  }
+}
 const unRead = ref(0)
 type Response = {
   data: string

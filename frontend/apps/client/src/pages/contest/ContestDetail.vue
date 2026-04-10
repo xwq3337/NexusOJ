@@ -26,6 +26,7 @@ import {
   ArrowLeft
 } from 'lucide-vue-next'
 import { contestApi } from '@nexusoj/server'
+import CyberGridCanvas from '@/components/CyberGridCanvas.vue'
 
 const message = useMessage()
 const route = useRoute()
@@ -175,96 +176,112 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="animate-fade-in max-w-7xl mx-auto">
+  <div class="animate-fade-in min-h-screen" :style="{ backgroundColor: 'var(--bg-primary)' }">
+    <CyberGridCanvas />
+    <div class="max-w-7xl mx-auto px-4 py-6 relative" style="z-index: 1">
 
     <!-- Hero Section -->
-    <NCard :style="{
+    <div class="relative overflow-hidden rounded-2xl mb-6 cyber-scanline-overlay" :style="{
       background: 'linear-gradient(135deg, var(--contest-hero-from) 0%, var(--contest-hero-to) 100%)',
-      border: '1px solid var(--contest-hero-border)'
-    }" :bordered="true" class="mb-6" content-style="padding: 32px;">
-      <div class="flex items-start justify-between flex-wrap gap-4">
-        <div class="flex-1 min-w-0">
-          <NSpace align="center" class="mb-3">
-            <NButton quaternary circle class="mb-4" @click="router.push({ name: 'Contests' })">
+      border: '1px solid var(--contest-hero-border)',
+      boxShadow: '0 0 30px rgba(14, 165, 233, 0.06)'
+    }">
+      <!-- Grid pattern -->
+      <div class="absolute inset-0 cyber-grid-bg opacity-30"></div>
+
+      <div class="relative z-10 p-8">
+        <div class="flex items-start justify-between flex-wrap gap-4">
+          <div class="flex-1 min-w-0">
+            <NSpace align="center" class="mb-3">
+              <NButton quaternary circle class="mb-4" @click="router.push({ name: 'Contests' })">
+                <template #icon>
+                  <NIcon :size="20">
+                    <ArrowLeft />
+                  </NIcon>
+                </template>
+              </NButton>
+              <NTag :type="contest?.contest_type === 'ACM' ? 'info' : 'warning'" size="small" round>
+                {{ contest?.contest_type || '' }} 赛制
+              </NTag>
+              <NTag v-if="contest?.status === 'Live'" type="success" size="small" round>
+                <template #icon>
+                  <NIcon><span class="inline-block w-1.5 h-1.5 rounded-full animate-pulse"
+                      :style="{ background: 'currentColor' }" /></NIcon>
+                </template>
+                进行中
+              </NTag>
+              <NTag v-else-if="contest?.status === 'Upcoming'" size="small" round>未开始</NTag>
+              <NTag v-else-if="contest?.status === 'Ended'" type="default" size="small" round>已结束</NTag>
+            </NSpace>
+
+            <h1 class="text-3xl font-bold mb-3" :style="{ color: 'var(--contest-title)' }">
+              {{ contest?.title || '' }}
+            </h1>
+
+            <NSpace :size="20" class="text-sm" :style="{ color: 'var(--contest-subtitle)' }">
+              <NSpace :size="4" align="center">
+                <NIcon :size="16">
+                  <Calendar />
+                </NIcon>
+                <span>{{ formatContestTime(contest?.begin_at) }}</span>
+              </NSpace>
+              <NSpace :size="4" align="center">
+                <NIcon :size="16">
+                  <Clock />
+                </NIcon>
+                <span>{{ contest?.duration || 0 }} 分钟</span>
+              </NSpace>
+              <NSpace :size="4" align="center">
+                <NIcon :size="16">
+                  <Users />
+                </NIcon>
+                <span>{{ contest?.participants }} 人参加</span>
+              </NSpace>
+            </NSpace>
+          </div>
+
+          <!-- Countdown Timer -->
+          <div class="text-center px-6 py-4 rounded-xl" :style="{
+            background: 'var(--contest-timer-bg)',
+            border: '1px solid var(--contest-timer-border)',
+            boxShadow: '0 0 12px var(--neon-glow-cyan)'
+          }">
+            <div class="text-xs mb-1 font-terminal" :style="{ color: 'var(--contest-timer-label)' }">
+              {{ contest?.status === 'Live' ? '剩余时间' : contest?.status === 'Upcoming' ? '距离开始' : '已结束' }}
+            </div>
+            <div class="text-3xl font-bold font-terminal" :style="{
+              color: 'var(--contest-timer-value)',
+              textShadow: '0 0 10px var(--neon-glow-cyan)'
+            }">
+              {{ countdown }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="mt-4 pt-4" :style="{ borderTop: '1px solid var(--border-color)' }">
+          <NSpace>
+            <NButton v-if="!isRegistered" type="primary" @click="handleRegister">立即报名</NButton>
+            <NButton v-else type="primary" @click="handleEnterContest">进入比赛</NButton>
+            <NButton @click="handleShare">
               <template #icon>
-                <NIcon :size="20">
-                  <ArrowLeft />
+                <NIcon>
+                  <Share2 />
                 </NIcon>
               </template>
+              分享
             </NButton>
-            <NTag :type="contest?.contest_type === 'ACM' ? 'info' : 'warning'" size="small" round>
-              {{ contest?.contest_type || '' }} 赛制
-            </NTag>
-            <NTag v-if="contest?.status === 'Live'" type="success" size="small" round>
-              <template #icon>
-                <NIcon><span class="inline-block w-1.5 h-1.5 rounded-full animate-pulse"
-                    style="background: currentColor" /></NIcon>
-              </template>
-              进行中
-            </NTag>
-            <NTag v-else-if="contest?.status === 'Upcoming'" size="small" round>未开始</NTag>
-            <NTag v-else-if="contest?.status === 'Ended'" type="default" size="small" round>已结束</NTag>
           </NSpace>
-
-          <h1 class="text-3xl font-bold mb-3" :style="{ color: 'var(--contest-title)' }">
-            {{ contest?.title || '' }}
-          </h1>
-
-          <NSpace :size="20" class="text-sm" :style="{ color: 'var(--contest-subtitle)' }">
-            <NSpace :size="4" align="center">
-              <NIcon :size="16">
-                <Calendar />
-              </NIcon>
-              <span>{{ formatContestTime(contest?.begin_at) }}</span>
-            </NSpace>
-            <NSpace :size="4" align="center">
-              <NIcon :size="16">
-                <Clock />
-              </NIcon>
-              <span>{{ contest?.duration || 0 }} 分钟</span>
-            </NSpace>
-            <NSpace :size="4" align="center">
-              <NIcon :size="16">
-                <Users />
-              </NIcon>
-              <span>{{ contest?.participants }} 人参加</span>
-            </NSpace>
-          </NSpace>
-        </div>
-
-        <!-- Countdown Timer -->
-        <div class="text-center px-6 py-4 rounded-xl"
-          :style="{ background: 'var(--contest-timer-bg)', border: '1px solid var(--contest-timer-border)' }">
-          <div class="text-xs mb-1" :style="{ color: 'var(--contest-timer-label)' }">
-            {{ contest?.status === 'Live' ? '剩余时间' : contest?.status === 'Upcoming' ? '距离开始' : '已结束' }}
-          </div>
-          <div class="text-3xl font-bold" :style="{ color: 'var(--contest-timer-value)' }">
-            {{ countdown }}
-          </div>
         </div>
       </div>
-
-      <!-- Action Buttons -->
-      <NDivider style="margin: 20px 0 16px" />
-      <NSpace>
-        <NButton v-if="!isRegistered" type="primary" @click="handleRegister">立即报名</NButton>
-        <NButton v-else type="primary" @click="handleEnterContest">进入比赛</NButton>
-        <NButton @click="handleShare">
-          <template #icon>
-            <NIcon>
-              <Share2 />
-            </NIcon>
-          </template>
-          分享
-        </NButton>
-      </NSpace>
-    </NCard>
+    </div>
 
     <!-- Tab Navigation -->
     <NMenu mode="horizontal" :value="activeTab" :options="menuOptions" class="mb-6" />
 
     <!-- Sub-page content -->
     <RouterView />
+    </div>
   </div>
 
   <!-- Password Modal -->

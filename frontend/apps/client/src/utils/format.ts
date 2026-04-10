@@ -65,8 +65,8 @@ const getRatingColor = (rating: number) => {
   if (rating >= 2400) return '#ef4444'
   if (rating >= 2100) return '#f97316'
   if (rating >= 1900) return '#eab308'
-  if (rating >= 1700) return '#8b5cf6'
-  if (rating >= 1500) return '#3b82f6'
+  if (rating >= 1700) return '#ec4899'
+  if (rating >= 1500) return '#0ea5e9'
   if (rating >= 1200) return '#10b981'
   return '#6b7280'
 }
@@ -75,8 +75,8 @@ const getRatingBgColor = (rating: number) => {
   if (rating >= 2400) return 'rgba(239, 68, 68, 0.15)'
   if (rating >= 2100) return 'rgba(249, 115, 22, 0.15)'
   if (rating >= 1900) return 'rgba(234, 179, 8, 0.15)'
-  if (rating >= 1700) return 'rgba(139, 92, 246, 0.15)'
-  if (rating >= 1500) return 'rgba(59, 130, 246, 0.15)'
+  if (rating >= 1700) return 'rgba(236, 72, 153, 0.15)'
+  if (rating >= 1500) return 'rgba(14, 165, 233, 0.15)'
   if (rating >= 1200) return 'rgba(16, 185, 129, 0.15)'
   return 'rgba(107, 114, 128, 0.15)'
 }

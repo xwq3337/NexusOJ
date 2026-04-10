@@ -4,7 +4,7 @@ import { ref } from 'vue'
 export const useUserStore = defineStore(
   'user',
   () => {
-    const id = ref('')
+    const id = ref(0)
     const username = ref('')
     const nickname = ref('')
     const gender = ref()
@@ -20,7 +20,7 @@ export const useUserStore = defineStore(
     }
 
     const resetStore = () => {
-      id.value = ''
+      id.value = 0
       username.value = ''
       nickname.value = ''
       gender.value = ''

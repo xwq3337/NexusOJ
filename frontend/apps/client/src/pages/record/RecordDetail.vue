@@ -32,7 +32,7 @@
               {{ record.verdict }}
             </n-tag>
             <n-tag type="info" size="large">
-              {{ LANGUAGE_CONFIG[record.language]?.label || 'Unknown' }}
+              {{ LANGUAGE_CONFIG[record.language as keyof typeof LANGUAGE_CONFIG]?.label || 'Unknown' }}
             </n-tag>
           </div>
         </div>
@@ -40,7 +40,7 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t"
           :style="{ borderColor: 'var(--border-color)' }">
           <div class="text-center p-3 rounded-lg" :style="{ backgroundColor: 'var(--surface-secondary)' }">
-            <div class="text-2xl font-bold text-blue-400">{{ formatTime(record.max_time) }}</div>
+            <div class="text-2xl font-bold text-sky-400">{{ formatTime(record.max_time) }}</div>
             <div class="text-sm text-gray-500">最大时间</div>
           </div>
           <div class="text-center p-3 rounded-lg" :style="{ backgroundColor: 'var(--surface-secondary)' }">
@@ -48,7 +48,7 @@
             <div class="text-sm text-gray-500">最大内存</div>
           </div>
           <div class="text-center p-3 rounded-lg" :style="{ backgroundColor: 'var(--surface-secondary)' }">
-            <div class="text-2xl font-bold text-purple-400">{{ testCases.length }}</div>
+            <div class="text-2xl font-bold text-sky-400">{{ testCases.length }}</div>
             <div class="text-sm text-gray-500">测试用例</div>
           </div>
           <div class="text-center p-3 rounded-lg" :style="{ backgroundColor: 'var(--surface-secondary)' }">
@@ -224,9 +224,11 @@ watch(theme, (newTheme) => {
 onMounted(async () => {
   if (!route.params.id) return
   await recordApi.getRecordDetail(route.params.id as string).then((res) => {
-    const { info } = res
-    record.value = info
-    testCases.value = info.judge_result || []
+    const { code, info } = res
+    if (code === 200 && info) {
+      record.value = info
+      testCases.value = info.judge_result || []
+    }
   })
 })
 
@@ -234,7 +236,23 @@ onMounted(async () => {
 const route = useRoute()
 
 // 记录数据
-const record = ref({} as GetRecordDetailResponse)
+const record = ref({
+  id: 0,
+  problem_id: 0,
+  problem_title: '',
+  user_id: 0,
+  username: '',
+  max_time: 0,
+  max_memory: 0,
+  language: '',
+  code: '',
+  status: 0,
+  create_time: 0,
+  verdict: "SystemError",
+  judge_result: [],
+  created_at: '',
+  updated_at: ''
+} as GetRecordDetailResponse)
 
 // 解析测试用例
 const testCases = ref<JudgeTestCaseResult[]>([])

@@ -25,7 +25,7 @@
     <div class="flex flex-col md:flex-row gap-6">
       <div class="flex-1">
         <n-list bordered>
-          <n-list-item v-for="blog in blogs" :key="blog.id" class="p-2  hover:bg-[#EEEEEE]">
+          <n-list-item v-for="blog in blogs" :key="blog.id" class="p-2" :style="{ '--n-color-hover': 'var(--surface-secondary)' }">
             <n-row>
               <span @click="$router.push({ name: 'BlogDetail', params: { id: blog.id } })"
                 class="font-bold text-lg  cursor-pointer"> {{ blog.title }}</span>
@@ -37,7 +37,7 @@
               <n-col>
                 <div class="text-[#8A919F] justify-center align-center flex gap-2">
                   <UserCard :user_id="blog.user_id">
-                    <span class="text-sm cursor-pointer hover:text-blue-500">{{ blog.username }}</span>
+                    <span class="text-sm cursor-pointer" :style="{ color: 'var(--text-secondary)' }">{{ blog.username }}</span>
                   </UserCard>
                 </div>
               </n-col>
@@ -48,7 +48,7 @@
                 <Eye :size="20" />
                 {{ formatNumber(blog.view) }}
                 <n-divider vertical />
-                <div class="flex items-center gap-2 hover:text-blue-500 cursor-pointer">
+                <div class="flex items-center gap-2 cursor-pointer" :style="{ '--hover-color': 'var(--accent-color)' }">
                   <ThumbsUp :size="16" />
                   {{ formatNumber(blog.like) }}
                 </div>

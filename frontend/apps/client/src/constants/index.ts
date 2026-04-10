@@ -49,9 +49,9 @@ export const LANGUAGE_CONFIG = {
     aceMode: 'c_cpp', // ace 编辑器使用的模式，用于主题
     apiValue: 'c', // sandbox/formatter 使用的值
     color: {
-      color: '#2080f01a',
-      textColor: 'rgb(32, 128, 240)',
-      borderColor: 'rgba(32, 128, 240, 0.3)'
+      color: '#0ea5e91a',
+      textColor: 'rgb(14, 165, 233)',
+      borderColor: 'rgba(14, 165, 233, 0.3)'
     },
     defaultCode: `#include <stdio.h>
 int main() {
@@ -65,9 +65,9 @@ int main() {
     aceMode: 'c_cpp',
     apiValue: 'cpp',
     color: {
-      color: '#2080f01a',
-      textColor: 'rgb(32, 128, 240)',
-      borderColor: 'rgba(32, 128, 240, 0.3)'
+      color: '#0ea5e91a',
+      textColor: 'rgb(14, 165, 233)',
+      borderColor: 'rgba(14, 165, 233, 0.3)'
     },
     defaultCode: `#include <iostream>
 using namespace std;
@@ -161,9 +161,9 @@ fn main(){
     aceMode: 'csharp',
     apiValue: 'csharp',
     color: {
-      color: '#2080f01a',
-      textColor: 'rgb(32, 128, 240)',
-      borderColor: 'rgba(32, 128, 240, 0.3)'
+      color: '#0ea5e91a',
+      textColor: 'rgb(14, 165, 233)',
+      borderColor: 'rgba(14, 165, 233, 0.3)'
     },
     defaultCode: `using System;
 
@@ -289,21 +289,21 @@ export const STATUS_COLORS : Record<string, StatusColor> = {
   },
   // primary
   CompilationError: {
-    color: '#2080f01a',
-    textColor: 'rgb(32, 128, 240)',
-    borderColor: 'rgba(32, 128, 240, 0.3)'
+    color: '#0ea5e91a',
+    textColor: 'rgb(14, 165, 233)',
+    borderColor: 'rgba(14, 165, 233, 0.3)'
   },
   // primary
   RestrictedSystemCall: {
-    color: '#2080f01a',
-    textColor: 'rgb(32, 128, 240)',
-    borderColor: 'rgba(32, 128, 240, 0.3)'
+    color: '#0ea5e91a',
+    textColor: 'rgb(14, 165, 233)',
+    borderColor: 'rgba(14, 165, 233, 0.3)'
   },
   // primary
   SystemError: {
-    color: '#2080f01a',
-    textColor: 'rgb(32, 128, 240)',
-    borderColor: 'rgba(32, 128, 240, 0.3)'
+    color: '#0ea5e91a',
+    textColor: 'rgb(14, 165, 233)',
+    borderColor: 'rgba(14, 165, 233, 0.3)'
   }
 }
 

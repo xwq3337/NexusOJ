@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-5xl mx-auto p-4 md:p-6">
+  <div class="max-w-5xl mx-auto p-4 md:p-6 min-h-screen" :style="{ backgroundColor: 'var(--bg-primary)' }">
     <!-- 标题栏 -->
     <n-card :bordered="false" class="mb-4">
       <div class="flex items-center justify-between mb-4">

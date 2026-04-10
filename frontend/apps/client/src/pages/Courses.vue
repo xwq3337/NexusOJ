@@ -37,7 +37,7 @@
       >
         <template #cover>
           <div
-            class="h-40 bg-linear-to-r from-blue-500 to-purple-600 rounded-t-xl flex items-center justify-center"
+            class="h-40 bg-linear-to-r from-sky-500 to-sky-600 rounded-t-xl flex items-center justify-center"
           >
             <div class="text-white text-center p-4">
               <BookOpen :size="48" class="mx-auto mb-2" />

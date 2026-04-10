@@ -73,7 +73,7 @@ const columns = [
           RouterLink,
           {
             to: `/problem/${row.id}`,
-            class: 'font-medium hover:text-blue-400 transition-colors text-sm block',
+            class: 'font-medium hover:text-sky-400 transition-colors text-sm block',
             style: { color: 'var(--text-primary)' }
           },
           { default: () => `${row.id}. ${row.title}` }

@@ -14,9 +14,10 @@ body {
     color 0.3s;
 }
 
+/* === Scrollbar === */
 ::-webkit-scrollbar {
-  width: 0px;
-  height: 0.5rem;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -24,7 +25,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--text-secondary);
+  background: var(--surface-tertiary);
   border-radius: 4px;
 }
 
@@ -32,6 +33,7 @@ body {
   background: var(--accent-color);
 }
 
+/* === Animations === */
 .animate-fade-in {
   animation: fadeIn 0.5s ease-out;
 }
@@ -46,4 +48,106 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes neon-flicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  93% {
+    opacity: 0.8;
+  }
+  94% {
+    opacity: 1;
+  }
+}
+
+@keyframes cyber-border-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+/* === Cyberpunk Utility Classes === */
+.font-terminal {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+}
+
+.neon-border {
+  box-shadow: var(--glow-border);
+}
+
+.neon-text {
+  text-shadow: var(--glow-text);
+}
+
+.cyber-grid-bg {
+  background-image:
+    linear-gradient(var(--grid-line-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line-color) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.cyber-glow-card {
+  position: relative;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.cyber-glow-card:hover {
+  border-color: var(--neon-cyan);
+  box-shadow: var(--glow-border);
+}
+
+.cyber-scanline-overlay {
+  position: relative;
+  overflow: hidden;
+}
+
+.cyber-scanline-overlay::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--neon-glow-cyan),
+    transparent
+  );
+  animation: scanline 4s linear infinite;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* === Selection === */
+::selection {
+  background-color: var(--selection-bg);
+  color: var(--selection-text);
 }

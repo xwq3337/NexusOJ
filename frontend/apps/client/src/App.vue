@@ -1,6 +1,6 @@
 <template>
   <n-message-provider>
-    <n-config-provider :locale="zhCN" :date-locale="dateZhCN" :theme="naiveTheme">
+    <n-config-provider :locale="zhCN" :date-locale="dateZhCN" :theme="naiveTheme" :theme-overrides="naiveThemeOverrides">
       <RouterView :key="theme" />
       <AiAssistant :key="theme" />
     </n-config-provider>
@@ -14,7 +14,6 @@ import { zhCN, dateZhCN } from 'naive-ui'
 import { useTheme } from './composables/useTheme'
 import { onMounted, provide, ref } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
-import { userApi } from '../../../packages/server/src/user'
 const isAuthorization = ref(false)
 
 const checkAuth = async () => {
@@ -34,6 +33,6 @@ const checkAuth = async () => {
 provide('isAuthorization', isAuthorization); // 提供检查认证的函数
 provide('checkAuth', checkAuth); // 提供检查认证的函数
 onMounted(checkAuth); //组件挂载时检查认证状态
-const { theme, naiveTheme } = useTheme()
+const { theme, naiveTheme, naiveThemeOverrides } = useTheme()
 
 </script>

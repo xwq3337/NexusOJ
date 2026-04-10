@@ -28,7 +28,7 @@ export const problemApi = {
 }
 interface SubmitCodeOptions {
   problem_id: string
-  user_id: string
+  user_id: Number
   code: string
   language: string
 }

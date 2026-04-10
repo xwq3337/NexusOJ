@@ -7,7 +7,7 @@
         height: 'min(500px, 60vw)',
         top: '-10%',
         left: '-10%',
-        background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+        background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
         animationDelay: '0s'
       }" />
       <div class="absolute rounded-full blur-3xl opacity-60 animate-float" :style="{
@@ -15,7 +15,7 @@
         height: 'min(400px, 50vw)',
         bottom: '-10%',
         right: '-10%',
-        background: 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%)',
+        background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%)',
         animationDelay: '-5s'
       }" />
       <div class="absolute rounded-full blur-3xl opacity-60 animate-float" :style="{
@@ -24,29 +24,31 @@
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
-        background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+        background: 'linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%)',
         animationDelay: '-10s'
       }" />
+      <!-- Cyberpunk grid overlay -->
+      <div class="absolute inset-0 cyber-grid-bg opacity-20"></div>
     </div>
 
     <!-- 登录卡片 -->
-    <div class="relative w-full max-w-md rounded-3xl p-8 border backdrop-blur-xl" :style="{
+    <div class="relative w-full max-w-md rounded-2xl p-8 border backdrop-blur-xl" :style="{
       background: 'var(--bg-card)',
       borderColor: 'var(--border-color)',
-      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 30px rgba(14, 165, 233, 0.08)'
     }">
       <!-- 头部 -->
       <div class="text-center mb-8">
         <div class="flex items-center justify-center gap-3 mb-2">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center" :style="{
-            background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-            boxShadow: '0 10px 20px -5px rgba(59, 130, 246, 0.4)',
-            color: '#ffffff'
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center font-terminal font-bold" :style="{
+            background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%)',
+            boxShadow: '0 10px 20px -5px rgba(14, 165, 233, 0.4)',
+            color: '#0a0e1a'
           }">
-            <Code2 :size="24" />
+            &gt;_
           </div>
           <h1 class="text-3xl font-bold" :style="{
-            background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #a855f7 100%)',
+            background: 'linear-gradient(135deg, #0ea5e9 0%, #38bdf8 50%, #7dd3fc 100%)',
             WebkitBackgroundClip: 'text',
             backgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
@@ -99,7 +101,7 @@
               fontSize: '16px',
               fontWeight: '600',
               borderRadius: '12px',
-              boxShadow: '0 4px 14px -2px rgba(59, 130, 246, 0.4)'
+              boxShadow: '0 4px 14px -2px rgba(14, 165, 233, 0.4)'
             }">
             <template #icon>
               <LogIn :size="18" />
@@ -117,12 +119,12 @@
           <div class="flex-1 h-px" :style="{ background: 'var(--border-color)' }" />
         </div>
         <div class="flex items-center justify-center gap-3 mt-6 text-sm font-medium">
-          <RouterLink to="/forgot-password" class="transition-colors hover:text-blue-400"
+          <RouterLink to="/forgot-password" class="transition-colors"
             :style="{ color: 'var(--text-secondary)' }">
             忘记密码？
           </RouterLink>
           <span :style="{ color: 'var(--border-color)' }">|</span>
-          <RouterLink to="/register" class="transition-colors hover:text-blue-400"
+          <RouterLink to="/register" class="transition-colors"
             :style="{ color: 'var(--text-secondary)' }">
             注册账号
           </RouterLink>
@@ -135,7 +137,7 @@
 <script setup lang="ts">
 import type { FormInst, FormItemInst, FormItemRule, FormRules } from 'naive-ui'
 import { NForm, NFormItem, NInput, NButton, useMessage } from 'naive-ui'
-import { User, Lock, LogIn, Code2 } from 'lucide-vue-next'
+import { User, Lock, LogIn } from 'lucide-vue-next'
 import { useRoute, RouterLink, useRouter } from 'vue-router'
 import { inject, ref } from 'vue'
 import { HttpStatusCode } from 'axios'
@@ -241,13 +243,13 @@ const handleValidateButtonClick = (e: MouseEvent) => {
           console.log(res)
 
           const { msg, info, code } = res
-          if (code === HttpStatusCode.Ok && info && Array.isArray(msg)) { 
+          if (code === HttpStatusCode.Ok && info && Array.isArray(msg)) {
             if (!msg || msg.length < 2 || typeof msg[0] !== 'string' || typeof msg[1] !== 'string') {
               message.error('登录失败，服务器返回数据异常')
               return
             }
             AccessToken.value = msg[0]
-            RefreshToken.value = msg[1] 
+            RefreshToken.value = msg[1]
             initStore({
               Id: info.id,
               Username: modelRef.value.username,
@@ -320,15 +322,15 @@ const handleValidateButtonClick = (e: MouseEvent) => {
 }
 
 :deep(.n-button--primary) {
-  background: #3b82f6;
+  background: #0ea5e9;
 }
 
 :deep(.n-button--primary:hover) {
-  background: #2563eb;
+  background: #0284c7;
 }
 
 :deep(.n-button--primary:active) {
-  background: #1d4ed8;
+  background: #0369a1;
 }
 
 @media (max-width: 640px) {

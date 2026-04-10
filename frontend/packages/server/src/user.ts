@@ -91,13 +91,13 @@ export const userApi = {
   ): Promise<ApiResponse<{ records: GetRecordListResponse[], total: number }>> => {
     return Request.get(`/record/user/${id}`, { params: params })
   },
-  getChatRecordList: (friend_id: string, page: number = 1): Promise<ApiResponse<ChatMessage[]>> => {
+  getChatRecordList: (friend_id: Number, page: number = 1): Promise<ApiResponse<ChatMessage[]>> => {
     return Request.get(`/chat/record`, {
       params: { friend_id, page }
     })
   },
   // 标记消息为已读
-  MarkMessagesAsRead: (friend_id: string): Promise<ApiResponse<null>> => {
+  MarkMessagesAsRead: (friend_id: Number): Promise<ApiResponse<null>> => {
     return Request.post(`/chat/mark-read`, { friend_id })
   },
   AdminUserList: (page: number = 1, page_size: number = 10, _ : any): Promise<ApiResponse<User[]>> => {

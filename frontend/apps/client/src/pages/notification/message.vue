@@ -1,7 +1,6 @@
 <template>
     <n-card>
-        <n-split direction="horizontal" v-model:size="split" style="height: calc(100vh - 14rem)" :max="0.45"
-            :min="0.2">
+        <n-split direction="horizontal" v-model:size="split" style="height: calc(100vh - 14rem)" :max="0.45" :min="0.2">
             <template #1>
                 <n-list>
                     <template #header>
@@ -82,7 +81,7 @@
                             </n-card>
                         </n-modal>
                     </template>
-                    <n-list-item v-for="(value, index) in friendList" :key="value.id">
+                    <n-list-item v-for="value in friendList" :key="value.id">
                         <div class="flex items-center gap-4 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                             @click="startChat(value.friend_id)">
                             <n-avatar :size="48" :src="value.friend_avatar || undefined"
@@ -100,11 +99,7 @@
                                         ({{ value.friend_username }})
                                     </span>
                                     <!-- 未读计数 -->
-                                    <n-badge
-                                        v-if="value.unread_count > 0"
-                                        :value="value.unread_count"
-                                        :max="99"
-                                    />
+                                    <n-badge v-if="value.unread_count > 0" :value="value.unread_count" :max="99" />
                                 </div>
                                 <p class="text-sm truncate" :style="{ color: 'var(--text-secondary)' }">
                                     {{ value.latest_message || '暂无消息' }}
@@ -165,9 +160,10 @@
                                         <!-- 消息内容 -->
                                         <div :class="['mx-3', isCurrentUser(msg) ? 'text-right' : 'text-left']">
                                             <div :class="['inline-block px-4 py-2 rounded-lg', isCurrentUser(msg)
-                                                ? 'bg-blue-500 text-white'
-                                                : 'bg-gray-200 dark:bg-gray-700']"
-                                                :style="!isCurrentUser(msg) ? { backgroundColor: 'var(--card-bg)' } : {}">
+                                                ? 'text-white'
+                                                : '']" :style="isCurrentUser(msg)
+                                                    ? { backgroundColor: 'var(--btn-primary)' }
+                                                    : { backgroundColor: 'var(--surface-secondary)' }">
                                                 <p class="text-sm whitespace-pre-wrap wrap-break-word">{{ msg.content }}
                                                 </p>
                                             </div>
@@ -247,9 +243,9 @@ const requestList = ref<FriendShipRequest[]>([])
 const loadFriendList = async () => {
     friendsLoading.value = true
     try {
-        const res = await userApi.getFriendList()
-        if (res.code === 200 && res.info) {
-            friendList.value = res.info
+        const { code, info } = await userApi.getFriendList()
+        if (code === 200 && info) {
+            friendList.value = info
         }
     } catch (error) {
         console.error('Failed to load friend list:', error)
@@ -291,8 +287,8 @@ const handleRequest = async (requestId: string, status: "accepted" | "rejected")
 }
 
 
-const viewUserProfile = (userId: string) => {
-    router.push({ name: 'UserHomePage', params: { id: userId } })
+const viewUserProfile = (userId: Number) => {
+    router.push({ name: 'UserHomePage', params: { id: +userId } })
 }
 
 import type { ChatMessage } from '@nexusoj/type'
@@ -304,7 +300,7 @@ const userStore = useUserStore()
 const { id, avatar } = userStore
 
 const page = ref(1)
-const currentChatFriendId = ref<string | null>(null)
+const currentChatFriendId = ref<Number | null>(null)
 const chatMessages = ref<ChatMessage[]>([])
 const currentChatFriend = ref<FriendShip | null>(null)
 const messagesLoading = ref(false)
@@ -316,7 +312,7 @@ const allPagesLoaded = ref<Set<string>>(new Set())
 
 // 计算总未读数（从 friendship 的 unread_count 汇总）
 const totalUnreadCount = computed(() => {
-  return friendList.value.reduce((sum, f) => sum + (f.unread_count || 0), 0)
+    return friendList.value.reduce((sum, f) => sum + (f.unread_count || 0), 0)
 })
 
 const scrollToBottom = () => {
@@ -394,7 +390,7 @@ watch(currentChatFriendId, (newId, oldId) => {
 })
 
 
-const startChat = async (friend_id: string) => {
+const startChat = async (friend_id: Number) => {
     currentChatFriendId.value = friend_id
     messagesLoading.value = true
 
@@ -444,7 +440,8 @@ const { send, status, open, close } = useNexusWebSocket(
             console.log('WebSocket connected')
         },
         onMessage(msg) {
-            if (msg.data == 'pong') {
+            if (!msg) return
+            if (msg?.data == 'pong') {
                 console.log('Received heartbeat pong')
                 return
             }
@@ -490,7 +487,7 @@ const MessageContent = ref('')
 const handleSend = () => {
     const msg: ChatMessage = {
         sender_id: id,
-        receiver_id: currentChatFriendId.value || '',
+        receiver_id: currentChatFriendId.value || 0, // 为 0 表示无效
         content: MessageContent.value,
         status: false, // 发送时默认为未读，等待服务器确认后可以更新为已读
         message_type: 'text' as const,

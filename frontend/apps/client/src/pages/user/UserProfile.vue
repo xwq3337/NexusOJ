@@ -84,7 +84,7 @@ const handlePositiveClick = () => {
 </script>
 
 <template>
-  <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+  <h3 class="text-2xl font-bold mb-6" :style="{ color: 'var(--text-primary)' }">
     <UserIcon class="inline mr-2" />
     个人信息
   </h3>

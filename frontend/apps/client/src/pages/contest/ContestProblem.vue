@@ -294,7 +294,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="flex h-screen overflow-hidden">
+  <div class="flex h-screen overflow-hidden" :style="{ backgroundColor: 'var(--bg-primary)' }">
     <n-split direction="horizontal" :max="0.75" :min="0.25">
       <!-- 左侧：题目描述 -->
       <template #1>

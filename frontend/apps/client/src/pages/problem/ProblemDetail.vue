@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen overflow-hidden">
+  <div class="flex h-screen overflow-hidden" :style="{ backgroundColor: 'var(--bg-primary)' }">
     <n-split direction="horizontal" :max="0.75" :min="0.25">
       <template #1>
         <div ref="problemPanelRef" class="h-full overflow-y-auto markdown-container" :style="{
@@ -393,17 +393,17 @@ const fontSize = useLocalStorage('editor_font_size', 14)
 const problem = ref<Problem>({
   id: 0,
   user_id: 0,
-  title: '',
+  title: '加载中...',
   context: '',
-  difficulty: 0,
+  difficulty: 1,
   input_description: '',
   output_description: '',
   tags: [],
   accept: 0,
   submission: 0,
   judge_config: {
-    time_limit: 1000,
-    memory_limit: 65536
+    time_limit: 1,
+    memory_limit: 64
   },
   judge_case: [],
   judge_sample: [],

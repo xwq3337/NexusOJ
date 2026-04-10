@@ -1,8 +1,6 @@
 <template>
   <div :style="{ backgroundColor: 'var(--bg-primary)' }" class="min-h-screen p-2">
     <div class="max-w-7xl mx-auto">
-      <h1 class="text-3xl font-bold mb-6" :style="{ color: 'var(--text-primary)' }">评测记录</h1>
-
       <!-- 筛选和搜索区域 -->
       <div class="mb-6 flex gap-4 p-4 rounded-lg" :style="{ backgroundColor: 'var(--surface-primary)' }">
         <n-input v-model:value="searchKeyword" placeholder="搜索题目或用户..." style="max-width: 300px"

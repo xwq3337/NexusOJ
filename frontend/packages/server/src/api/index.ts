@@ -16,7 +16,7 @@ class Axios {
   #options: AxiosOptions
   #interceptors
 
-  constructor(options) {
+  constructor(options: AxiosOptions) {
     this.#axiosInstance = axios.create(options)
     this.#options = options
     this.#interceptors = options.interceptors

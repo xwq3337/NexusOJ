@@ -1,19 +1,26 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div class="min-h-screen" :style="{ backgroundColor: 'var(--bg-primary)' }">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <!-- Sidebar -->
         <div class="lg:col-span-1">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div class="rounded-xl p-6" :style="{
+            backgroundColor: 'var(--surface-primary)',
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 0 20px rgba(14, 165, 233, 0.04)'
+          }">
             <div class="text-center">
               <n-avatar :size="80" :src="avatar" class="mx-auto mb-4">
                 <UserIcon v-if="!avatar" />
               </n-avatar>
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+              <h2 class="text-xl font-semibold" :style="{ color: 'var(--text-primary)' }">
                 {{ nickname || username }}
               </h2>
               <div class="flex items-center justify-center gap-2 mt-2">
-                <span class="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 font-mono">
+                <span class="text-xs px-2 py-1 rounded font-terminal" :style="{
+                  backgroundColor: 'var(--surface-tertiary)',
+                  color: 'var(--text-tertiary)'
+                }">
                   #{{ id }}
                 </span>
               </div>
@@ -22,7 +29,7 @@
                 :style="{ backgroundColor: formatRating(rating).bgColor }"
               >
                 <span
-                  class="text-lg font-bold"
+                  class="text-lg font-bold font-terminal"
                   :style="{ color: formatRating(rating).color }"
                 >
                   {{ rating }}
@@ -41,7 +48,10 @@
         </div>
         <!-- Main Content -->
         <div class="lg:col-span-3">
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div class="rounded-xl p-6" :style="{
+            backgroundColor: 'var(--surface-primary)',
+            border: '1px solid var(--border-color)'
+          }">
             <RouterView />
           </div>
         </div>

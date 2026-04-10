@@ -55,15 +55,6 @@
       >
         <!-- Problem Badge -->
         <div class="flex items-center justify-between mb-3">
-          <span
-            class="px-2 py-1 rounded-lg text-xs font-medium"
-            :style="{
-              backgroundColor: getDifficultyBgColor(solution.difficulty),
-              color: getDifficultyColor(solution.difficulty)
-            }"
-          >
-            {{ getDifficultyLabel(solution.difficulty) }}
-          </span>
           <div class="flex items-center gap-2 text-xs" :style="{ color: 'var(--text-tertiary)' }">
             <Eye :size="14" />
             <span>{{ solution.view }} 阅读</span>
