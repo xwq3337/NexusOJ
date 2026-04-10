@@ -74,6 +74,7 @@ func Router() *gin.Engine {
 		userGroup.POST("/login", controllers.UserController{}.UserLogin)             // 用户登录
 		userGroup.GET("/count", controllers.UserController{}.GetNumber)              // 用户数量
 		userGroup.GET("/search", controllers.UserController{}.FuzzyQuery)            // 模糊查询用户
+		userGroup.GET("/top-rating", controllers.UserController{}.GetTopUsers)       // Rating排行榜Top10
 	}
 	chatGroup := r.Group("/chat")
 	{
@@ -86,7 +87,6 @@ func Router() *gin.Engine {
 	//#####################################################################
 	// -----------------------以下为JWT验证相关代码---------------------------
 
-	r.Use(jwt.Auth())
 	{
 		userGroup.POST("/update", controllers.UserController{}.UpdateUser)                                   // 更新用户信息
 		userGroup.POST("/update-avatar", controllers.UserController{}.UpdateAvatar)                          // 更改头像
@@ -139,8 +139,32 @@ func Router() *gin.Engine {
 	}
 	contest := r.Group("/contest")
 	{
-		contest.GET("/list", controllers.ContestController{}.GetList)       // 所有比赛列表
-		contest.GET("/:id", controllers.ContestController{}.GetContestInfo) // 根据id获取比赛题目
+		contest.GET("/list", controllers.ContestController{}.GetList)                                    // 所有比赛列表
+		contest.GET("/:id", controllers.ContestController{}.GetContestInfo)                              // 比赛详情
+		contest.POST("/register", controllers.ContestController{}.RegisterContest)                       // 报名比赛
+		contest.GET("/:id/problems", controllers.ContestController{}.GetContestProblems)                 // 比赛题目
+		contest.GET("/:id/problems/:label", controllers.ContestController{}.GetContestProblemDetail)     // 比赛单题详情
+		contest.POST("/:id/submit", controllers.ContestController{}.SubmitContestProblem)                // 提交代码
+		contest.GET("/:id/submissions", controllers.ContestController{}.GetContestSubmissions)           // 比赛提交列表
+		contest.GET("/:id/submissions/:rid", controllers.ContestController{}.GetContestSubmissionDetail) // 提交详情
+		contest.GET("/:id/ranking", controllers.ContestController{}.GetContestRanking)                   // 实时排名
+		contest.GET("/:id/ranking/stream", controllers.ContestController{}.StreamContestRanking)         // SSE排名推送
+		contest.GET("/:id/my-status", controllers.ContestController{}.GetMyContestStatus)                // 用户参赛状态
+	}
+	r.Use(jwt.Auth())
+
+	adminContest := r.Group("/admin/contest")
+	{
+		adminContest.POST("/create", controllers.ContestController{}.CreateContest)                      // 创建比赛
+		adminContest.POST("/update", controllers.ContestController{}.UpdateContest)                      // 更新比赛
+		adminContest.POST("/delete", controllers.ContestController{}.DeleteContest)                      // 删除比赛
+		adminContest.GET("/list", controllers.ContestController{}.GetAdminContestList)                   // 管理员比赛列表
+		adminContest.GET("/:id", controllers.ContestController{}.GetAdminContestDetail)                  // 管理员比赛详情
+		adminContest.POST("/:id/problems", controllers.ContestController{}.SetContestProblems)           // 设置比赛题目
+		adminContest.POST("/:id/participants", controllers.ContestController{}.ManageParticipant)        // 管理参赛者
+		adminContest.GET("/:id/report", controllers.ContestController{}.GenerateReport)                  // 生成比赛报告
+		adminContest.GET("/:id/import-preview", controllers.ContestController{}.GetImportPreview)        // 预览可导入题目
+		adminContest.POST("/:id/import-problems", controllers.ContestController{}.ImportContestProblems) // 导入题目到题库
 	}
 	file := r.Group("/file")
 	{

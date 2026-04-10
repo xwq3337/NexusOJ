@@ -11,8 +11,8 @@ import (
 
 type Blog struct {
 	ID         uuid.UUID                   `json:"id" gorm:"primarykey type:uuid;default:uuid_generate_v4()"` // id
-	UserID     string                      `json:"user_id"`                                                   // 用户id
-	Title      string                      `json:"title"`                                                     // 标题
+	UserID     uint64                      `json:"user_id"`                                                   // 用户id
+	Title      string                      `json:"title" gorm:"type:varchar(255)"`                            // 标题
 	Context    string                      `json:"context"`                                                   // 文本
 	Excerpt    string                      `json:"excerpt"`                                                   // 摘要
 	Tags       datatypes.JSONSlice[string] `json:"tags"`                                                      // 标签
@@ -21,8 +21,8 @@ type Blog struct {
 	IsPrivate  bool                        `json:"is_private" gorm:"type:tinyint(1);default:0"`
 	View       int32                       `json:"view" gorm:"default:0"` // 浏览量
 	Status     string                      `json:"status"`
-	CreatedAt  time.Time                   `json:"created_at"`
-	UpdatedAt  time.Time                   `json:"updated_at"`
+	CreatedAt  time.Time                   `json:"created_at" gorm:"autoCreateTime;type:datetime"`
+	UpdatedAt  time.Time                   `json:"updated_at" gorm:"autoUpdateTime;type:datetime"`
 	DeletedAt  gorm.DeletedAt              `json:"deleted_at" gorm:"index"`
 }
 
@@ -83,43 +83,40 @@ type BlogDetail struct {
 	Avatar   string `json:"avatar"`
 }
 
-// 某个用户能够查看的博客列表
-func (Blog) GetAvailableBlog(user_id string, keywords string, page int, page_size int) ([]BlogDetail, int64, error) {
-	var blogs []BlogDetail
+// 某个用户能够查看的博客列表，使用窗口函数一次查询返回数据和总数
+func (Blog) GetAvailableBlog(user_id uint64, keywords string, page int, page_size int) ([]map[string]interface{}, int64, error) {
 	offset := (page - 1) * page_size
 
-	// 构建基础查询
-	baseQuery := dao.MysqlClient.Model(&Blog{}).
+	var results []map[string]interface{}
+	err := dao.MysqlClient.Model(&Blog{}).
+		Select("blog.id", "blog.view", "blog.excerpt", "blog.user_id", "blog.title", "blog.like", "blog.tags", "blog.collection", "blog.created_at", "blog.updated_at", "user.username", "COUNT(*) OVER() AS total").
 		Joins("LEFT JOIN user ON blog.user_id = user.id").
 		Where("blog.status = ?", "Normal").
-		Where("(blog.title LIKE CONCAT('%',?,'%') OR blog.tags LIKE CONCAT('%',?,'%')) AND blog.deleted_at IS NULL AND (blog.user_id = ? OR blog.is_private = 0)", keywords, keywords, user_id)
-
-	// 执行分页查询
-	err := baseQuery.
-		Select("blog.id", "blog.view", "blog.excerpt", "blog.user_id", "blog.title", "blog.like", "blog.tags", "blog.collection", "blog.created_at", "blog.updated_at", "user.username").
+		Where("(MATCH(blog.title) AGAINST(? IN BOOLEAN MODE) OR blog.tags LIKE CONCAT('%',?,'%')) AND blog.deleted_at IS NULL AND (blog.user_id = ? OR blog.is_private = 0)", keywords, keywords, user_id).
 		Order("blog.created_at DESC").
 		Offset(offset).
 		Limit(page_size).
-		Scan(&blogs).Error
+		Find(&results).Error
 	if err != nil {
-		return []BlogDetail{}, 0, err
+		return nil, 0, err
 	}
 
-	// 执行计数查询
 	var total int64
-	countQuery := dao.MysqlClient.Model(&Blog{}).
-		Where("status = ?", "Normal").
-		Where("(title LIKE CONCAT('%',?,'%') OR tags LIKE CONCAT('%',?,'%')) AND deleted_at IS NULL AND (user_id = ? OR is_private = 0)", keywords, keywords, user_id)
-	err = countQuery.Count(&total).Error
-	if err != nil {
-		return []BlogDetail{}, 0, err
+	if len(results) > 0 {
+		if t, ok := results[0]["total"]; ok {
+			total = t.(int64)
+		}
 	}
 
-	return blogs, total, nil
+	for i := range results {
+		delete(results[i], "total")
+	}
+
+	return results, total, nil
 }
 
 // 某个用户的博客列表
-func (Blog) GetUserBlogList(userID string) ([]Blog, error) {
+func (Blog) GetUserBlogList(userID uint64) ([]Blog, error) {
 	var blogs []Blog
 	err := dao.MysqlClient.Model(&Blog{}).
 		Select("id", "title", "status", "`like`", "created_at", "is_private", "tags").

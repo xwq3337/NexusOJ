@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"time"
-
+	"nexus/middleware/jwt"
 	"nexus/utils/logger"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,6 +30,20 @@ func DefaultRequestLoggerConfig() RequestLoggerConfig {
 		LogRequestBody:   true, // 默认记录请求体
 		LogResponseBody:  true, // 默认不记录响应体
 	}
+}
+
+// getIP 获取客户端IP地址
+func getIP(c *gin.Context) string {
+	if ip := c.Request.Header.Get("X-Real-IP"); ip != "" {
+		return ip
+	}
+	if ip := c.RemoteIP(); ip != "" {
+		return ip
+	}
+	if ip := c.ClientIP(); ip != "" {
+		return ip
+	}
+	return "unknown"
 }
 
 // RequestLogger 请求日志中间件
@@ -62,7 +77,6 @@ func RequestLogger() gin.HandlerFunc {
 				} else {
 					requestBody = body
 				}
-
 				// 恢复请求体以供后续处理
 				c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 			} else {
@@ -79,16 +93,28 @@ func RequestLogger() gin.HandlerFunc {
 
 		// 计算处理时间
 		latency := time.Since(start)
-
+		// 根据 jwt 解析 user_id
+		token := c.Request.Header.Get("Authorization")
+		var userID uint64
+		if token != "" {
+			token = strings.TrimPrefix(token, "Bearer ")
+			userID = jwt.GetUserIDFromToken(token)
+		}
+		ip := getIP(c)
 		// 收集日志字段
-		fields := []interface{}{
+		fields := []any{
 			"status", c.Writer.Status(),
 			"method", c.Request.Method,
 			"path", path,
-			"ip", c.ClientIP(),
+			"ip", ip,
+			"parameters", c.Request.URL.Query(),
 			"latency", latency.String(),
 			"user_agent", c.Request.UserAgent(),
-			"time", start.Format(time.RFC3339),
+		}
+
+		// 如果解析出userID，添加到日志中
+		if userID != 0 {
+			fields = append(fields, "user_id", userID)
 		}
 
 		if raw != "" {

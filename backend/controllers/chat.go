@@ -32,8 +32,8 @@ var upgrader = websocket.Upgrader{
 }
 
 type Message struct {
-	SenderID    string `json:"sender_id"`
-	ReceiverID  string `json:"receiver_id"`  // 群聊时为群ID
+	SenderID    uint64 `json:"sender_id"`
+	ReceiverID  uint64 `json:"receiver_id"`  // 群聊时为群ID
 	MessageType string `json:"message_type"` // 消息类型 text/image/file/video/voice
 	Content     string `json:"content"`      // 消息内容
 	Timestamp   int64  `json:"timestamp"`    // 消息发送时间戳
@@ -41,7 +41,7 @@ type Message struct {
 
 type Client struct {
 	Conn          *websocket.Conn
-	User          string
+	User          uint64
 	Addr          string
 	HeartBeatTime uint64
 	DataQueue     chan []byte
@@ -50,7 +50,7 @@ type Client struct {
 }
 
 var (
-	clients   = make(map[string]*Client)
+	clients   = make(map[uint64]*Client)
 	clientsMu sync.RWMutex
 )
 
@@ -95,12 +95,12 @@ func (ChatController) Handler(c *gin.Context) {
 		removeClient(client)
 	}()
 }
-func addClient(userID string, client *Client) {
+func addClient(userID uint64, client *Client) {
 	clientsMu.Lock()
 	defer clientsMu.Unlock()
 	clients[userID] = client
 }
-func findClient(id string) *Client {
+func findClient(id uint64) *Client {
 	clientsMu.RLock()
 	defer clientsMu.RUnlock()
 	return clients[id]
@@ -171,7 +171,7 @@ func broadMsg(_ Message) error { // 局域网广播
 }
 
 func sendPrivateMsg(msg Message) { //私聊
-	channel := "unread_record:" + msg.ReceiverID
+	channel := "unread_record:" + string(msg.ReceiverID)
 	ctx := context.Background()
 	count, _ := models.QueryUnReadRecord(msg.ReceiverID)
 	err := dao.RedisClient.Publish(ctx, channel, strconv.Itoa(count+1)).Err()
@@ -225,12 +225,12 @@ func (ChatController) GetChatRecord(c *gin.Context) {
 		utils.ReturnError(c, http.StatusUnauthorized, "未授权")
 		return
 	}
-	friend_id := c.Query("friend_id")
-	pageStr := c.DefaultQuery("page", "1")
-	if friend_id == "" {
+	friend_id, err := strconv.ParseUint(c.Query("friend_id"), 10, 64)
+	if err != nil {
 		utils.ReturnError(c, http.StatusBadRequest, "缺少好友ID")
 		return
 	}
+	pageStr := c.DefaultQuery("page", "1")
 	page, err := strconv.Atoi(pageStr)
 	if err != nil || page < 1 {
 		page = 1 // 默认第一页
@@ -249,9 +249,8 @@ func (ChatController) MarkMessagesAsRead(c *gin.Context) {
 		utils.ReturnError(c, http.StatusUnauthorized, "未授权")
 		return
 	}
-
-	friendID := c.Query("friend_id")
-	if friendID == "" {
+	friendID, err := strconv.ParseUint(c.Query("friend_id"), 10, 64)
+	if err != nil {
 		utils.ReturnError(c, http.StatusBadRequest, "缺少好友ID")
 		return
 	}
@@ -263,7 +262,7 @@ func (ChatController) MarkMessagesAsRead(c *gin.Context) {
 	}
 
 	// 触发 Redis 推送更新后的未读数
-	channel := "unread_record:" + userID
+	channel := "unread_record:" + string(userID)
 	ctx := context.Background()
 	err = dao.RedisClient.Publish(ctx, channel, strconv.Itoa(totalCount)).Err()
 	if err != nil {
@@ -274,12 +273,12 @@ func (ChatController) MarkMessagesAsRead(c *gin.Context) {
 }
 
 func (ChatController) GetUnReadRecord(c *gin.Context) {
-	id := c.Query("id")
-	if id == "" {
+	id, err := strconv.ParseUint(c.Query("id"), 10, 64)
+	if err != nil {
 		utils.ReturnError(c, http.StatusBadRequest, "缺少用户ID")
 		return
 	}
-	channel := "unread_record:" + id
+	channel := "unread_record:" + string(id)
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")

@@ -13,12 +13,14 @@ import (
 
 type JudgeTask struct {
 	SubmissionID int64
-	ProblemID    string
-	UserID       string
+	ProblemID    string // 题库题目ID（比赛时为 ContestProblem.ID）
+	UserID       uint64
 	Code         string
 	Language     string
 	TestCases    []models.JudgeTestCase
 	JudgeConfig  models.JudgeConfig
+	ContestID    string // 空=题库提交，非空=比赛提交
+	ProblemLabel string // 比赛时使用（A/B/C...）
 }
 
 type JudgeQueue struct {
@@ -161,7 +163,7 @@ func (q *JudgeQueue) processTask(task *JudgeTask, workerID int) {
 	}
 
 	// 更新题目统计
-	q.updateProblemStats(task.ProblemID, result.Verdict)
+	q.updateProblemStats(task, result.Verdict)
 
 	// 如果有等待的 channel，发送结果
 	if value, ok := q.resultMap.Load(task.SubmissionID); ok {
@@ -239,6 +241,24 @@ func (q *JudgeQueue) evaluateCode(serverAddr string, config models.JudgeInputStr
 }
 
 func (q *JudgeQueue) handleJudgeError(task *JudgeTask, err error) {
+	if task.ContestID != "" {
+		// 比赛提交 → 写入 contest_record
+		record := &models.ContestRecord{
+			ID:           task.SubmissionID,
+			ContestID:    task.ContestID,
+			UserID:       task.UserID,
+			ProblemLabel: task.ProblemLabel,
+			Code:         task.Code,
+			Language:     task.Language,
+			Verdict:      models.SystemError,
+		}
+		if createErr := models.CreateContestRecord(record); createErr != nil {
+			log.Printf("Failed to create error contest_record for submission %d: %v", task.SubmissionID, createErr)
+		}
+		return
+	}
+
+	// 题库提交 → 写入 record
 	record := &models.Record{
 		ID:        task.SubmissionID,
 		UserId:    task.UserID,
@@ -246,8 +266,6 @@ func (q *JudgeQueue) handleJudgeError(task *JudgeTask, err error) {
 		Code:      task.Code,
 		Language:  task.Language,
 		Verdict:   models.SystemError,
-		MaxTime:   0,
-		MaxMemory: 0,
 	}
 
 	if createErr := models.CreateRecord(record); createErr != nil {
@@ -256,6 +274,24 @@ func (q *JudgeQueue) handleJudgeError(task *JudgeTask, err error) {
 }
 
 func (q *JudgeQueue) saveResult(task *JudgeTask, result *models.JudgeOutputResult) error {
+	if task.ContestID != "" {
+		// 比赛提交 → 写入 contest_record
+		record := &models.ContestRecord{
+			ID:           task.SubmissionID,
+			ContestID:    task.ContestID,
+			UserID:       task.UserID,
+			ProblemLabel: task.ProblemLabel,
+			Code:         task.Code,
+			Language:     task.Language,
+			MaxTime:      result.MaxTime,
+			MaxMemory:    result.MaxMemory,
+			Verdict:      result.Verdict,
+			JudgeResult:  result.Result,
+		}
+		return models.CreateContestRecord(record)
+	}
+
+	// 题库提交 → 写入 record
 	record := &models.Record{
 		ID:          task.SubmissionID,
 		UserId:      task.UserID,
@@ -267,25 +303,35 @@ func (q *JudgeQueue) saveResult(task *JudgeTask, result *models.JudgeOutputResul
 		Verdict:     result.Verdict,
 		JudgeResult: result.Result,
 	}
-
 	return models.CreateRecord(record)
 }
 
-func (q *JudgeQueue) updateProblemStats(problemID string, verdict models.JudgeVerdict) {
-	problem, err := models.Problem{}.GetProblemInfoWithoutUsername(problemID)
-	if err != nil {
-		log.Printf("Failed to get problem %s for stats update: %v", problemID, err)
-		return
-	}
+func (q *JudgeQueue) updateProblemStats(task *JudgeTask, verdict models.JudgeVerdict) {
+	if task.ContestID != "" {
+		// 比赛提交 → 更新 contest_problem 统计
+		cp, err := (models.ContestProblem{}).GetContestProblemByLabel(task.ContestID, task.ProblemLabel)
+		if err != nil {
+			log.Printf("Failed to get contest_problem for stats update: %v", err)
+			return
+		}
+		cp.IncrSubmission(cp.ID, verdict == models.Accepted)
+	} else {
+		// 题库提交 → 更新 problem 统计
+		problem, err := models.Problem{}.GetProblemInfoWithoutUsername(task.ProblemID)
+		if err != nil {
+			log.Printf("Failed to get problem %s for stats update: %v", task.ProblemID, err)
+			return
+		}
 
-	problem.Submission++
-	if verdict == models.Accepted {
-		problem.Accept++
-	}
+		problem.Submission++
+		if verdict == models.Accepted {
+			problem.Accept++
+		}
 
-	problemModel := models.Problem{}
-	if updateErr := problemModel.UpdateProblem(&problem); updateErr != nil {
-		log.Printf("Failed to update stats for problem %s: %v", problemID, updateErr)
+		problemModel := models.Problem{}
+		if updateErr := problemModel.UpdateProblem(&problem); updateErr != nil {
+			log.Printf("Failed to update stats for problem %s: %v", task.ProblemID, updateErr)
+		}
 	}
 }
 

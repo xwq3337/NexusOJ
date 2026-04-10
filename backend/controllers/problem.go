@@ -7,7 +7,6 @@ import (
 	"nexus/models"
 	"nexus/services"
 	"nexus/utils"
-	"nexus/utils/queue"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -17,8 +16,6 @@ import (
 )
 
 type ProblemController struct{}
-
-var AddrQueue = queue.NewQueue(6)
 
 func (ProblemController) CreateProblem(c *gin.Context) {
 	problem := &models.Problem{}
@@ -54,7 +51,7 @@ func (ProblemController) GetList(c *gin.Context) {
 	}
 	//	查询Redis，获取用户 题目状态, 并更新到result中
 	ctx := c.Request.Context()
-	hash := fmt.Sprintf("user:%s:problem_status", userID)
+	hash := fmt.Sprintf("user:%d:problem_status", userID)
 	statuses, err := dao.RedisClient.HMGet(ctx, hash, problemIDs...).Result()
 	if err != nil && err != redis.Nil {
 		utils.ReturnError(c, http.StatusInternalServerError, err)

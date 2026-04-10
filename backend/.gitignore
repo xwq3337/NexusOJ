@@ -13,4 +13,8 @@ assets
 *.mp3
 *.mp4
 media
+.env
 logs
+.mcp.json
+.claude
+CLAUDE.md

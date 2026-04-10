@@ -18,16 +18,16 @@ type Result struct {
 }
 type Record struct {
 	ID          int64                                    `json:"id" gorm:"primarykey"`
-	UserId      string                                   `json:"user_id" gorm:"index:idx_user_problem"`
+	UserId      uint64                                   `json:"user_id" gorm:"index:idx_user_problem"`
 	ProblemId   string                                   `json:"problem_id" gorm:"index:idx_user_problem"`
-	Code        string                                   `json:"code"`
-	Language    string                                   `json:"language"`
-	Verdict     JudgeVerdict                             `json:"verdict"`
+	Code        string                                   `json:"code" gorm:"type:longtext"`
+	Language    string                                   `json:"language" gorm:"index:idx_language_verdict"`
+	Verdict     JudgeVerdict                             `json:"verdict" gorm:"index:idx_language_verdict"`
 	MaxTime     float32                                  `json:"max_time"`
 	MaxMemory   float32                                  `json:"max_memory"`
 	JudgeResult datatypes.JSONSlice[JudgeTestCaseResult] `json:"judge_result"`
-	CreatedAt   time.Time                                `json:"created_at"`
-	UpdatedAt   time.Time                                `json:"updated_at"`
+	CreatedAt   time.Time                                `json:"created_at" gorm:"autoCreateTime;type:datetime"`
+	UpdatedAt   time.Time                                `json:"updated_at" gorm:"autoUpdateTime;type:datetime"`
 	DeletedAt   gorm.DeletedAt                           `json:"deleted_at" gorm:"index"`
 }
 
@@ -108,13 +108,11 @@ func QueryRecordById(id string) (*RecordDetail, error) {
 }
 
 /**
- * 获取所有记录（支持分页和查询）
+ * 获取所有记录（支持分页和查询），使用窗口函数一次查询返回数据和总数
  */
 func (Record) GetAllRecord(page, pageSize int, search, verdict, language string) ([]map[string]interface{}, int64, error) {
 	var results []map[string]interface{}
-	var total int64
 
-	// 构建基础查询
 	query := dao.MysqlClient.Table("record").
 		Select(`record.id AS id,
 				record.user_id AS user_id,
@@ -125,50 +123,39 @@ func (Record) GetAllRecord(page, pageSize int, search, verdict, language string)
 				record.max_memory AS max_memory,
 				record.created_at AS created_at,
 				problem.title AS problem_title,
-				user.username AS username
+				user.username AS username,
+				COUNT(*) OVER() AS total
 		`).
 		Joins(`JOIN user ON user.id = record.user_id`).
 		Joins(`JOIN problem ON problem.id = record.problem_id`)
 
-	// 添加搜索条件
 	if search != "" {
-		query = query.Where("problem.title LIKE ? OR user.username LIKE ?", "%"+search+"%", "%"+search+"%")
+		query = query.Where("MATCH(problem.title) AGAINST(? IN BOOLEAN MODE) OR MATCH(user.username) AGAINST(? IN BOOLEAN MODE)", search, search)
 	}
-
-	// 添加状态筛选
 	if verdict != "" {
 		query = query.Where("record.verdict = ?", verdict)
 	}
-
-	// 添加语言筛选
 	if language != "" {
 		query = query.Where("record.language = ?", language)
 	}
 
-	// 获取总数
-	countQuery := dao.MysqlClient.Table("record").
-		Joins(`JOIN user ON user.id = record.user_id`).
-		Joins(`JOIN problem ON problem.id = record.problem_id`)
-
-	if search != "" {
-		countQuery = countQuery.Where("problem.title LIKE ? OR user.username LIKE ?", "%"+search+"%", "%"+search+"%")
-	}
-	if verdict != "" {
-		countQuery = countQuery.Where("record.verdict = ?", verdict)
-	}
-	if language != "" {
-		countQuery = countQuery.Where("record.language = ?", language)
-	}
-
-	err := countQuery.Count(&total).Error
-	if err != nil {
-		return []map[string]interface{}{}, 0, err
-	}
-
-	// 计算偏移量
 	offset := (page - 1) * pageSize
 
-	// 执行查询并返回分页结果
-	err = query.Order("created_at DESC").Limit(pageSize).Offset(offset).Find(&results).Error
-	return results, total, err
+	err := query.Order("created_at DESC").Limit(pageSize).Offset(offset).Find(&results).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var total int64
+	if len(results) > 0 {
+		if t, ok := results[0]["total"]; ok {
+			total = t.(int64)
+		}
+	}
+
+	for i := range results {
+		delete(results[i], "total")
+	}
+
+	return results, total, nil
 }

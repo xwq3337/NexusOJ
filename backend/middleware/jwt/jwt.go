@@ -40,7 +40,7 @@ func Auth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		if claims != nil && claims.UserID == "" {
+		if claims != nil && claims.UserID == 0 {
 			utils.ReturnError(c, http.StatusUnauthorized, "用户不存在")
 			c.Abort()
 			return
@@ -53,7 +53,7 @@ type JWT struct {
 }
 
 type CustomClaims struct {
-	UserID string `json:"userID"`
+	UserID uint64 `json:"userID"`
 	jwt.StandardClaims
 }
 
@@ -117,4 +117,24 @@ func (j *JWT) UpdateToken(tokenString string) (string, error) {
 		return j.CreateToken(*claims)
 	}
 	return "", fmt.Errorf("token获取失败:%v", err)
+}
+
+// GetUserIDFromToken 从token中解析出userID，无论是否过期
+// 只要token格式正确且签名有效，就会返回userID
+func GetUserIDFromToken(tokenString string) uint64 {
+	if tokenString == "" {
+		return 0
+	}
+
+	j := NewJWT()
+	token, _ := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return j.SigningKey, nil
+	})
+
+	// 即使解析失败（包括过期），也尝试获取claims
+	if claims, ok := token.Claims.(*CustomClaims); ok {
+		return claims.UserID
+	}
+
+	return 0
 }

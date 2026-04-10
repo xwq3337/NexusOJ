@@ -16,7 +16,7 @@ func (FriendshipController) CreateFriendship(c *gin.Context) {
 		return
 	}
 	var param struct {
-		FriendID string `json:"friend_id"` // 接收好友请求的用户ID
+		FriendID uint64 `json:"friend_id"` // 接收好友请求的用户ID
 		Message  string `json:"message"`   // 验证消息
 	}
 	if err := c.ShouldBindJSON(&param); err != nil {

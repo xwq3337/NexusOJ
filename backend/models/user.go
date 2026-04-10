@@ -10,24 +10,24 @@ import (
 )
 
 type User struct {
-	ID           string         `json:"id" gorm:"primaryKey"`
+	ID           uint64         `json:"id" gorm:"primaryKey"`
 	Username     string         `json:"username" gorm:"type:varchar(50);uniqueIndex;not null"`
 	Password     string         `json:"password"`
 	Email        *string        `json:"email"`
-	Nickname     *string        `json:"nickname"`
+	Nickname     *string        `json:"nickname" gorm:"index"`
 	Introduction *string        `json:"introduction"`
-	Rating       int16          `json:"rating" gorm:"default:1000"`
+	Rating       int16          `json:"rating" gorm:"default:1000;index:,sort:desc"`
 	School       *string        `json:"school"`
 	Avatar       *string        `json:"avatar"`
-	UserRole     string         `json:"user_role"`
+	UserRole     string         `json:"user_role" gorm:"index"`
 	Gender       string         `json:"gender"`
 	Submission   int32          `json:"submission" gorm:"default:0"`
 	Accept       int32          `json:"accept" gorm:"default:0"`
 	Codeforces   *string        `json:"codeforces"`
 	Birthday     *string        `json:"birthday"`
 	Status       int8           `json:"status" gorm:"default:0"` // 0 正常 1 封禁
-	CreatedAt    time.Time      `json:"created_at"`
-	UpdatedAt    time.Time      `json:"updated_at"`
+	CreatedAt    time.Time      `json:"created_at" gorm:"autoCreateTime;type:datetime"`
+	UpdatedAt    time.Time      `json:"updated_at" gorm:"autoUpdateTime;type:datetime"`
 	DeletedAt    gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 	BannedTo     *time.Time     `json:"banned_to"`                // 封禁到期时间
 	Balance      float64        `json:"balance" gorm:"default:0"` // x币余额
@@ -47,14 +47,14 @@ func CreateUser(user *User) error {
 	return err
 }
 
-func (User) QueryUserById(id string) (User, error) {
+func (User) QueryUserById(id uint64) (User, error) {
 	var user User
 	err := dao.MysqlClient.Where("id = ?", id).First(&user).Error
 	return user, err
 }
 func (User) FuzzyQuery(key string) ([]User, error) {
 	var users []User
-	err := dao.MysqlClient.Where("id = ? OR username LIKE CONCAT('%',?,'%') OR nickname LIKE CONCAT('%',?,'%')", key, key, key).Find(&users).Error
+	err := dao.MysqlClient.Where("id = ? OR MATCH(username) AGAINST(? IN BOOLEAN MODE) OR MATCH(nickname) AGAINST(? IN BOOLEAN MODE)", key, key, key).Find(&users).Error
 	return users, err
 }
 func (user User) QueryUser() (User, error) {
@@ -66,7 +66,7 @@ func UpdateUser(user *User) error {
 	err := dao.MysqlClient.Model(&User{}).Where("id = ?", user.ID).Omit("id", "created_at", "updated_at", "deleted_at", "banned_to", "balance", "status", "submission", "accept", "user_role", "avatar", "password").Updates(user).Error
 	return err
 }
-func (User) UpdatePassword(userID, oldPassword, newPassword string) error {
+func (User) UpdatePassword(userID uint64, oldPassword, newPassword string) error {
 	var user User
 	err := dao.MysqlClient.Where("id = ? AND password = ?", userID, oldPassword).First(&user).Error
 	if err != nil {
@@ -81,8 +81,14 @@ func GetAllUsers() ([]User, error) {
 	err := dao.MysqlClient.Find(&users).Error
 	return users, err
 }
-func UpdateAvatar(id string) (string, error) {
-	url := fmt.Sprintf("%s:%s/assets/avatar/%s.png", config.Address, config.Port, id)
+func GetTopUsersByRating(limit int) ([]User, error) {
+	var users []User
+	err := dao.MysqlClient.Where("status = 0").Order("rating DESC").Limit(limit).Find(&users).Error
+	return users, err
+}
+
+func UpdateAvatar(id uint64, filename string) (string, error) {
+	url := fmt.Sprintf("%s:%s/assets/avatar/%s", config.Address, config.Port, filename)
 	err := dao.MysqlClient.Model(&User{}).Where("id = ?", id).Update("avatar", url).Error
 	return url, err
 }

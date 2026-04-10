@@ -11,12 +11,12 @@ import (
 type Problem struct {
 	ID                int64                                `json:"id" gorm:"primarykey"`
 	UserID            string                               `json:"user_id"`
-	Title             string                               `json:"title" gorm:"index"`
+	Title             string                               `json:"title" gorm:"type:varchar(255)"`
 	Context           string                               `json:"context"`
 	InputDescription  string                               `json:"input_description"`
 	OutputDescription string                               `json:"output_description"`
 	Tips              string                               `json:"tips"`
-	Difficulty        float32                              `json:"difficulty"`
+	Difficulty        float32                              `json:"difficulty" gorm:"index:,sort:asc"`
 	JudgeCase         datatypes.JSONSlice[ProblemTestCase] `json:"judge_case"`
 	JudgeConfig       JudgeConfig                          `json:"judge_config" gorm:"serializer:json"`
 	JudgeSample       datatypes.JSONSlice[JudgeSample]     `json:"judge_sample"`
@@ -24,8 +24,8 @@ type Problem struct {
 	Submission        int32                                `json:"submission"`
 	Accept            int32                                `json:"accept"`
 	Collection        int32                                `json:"collection"`
-	CreatedAt         time.Time                            `json:"created_at"`
-	UpdatedAt         time.Time                            `json:"updated_at"`
+	CreatedAt         time.Time                            `json:"created_at" gorm:"autoCreateTime;type:datetime"`
+	UpdatedAt         time.Time                            `json:"updated_at" gorm:"autoUpdateTime;type:datetime"`
 	DeletedAt         gorm.DeletedAt                       `json:"deleted_at" gorm:"index"`
 }
 type ProblemDetail struct {
@@ -87,7 +87,7 @@ func (Problem) QueryProblemByKeyword(keyword string) ([]ProblemDetail, error) {
 	var problems []ProblemDetail
 	err := dao.MysqlClient.Model(Problem{}).
 		Select("problem.title, problem.id", "user.username").
-		Where("problem.title LIKE ?", "%"+keyword+"%").
+		Where("MATCH(problem.title) AGAINST(? IN BOOLEAN MODE)", keyword).
 		// Or("problem.context LIKE ?", "%"+keyword+"%").
 		Joins("LEFT JOIN user ON user.id = problem.user_id").
 		Find(&problems).Error

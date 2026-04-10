@@ -35,7 +35,7 @@ func (FileDownloadController) GetTest(c *gin.Context) {
 
 func (FileDownloadController) GetChunk(c *gin.Context) {
 	userID, _ := ParserToken(c)
-	filepath := filepath.Join(config.UploadDir, userID, c.Query("filename"))
+	filepath := filepath.Join(config.UploadDir, string(userID), c.Query("filename"))
 	Range := strings.Split(c.Request.Header.Get("Range"), "-")
 	start, err := strconv.ParseInt(Range[0], 10, 64)
 	if err != nil {

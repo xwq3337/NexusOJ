@@ -19,7 +19,13 @@ func (BlogController) CreateBlog(c *gin.Context) {
 		utils.ReturnError(c, http.StatusInternalServerError, Err)
 		return
 	}
-	data.UserID, _ = ParserToken(c)
+	user_id, err := ParserToken(c)
+	if err != nil {
+		utils.ReturnError(c, http.StatusUnauthorized, "未授权")
+		return
+	}
+	data.UserID = user_id
+
 	if err := (models.CreateBlog(data)); err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return

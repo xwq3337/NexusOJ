@@ -37,7 +37,7 @@ func (FileUploadController) UploadFile(c *gin.Context) {
 func (FileUploadController) DeleteFile(c *gin.Context) {
 	userID, _ := ParserToken(c)
 	filename := c.Query("filename")
-	fileDir := filepath.Join(config.UploadDir, userID)
+	fileDir := filepath.Join(config.UploadDir, string(userID))
 	if filename == "" {
 		utils.ReturnError(c, http.StatusBadRequest, "文件名不能为空")
 		return
@@ -57,8 +57,8 @@ func (FileUploadController) MergeFileChunk(c *gin.Context) {
 	filename := c.PostForm("filename")
 	userID, _ := ParserToken(c)
 	hashList := strings.Split(c.PostForm("hashList"), ",")
-	fileDir := filepath.Join(config.UploadDir, userID)
-	finalFilePath := filepath.Join(config.UploadDir, userID, filename)
+	fileDir := filepath.Join(config.UploadDir, string(userID))
+	finalFilePath := filepath.Join(config.UploadDir, string(userID), filename)
 	if _, err := os.Stat(fileDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(fileDir, 0755); err != nil {
 			utils.ReturnError(c, http.StatusInternalServerError, err.Error())
@@ -141,11 +141,11 @@ type FileInfo struct {
 func (FileUploadController) GetDirStruct(c *gin.Context) {
 	var DirInfo []FileInfo
 	userID, _ := ParserToken(c)
-	if userID == "" {
+	if userID == 0 {
 		utils.ReturnError(c, http.StatusUnauthorized, "状态出错")
 		return
 	}
-	personDir := filepath.Join(config.UploadDir, userID)
+	personDir := filepath.Join(config.UploadDir, string(userID))
 	err := filepath.Walk(personDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -203,7 +203,7 @@ func (FileUploadController) CreateShareFile(c *gin.Context) { // 创建文件分
 		utils.ReturnError(c, http.StatusBadRequest, "密钥不能为空")
 		return
 	}
-	fileDir := filepath.Join(config.UploadDir, userID)
+	fileDir := filepath.Join(config.UploadDir, string(userID))
 	targetPath := filepath.Join(fileDir, filename)
 	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
 		utils.ReturnError(c, http.StatusNotFound, "文件不存在")
@@ -227,7 +227,7 @@ func (FileUploadController) GetShareFile(c *gin.Context) {
 		utils.ReturnError(c, http.StatusBadRequest, "密钥不能为空")
 		return
 	}
-	fileDir := filepath.Join(config.UploadDir, userID)
+	fileDir := filepath.Join(config.UploadDir, string(userID))
 	targetPath := filepath.Join(fileDir, filename)
 	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
 		utils.ReturnError(c, http.StatusNotFound, "文件不存在")

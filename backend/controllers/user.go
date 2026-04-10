@@ -1,13 +1,19 @@
 package controllers
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"net/http"
 	jwtgo "nexus/middleware/jwt"
 	"nexus/models"
 	"nexus/utils"
+	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,7 +29,12 @@ type UserController struct{}
 
 func (UserController) GetUserInfo(c *gin.Context) {
 	id := c.Param("id")
-	user, err := models.User{}.QueryUserById(id)
+	userID, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		utils.ReturnError(c, http.StatusBadRequest, "无效的用户ID")
+		return
+	}
+	user, err := models.User{}.QueryUserById(userID)
 	if err == nil {
 		utils.ReturnSuccess(c, http.StatusOK, "success", user)
 		return
@@ -46,7 +57,7 @@ func (UserController) CreateUser(c *gin.Context) {
 		utils.ReturnError(c, http.StatusBadRequest, "请求参数错误"+err.Error())
 		return
 	}
-	user.ID = fmt.Sprintf("%d", idgen.NextId())
+	user.ID = uint64(idgen.NextId())
 	if err := models.CreateUser(user); err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
@@ -54,7 +65,6 @@ func (UserController) CreateUser(c *gin.Context) {
 	utils.ReturnSuccess(c, http.StatusOK, "success", user)
 }
 
-// TODO
 func (UserController) UserLogin(c *gin.Context) {
 	// 解析请求参数
 	var params struct {
@@ -75,7 +85,7 @@ func (UserController) UserLogin(c *gin.Context) {
 			return
 		}
 	}
-	if user.ID == "" {
+	if user.ID == 0 {
 		utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", params.Username))
 		return
 	}
@@ -122,12 +132,82 @@ func (UserController) UpdateAvatar(c *gin.Context) {
 		return
 	}
 
-	if err = c.SaveUploadedFile(file, filepath.Join(DirPath, fmt.Sprintf("/%s.png", userID))); err != nil {
-		utils.ReturnError(c, http.StatusInternalServerError, "上传头像失败, err: "+err.Error())
-		return
+	// 获取原始文件扩展名
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	if ext == "" {
+		ext = ".png" // 默认使用 png
 	}
 
-	url, err := models.UpdateAvatar(userID)
+	// 打开上传的文件
+	src, err := file.Open()
+	if err != nil {
+		utils.ReturnError(c, http.StatusInternalServerError, "打开文件失败, err: "+err.Error())
+		return
+	}
+	defer src.Close()
+
+	// 解码图片
+	img, format, err := image.Decode(src)
+	if err != nil {
+		utils.ReturnError(c, http.StatusInternalServerError, "解码图片失败, err: "+err.Error())
+		return
+	}
+	filename := fmt.Sprintf("/%s%s", userID, ext)
+	// 创建输出文件路径
+	filePath := filepath.Join(DirPath, filename)
+	// 检查文件大小，如果超过 500KB 则压缩
+	const maxSize = 500 * 1024 // 500KB
+
+	if file.Size > maxSize {
+		// 压缩图片
+		var buf bytes.Buffer
+		var compressErr error
+
+		// 根据格式进行压缩编码
+		switch format {
+		case "jpeg":
+			compressErr = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 85})
+		case "png":
+			compressErr = png.Encode(&buf, img)
+		default:
+			// 默认使用 jpeg 格式压缩
+			compressErr = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 85})
+			ext = ".jpg"
+			filename = fmt.Sprintf("/%s%s", userID, ext)
+			filePath = filepath.Join(DirPath, filename)
+		}
+
+		if compressErr != nil {
+			utils.ReturnError(c, http.StatusInternalServerError, "压缩图片失败, err: "+compressErr.Error())
+			return
+		}
+		// 如果压缩后仍然超过 500KB，进一步降低质量
+		if buf.Len() > maxSize {
+			buf.Reset()
+			compressErr = jpeg.Encode(&buf, img, &jpeg.Options{Quality: 70})
+			if compressErr != nil {
+				utils.ReturnError(c, http.StatusInternalServerError, "压缩图片失败, err: "+compressErr.Error())
+				return
+			}
+			ext = ".jpg"
+			filename = fmt.Sprintf("/%s%s", userID, ext)
+			filePath = filepath.Join(DirPath, filename)
+		}
+
+		// 保存压缩后的图片
+		if err = os.WriteFile(filePath, buf.Bytes(), 0644); err != nil {
+			utils.ReturnError(c, http.StatusInternalServerError, "保存图片失败, err: "+err.Error())
+			return
+		}
+	} else {
+		// 文件大小符合要求，直接保存
+		if err = c.SaveUploadedFile(file, filePath); err != nil {
+			utils.ReturnError(c, http.StatusInternalServerError, "上传头像失败, err: "+err.Error())
+			return
+		}
+	}
+
+	url, err := models.UpdateAvatar(userID, filename)
 	if err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, "更新头像失败, err: "+err.Error())
 		return
@@ -168,7 +248,7 @@ func (UserController) UpdatePassword(c *gin.Context) {
 	utils.ReturnSuccess(c, http.StatusOK, "密码更新成功", nil)
 }
 
-// TODO
+// TODO需要密码?
 func (UserController) RefreshToken(c *gin.Context) {
 	// var params struct {
 	// 	Username     string `json:"username"`
@@ -221,29 +301,38 @@ func generateToken(user models.User, Time int64) (string, error) {
 	return token, nil
 }
 
-func ParserToken(c *gin.Context) (string, error) {
+func ParserToken(c *gin.Context) (uint64, error) {
 	tokenString := c.Request.Header.Get("Authorization")
 	return ParserTokenByString(tokenString)
 }
-func ParserTokenByString(tokenString string) (string, error) {
+func ParserTokenByString(tokenString string) (uint64, error) {
 	if tokenString == "" || !strings.HasPrefix(tokenString, "Bearer ") {
-		return "", errors.New("请求未携带token或token不完整,无权限访问")
+		return 0, errors.New("请求未携带token或token不完整,无权限访问")
 	}
 	tokenString = strings.Split(tokenString, " ")[1]
 	j := jwtgo.NewJWT()
 	claims, err := j.ParserToken(tokenString)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
-	if claims != nil && claims.UserID == "" {
-		return "", errors.New("token无效")
+	if claims != nil && claims.UserID == 0 {
+		return 0, errors.New("token无效")
 	}
 	return claims.UserID, err
 }
 
+func (UserController) GetTopUsers(c *gin.Context) {
+	users, err := models.GetTopUsersByRating(10)
+	if err != nil {
+		utils.ReturnError(c, http.StatusInternalServerError, err)
+		return
+	}
+	utils.ReturnSuccess(c, http.StatusOK, "success", users)
+}
+
 func (UserController) ValidateToken(c *gin.Context) {
 	UserID, err := ParserToken(c)
-	if err != nil || UserID == "" {
+	if err != nil || UserID == 0 {
 		utils.ReturnError(c, http.StatusUnauthorized, "token无效")
 		return
 	}

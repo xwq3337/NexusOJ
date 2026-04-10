@@ -11,25 +11,25 @@ import (
 // 单向好友关系, 只记录用户A添加了用户B为好友, 不记录用户B是否也添加了用户A为好友
 type FriendShips struct {
 	ID            uint           `json:"id" gorm:"primarykey autoIncrement"`
-	UserID        string         `json:"user_id" gorm:"index"`
-	FriendID      string         `json:"friend_id" gorm:"index"`
+	UserID        uint64         `json:"user_id" gorm:"index:idx_user_id_friend_id"`
+	FriendID      uint64         `json:"friend_id" gorm:"index:idx_user_id_friend_id"`
 	Remark        *string        `json:"remark"`         // 好友备注
 	UnreadCount   int            `json:"unread_count"`   // 未读消息数量
 	LatestMessage *string        `json:"latest_message"` // 最新消息内容
-	CreatedAt     time.Time      `json:"created_at"`
-	UpdatedAt     time.Time      `json:"updated_at"`
+	CreatedAt     time.Time      `json:"created_at" gorm:"autoCreateTime;type:datetime"`
+	UpdatedAt     time.Time      `json:"updated_at" gorm:"autoUpdateTime;type:datetime"`
 	DeletedAt     gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 }
 
 // 好友请求表, 记录用户A向用户B发送好友请求的记录, 包括请求状态等信息
 type FriendShipRequest struct {
 	ID        uint           `json:"id" gorm:"primarykey autoIncrement"`
-	UserID    string         `json:"user_id" gorm:"index"`   // 发起请求的用户ID
-	FriendID  string         `json:"friend_id" gorm:"index"` // 接收请求的用户ID
+	UserID    uint64         `json:"user_id" gorm:"index"`   // 发起请求的用户ID
+	FriendID  uint64         `json:"friend_id" gorm:"index"` // 接收请求的用户ID
 	Status    string         `json:"status" `                // pending 待处理  accepted 已接受  rejected 已拒绝
 	Message   *string        `json:"message"`                // 请求消息, 验证信息等
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
+	CreatedAt time.Time      `json:"created_at" gorm:"autoCreateTime;type:datetime"`
+	UpdatedAt time.Time      `json:"updated_at" gorm:"autoUpdateTime;type:datetime"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 }
 
@@ -40,7 +40,7 @@ func (FriendShipRequest) TableName() string {
 	return "friendship_request"
 }
 
-func (FriendShipRequest) CreateRequest(userID, friendID string, message string) error {
+func (FriendShipRequest) CreateRequest(userID uint64, friendID uint64, message string) error {
 	// 检查是否已经是好友关系
 	var count int64
 
@@ -109,7 +109,7 @@ func (FriendShipRequest) HandleRequest(id uint, status string) (string, error) {
 }
 
 // GetFriendList 获取用户的好友列表, 包括好友的基本信息和备注等
-func (FriendShips) GetFriendList(userID string) ([]FriendshipDTO, error) {
+func (FriendShips) GetFriendList(userID uint64) ([]FriendshipDTO, error) {
 	var friends []FriendshipDTO
 	// 查询用户的好友关系, 并通过JOIN查询好友的基本信息
 	err := dao.MysqlClient.Table("friendship as fs").
@@ -130,7 +130,7 @@ func (FriendShips) GetFriendList(userID string) ([]FriendshipDTO, error) {
 }
 
 // GetFriendRequestList 获取用户的好友请求列表, 包括请求的基本信息和状态等
-func (FriendShipRequest) GetFriendRequestList(userID string) ([]FriendshipRequestDTO, error) {
+func (FriendShipRequest) GetFriendRequestList(userID uint64) ([]FriendshipRequestDTO, error) {
 	var requests []FriendshipRequestDTO
 	// 查询用户的好友请求, 并通过JOIN查询请求发起者的基本信息
 	err := dao.MysqlClient.Table("friendship_request as fr").
@@ -150,7 +150,7 @@ func (FriendShipRequest) GetFriendRequestList(userID string) ([]FriendshipReques
 }
 
 // GetTotalUnreadCount 获取用户所有好友关系的总未读消息数
-func GetTotalUnreadCount(userID string) (int, error) {
+func GetTotalUnreadCount(userID uint64) (int, error) {
 	var total int64
 	err := dao.MysqlClient.Model(&FriendShips{}).
 		Where("user_id = ?", userID).

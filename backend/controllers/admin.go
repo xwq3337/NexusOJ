@@ -32,7 +32,7 @@ func (AdminController) AdminLogin(c *gin.Context) {
 			return
 		}
 	}
-	if user.ID == "" {
+	if user.ID == 0 {
 		utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", param.Username))
 		return
 	}

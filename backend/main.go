@@ -26,6 +26,9 @@ func main() {
 	// 参数说明: workerNum=5(并发判题worker数量), queueSize=100(队列容量)
 	services.InitJudgeQueue(5, 100)
 
+	// 初始化比赛状态自动检查协程
+	services.InitContestStatusWorker()
+
 	r := router.Router()
 	defer func() {
 		if err := recover(); err != nil {
