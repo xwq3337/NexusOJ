@@ -226,7 +226,7 @@ onUnmounted(() => {
           <div class="text-xs mb-1" :style="{ color: 'var(--contest-timer-label)' }">
             {{ contest?.status === 'Live' ? '剩余时间' : contest?.status === 'Upcoming' ? '距离开始' : '已结束' }}
           </div>
-          <div class="text-2xl font-mono font-bold" :style="{ color: 'var(--contest-timer-value)' }">
+          <div class="text-3xl font-bold" :style="{ color: 'var(--contest-timer-value)' }">
             {{ countdown }}
           </div>
         </div>

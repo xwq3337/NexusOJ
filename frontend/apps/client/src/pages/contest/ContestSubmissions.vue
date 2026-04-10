@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, inject } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import { h } from 'vue'
 import {
   NDataTable,
@@ -17,7 +17,7 @@ import type { ContestRecordItem } from '@nexusoj/type'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const { contestId } = inject<any>('contestData')
+const { contestId, problems } = inject<any>('contestData')
 
 const loading = ref(false)
 const records = ref<ContestRecordItem[]>([])
@@ -26,6 +26,14 @@ const currentPage = ref(1)
 const pageSize = ref(15)
 const statusFilter = ref<string | null>(null)
 const languageFilter = ref<string | null>(null)
+const problemFilter = ref<string | null>(null)
+
+const problemOptions = computed(() =>
+  (problems.value || []).map((p: any) => ({
+    label: `${p.label}. ${p.title}`,
+    value: p.label
+  }))
+)
 
 const languageOptions = Object.keys(LANGUAGE_CONFIG).map((lang) => ({
   label: LANGUAGE_CONFIG[lang as keyof typeof LANGUAGE_CONFIG].label,
@@ -41,6 +49,7 @@ const fetchRecords = async () => {
     }
     if (statusFilter.value) params.verdict = statusFilter.value
     if (languageFilter.value) params.language = languageFilter.value
+    if (problemFilter.value) params.problem_label = problemFilter.value
     const { code, info } = await contestApi.getContestSubmissions(contestId, params)
     if (code === 200 && info) {
       records.value = info.list || []
@@ -97,13 +106,16 @@ const columns = [
     key: 'problem_title',
     ellipsis: true,
     render: (row: ContestRecordItem) =>
-      h('div',
-        {},
-        [
-          h('span', { style: { color: 'rgb(100, 200, 200)', padding : "0 5px"} }, row.problem_label),
-          h('span', { style: { color: 'var(--text-primary)' } }, row.problem_title)
-        ]
-      )
+      h('div', { class: 'flex items-center gap-2' }, [
+        h('span', {
+          class: 'shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-md text-xs font-bold',
+          style: { background: 'var(--accent-color)', color: '#fff' }
+        }, row.problem_label),
+        h('span', {
+          style: { color: 'var(--text-primary)' },
+          class: 'truncate'
+        }, row.problem_title)
+      ])
   },
   {
     title: '语言',
@@ -152,6 +164,7 @@ const columns = [
 const resetFilters = () => {
   statusFilter.value = null
   languageFilter.value = null
+  problemFilter.value = null
   currentPage.value = 1
   fetchRecords()
 }
@@ -168,6 +181,8 @@ onMounted(() => {
       <NSelect v-model:value="statusFilter" :options="STATUS_OPTIONS" placeholder="状态筛选" clearable
         @update:value="currentPage = 1; fetchRecords()" />
       <NSelect v-model:value="languageFilter" :options="languageOptions" placeholder="语言筛选" clearable
+        @update:value="currentPage = 1; fetchRecords()" />
+      <NSelect v-model:value="problemFilter" :options="problemOptions" placeholder="题目筛选" clearable
         @update:value="currentPage = 1; fetchRecords()" />
       <NButton @click="resetFilters">重置</NButton>
     </div>
