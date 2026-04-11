@@ -8,7 +8,7 @@ export interface User {
   rating: number
   school: string
   avatar: string
-  user_role: string
+  user_role: 'user' | 'admin' | 'super_admin'
   gender: string
   submission: number
   accept: number

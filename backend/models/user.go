@@ -13,7 +13,7 @@ import (
 type User struct {
 	ID           uint64         `json:"id" gorm:"primaryKey"`
 	Username     string         `json:"username" gorm:"type:varchar(50);uniqueIndex;not null"`
-	Password     string         `json:"password"`
+	Password     string         `json:"-"`
 	Email        *string        `json:"email"`
 	Nickname     *string        `json:"nickname" gorm:"index"`
 	Introduction *string        `json:"introduction"`
@@ -63,17 +63,27 @@ func (user User) QueryUser() (User, error) {
 	return user, err
 }
 
-func UpdateUser(user *User) error {
+func UpdateUserInfo(user *User) error {
 	err := dao.MysqlClient.Model(&User{}).Where("id = ?", user.ID).Omit("id", "created_at", "updated_at", "deleted_at", "banned_to", "balance", "status", "submission", "accept", "user_role", "avatar", "password").Updates(user).Error
 	return err
 }
 func (User) UpdatePassword(userID uint64, oldPassword, newPassword string) error {
 	var user User
-	err := dao.MysqlClient.Where("id = ? AND password = ?", userID, oldPassword).First(&user).Error
+	err := dao.MysqlClient.Where("id = ?", userID).First(&user).Error
 	if err != nil {
 		return err
 	}
-	err = dao.MysqlClient.Model(&User{}).Where("id = ?", userID).Update("password", newPassword).Error
+	// Argon2 验证旧密码
+	match, _ := utils.VerifyPassword(oldPassword, user.Password)
+	if !match {
+		return gorm.ErrRecordNotFound
+	}
+	// 哈希新密码
+	hash, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+	err = dao.MysqlClient.Model(&User{}).Where("id = ?", userID).Update("password", hash).Error
 	return err
 }
 
@@ -92,4 +102,19 @@ func UpdateAvatar(id uint64, filename string) (string, error) {
 	url := fmt.Sprintf("%s:%s/assets/avatar/%s", config.Address, config.Port, filename)
 	err := dao.MysqlClient.Model(&User{}).Where("id = ?", id).Update("avatar", url).Error
 	return url, err
+}
+
+func UpdateUserRole(id uint64, role string) error {
+	return dao.MysqlClient.Model(&User{}).Where("id = ?", id).Update("user_role", role).Error
+}
+
+// UpdateSubmission 更新用户提交数和通过数
+func UpdateSubmission(id uint64, isAccepted bool) error {
+	updates := map[string]any{
+		"submission": gorm.Expr("submission + ?", 1),
+	}
+	if isAccepted {
+		updates["accept"] = gorm.Expr("accept + ?", 1)
+	}
+	return dao.MysqlClient.Model(&User{}).Where("id = ?", id).Updates(updates).Error
 }

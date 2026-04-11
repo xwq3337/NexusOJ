@@ -123,7 +123,7 @@ import {
 import { formatRelativeTime } from '@/utils/format'
 
 const props = defineProps<{
-  userId?: string
+  userId?: Number
 }>()
 
 const router = useRouter()
@@ -150,7 +150,7 @@ const categoryOptions: SelectOption[] = [
 const fetchBlogs = async () => {
   loading.value = true
   try {
-    // TODO: Replace with actual API call
+    // TODO: 使用真实的 博客API
     // const params = {
     //   page: currentPage.value,
     //   page_size: pageSize.value,

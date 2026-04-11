@@ -8,6 +8,7 @@ import (
 	"nexus/models"
 	"nexus/services"
 	"nexus/utils"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -65,46 +66,68 @@ func (ProblemController) GetProblemInfo(c *gin.Context) {
 }
 func (ProblemController) GetList(c *gin.Context) {
 	userID, _ := ParserToken(c)
-	problems, err := models.Problem{}.GetAllProblem()
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	search := c.Query("search")
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	problems, total, err := models.Problem{}.GetAllProblemPaginated(page, pageSize, search)
+	if err != nil {
+		utils.ReturnError(c, http.StatusInternalServerError, err)
+		return
+	}
+
 	// 获取题目列表的 ID 数组
 	problemIDs := make([]string, len(problems))
 	for i, problem := range problems {
 		problemIDs[i] = fmt.Sprintf("problem:%d", problem.ID)
 	}
-	//	查询Redis，获取用户 题目状态, 并更新到result中
-	ctx := c.Request.Context()
-	hash := fmt.Sprintf("user:%d:problem_status", userID)
-	statuses, err := dao.RedisClient.HMGet(ctx, hash, problemIDs...).Result()
-	if err != nil && err != redis.Nil {
-		utils.ReturnError(c, http.StatusInternalServerError, err)
-		return
-	}
-	// 将题目状态更新到 problems 数组中
-	result := make([]models.ProblemDTO, len(problems))
-	for i, status := range statuses {
 
+	// 查询 Redis，获取用户题目状态
+	ctx := c.Request.Context()
+	var statuses []interface{}
+	if userID > 0 && len(problemIDs) > 0 {
+		hash := fmt.Sprintf("user:%d:problem_status", userID)
+		statuses, _ = dao.RedisClient.HMGet(ctx, hash, problemIDs...).Result()
+	}
+
+	// 组装结果
+	result := make([]models.ProblemDTO, len(problems))
+	for i, p := range problems {
 		var statusStr string
-		switch status {
-		case nil:
+		if statuses != nil && i < len(statuses) {
+			switch statuses[i] {
+			case nil:
+				statusStr = "unattempted"
+			case "Accepted":
+				statusStr = "solved"
+			default:
+				statusStr = "attempted"
+			}
+		} else {
 			statusStr = "unattempted"
-		case "Accepted":
-			statusStr = "solved"
-		default:
-			statusStr = "attempted"
 		}
 		result[i] = models.ProblemDTO{
-			Problem: problems[i],
+			Problem: p.Problem,
 			Status:  statusStr,
 		}
 	}
-	if err == nil {
-		utils.ReturnSuccess(c, http.StatusOK, "success", result)
-		return
-	}
-	utils.ReturnError(c, http.StatusInternalServerError, err)
+
+	utils.ReturnSuccess(c, http.StatusOK, "success", gin.H{
+		"problems": result,
+		"total":    total,
+	})
 }
 func (ProblemController) UpdateProblem(c *gin.Context) {
 	problem := &models.Problem{}
+
 	_ = c.BindJSON(&problem)
 	err := models.Problem{}.UpdateProblem(problem)
 	if err != nil {
@@ -197,26 +220,32 @@ func (ProblemController) SubmitProblem(c *gin.Context) {
 		"result":        result.Result,
 		"status":        "completed",
 	})
-	// 同步状态到 Redis
-	ctx := c.Request.Context()
-	hash := fmt.Sprintf("user:%d:problem_status", userID)
-	key := fmt.Sprintf("problem:%s", data.ProblemID)
-	// 只要是Redis 里是Accepted就不改了，其他都改成当前的结果
-	currentVerdict, err := dao.RedisClient.HGet(ctx, hash, key).Result()
-	if err == redis.Nil {
-		// Redis 里没有这个记录，直接设置当前结果
-		dao.RedisClient.HSet(ctx, hash, key, string(result.Verdict))
-	} else if err != nil {
-		// Redis 错误
-		fmt.Println("Error getting from Redis:", err)
-	} else {
-		// Redis 里有记录，检查是否是 Accepted
-		if currentVerdict != string(models.Accepted) {
-			// 不是 Accepted，更新为当前结果
+	// 异步更新状态到 Redis和 Mysql
+
+	go func() {
+		// mysql 更新
+		models.UpdateSubmission(userID, result.Verdict == "Accepted")
+		// redis 更新
+		ctx := c.Request.Context()
+		hash := fmt.Sprintf("user:%d:problem_status", userID)
+		key := fmt.Sprintf("problem:%s", data.ProblemID)
+		// 只要是Redis 里是Accepted就不改了，其他都改成当前的结果
+		currentVerdict, err := dao.RedisClient.HGet(ctx, hash, key).Result()
+		if err == redis.Nil {
+			// Redis 里没有这个记录，直接设置当前结果
 			dao.RedisClient.HSet(ctx, hash, key, string(result.Verdict))
+		} else if err != nil {
+			// Redis 错误
+			fmt.Println("Error getting from Redis:", err)
+		} else {
+			// Redis 里有记录，检查是否是 Accepted
+			if currentVerdict != string(models.Accepted) {
+				// 不是 Accepted，更新为当前结果
+				dao.RedisClient.HSet(ctx, hash, key, string(result.Verdict))
+			}
+			// 如果是 Accepted，不做任何操作，保持 Accepted 状态
 		}
-		// 如果是 Accepted，不做任何操作，保持 Accepted 状态
-	}
+	}()
 }
 
 func Equal(a, b interface{}) bool {

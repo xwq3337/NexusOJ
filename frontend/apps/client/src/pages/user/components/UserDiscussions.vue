@@ -128,7 +128,7 @@ import {
 import { formatRelativeTime } from '@/utils/format'
 
 const props = defineProps<{
-  userId?: string
+  userId?: Number
 }>()
 
 const router = useRouter()
@@ -157,7 +157,7 @@ const statusOptions: SelectOption[] = [
 const fetchDiscussions = async () => {
   loading.value = true
   try {
-    // TODO: Replace with actual API call
+    // TODO: 使用真实的 讨论API 
     // const params = {
     //   page: currentPage.value,
     //   page_size: pageSize.value,

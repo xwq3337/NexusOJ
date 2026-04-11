@@ -63,9 +63,9 @@ func Router() *gin.Engine {
 		})
 	}
 	// TODO: 写出中间件判断用户角色是否为管理员
-	adminGroup := r.Group("/admin")
+	adminUserGroup := r.Group("/admin/user")
 	{
-		adminGroup.POST("/login", controllers.AdminController{}.AdminLogin) // 管理员登录
+		adminUserGroup.POST("/login", controllers.AdminController{}.AdminLogin) // 管理员登录
 	}
 	userGroup := r.Group("/user")
 	{
@@ -97,7 +97,8 @@ func Router() *gin.Engine {
 		userGroup.POST("/friend-request", controllers.FriendshipController{}.CreateFriendship)               // 添加好友，发送好友请求
 		userGroup.POST("/handle-friend-request", controllers.FriendshipController{}.HandleFriendshipRequest) // 处理新的好友请求，拒绝或者接受
 		userGroup.GET("/:id", controllers.UserController{}.GetUserInfo)                                      // 根据id获取用户信息
-		adminGroup.GET("/user-list", controllers.AdminController{}.GetUserList)                              // 获取用户列表
+		adminUserGroup.GET("/list", controllers.AdminController{}.GetUserList)                               // 获取用户列表
+		adminUserGroup.POST("/update-role", controllers.UserController{}.UpdateRole)
 	}
 	problem := r.Group("/problem")
 	{

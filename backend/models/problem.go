@@ -11,7 +11,7 @@ import (
 
 type Problem struct {
 	ID                int64                                `json:"id" gorm:"primarykey"`
-	UserID            string                               `json:"user_id"`
+	UserID            uint64                               `json:"user_id"`
 	Title             string                               `json:"title" gorm:"type:varchar(255)"`
 	Context           string                               `json:"context"`
 	InputDescription  string                               `json:"input_description"`
@@ -32,6 +32,12 @@ type Problem struct {
 type ProblemDetail struct {
 	Problem
 	Username string `json:"username"`
+}
+
+// ProblemListItem 题目列表项（含总数）
+type ProblemListItem struct {
+	Problem
+	Total int64 `json:"-" gorm:"column:total"`
 }
 
 type JudgeSample struct {
@@ -72,7 +78,7 @@ func (Problem) CreateProblem(problem *Problem) error {
 	return err
 }
 func (Problem) UpdateProblem(problem *Problem) error {
-	err := dao.MysqlClient.Omit("created_at").Updates(&problem).Error
+	err := dao.MysqlClient.Omit("created_at").Where("id = ?", problem.ID).Updates(&problem).Error
 	return err
 }
 func (Problem) QueryProblemById(id string) (ProblemDetail, error) {
@@ -108,4 +114,38 @@ func (Problem) GetAllProblem() ([]Problem, error) {
 		Select("id", "title", "difficulty", "collection", "tags", "accept", "submission", "created_at", "updated_at").
 		Where("deleted_at IS NULL").Order("id ASC").Find(&problems).Error
 	return problems, err
+}
+
+// GetAllProblemPaginated 分页查询题目列表，使用窗口函数返回总数
+func (Problem) GetAllProblemPaginated(page, pageSize int, search string) ([]ProblemListItem, int64, error) {
+	var results []ProblemListItem
+	query := dao.MysqlClient.Model(&Problem{}).
+		Select("problem.id", "problem.title", "problem.difficulty", "problem.collection",
+			"problem.tags", "problem.accept", "problem.submission",
+			"problem.created_at", "problem.updated_at",
+			"COUNT(*) OVER() AS total").
+		Where("problem.deleted_at IS NULL")
+
+	if search != "" {
+		query = query.Where(
+			"MATCH(problem.title) AGAINST(? IN BOOLEAN MODE) OR problem.id = ?",
+			utils.SanitizeFTSSearch(search), search,
+		)
+	}
+
+	offset := (page - 1) * pageSize
+	err := query.Order("problem.id ASC").
+		Limit(pageSize).
+		Offset(offset).
+		Find(&results).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var total int64
+	if len(results) > 0 {
+		total = results[0].Total
+	}
+
+	return results, total, nil
 }

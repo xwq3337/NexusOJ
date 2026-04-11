@@ -41,6 +41,15 @@ type SolutionWithAuthor struct {
 	Total        int64   `json:"-" gorm:"column:total"`
 }
 
+// ExistsActiveSolutionByUserAndProblem 检查用户是否已对某题目发布过题解（未软删除）
+func ExistsActiveSolutionByUserAndProblem(userID, problemID uint64) (bool, error) {
+	var count int64
+	err := dao.MysqlClient.Model(&Solution{}).
+		Where("user_id = ? AND problem_id = ? AND deleted_at IS NULL", userID, problemID).
+		Count(&count).Error
+	return count > 0, err
+}
+
 // CreateSolution 创建题解
 func CreateSolution(s *Solution) error {
 	return dao.MysqlClient.Create(s).Error

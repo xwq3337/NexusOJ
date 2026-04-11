@@ -7,26 +7,34 @@ import { useUserStore } from '@/stores/useUserStore'
 import { userApi } from '@nexusoj/server'
 import { pick } from 'lodash'
 import { storeToRefs } from 'pinia'
+import { schoolSelectOptions } from '@/constants/schools'
 const fileList = ref([])
 const { id } = useUserStore()
 const message = useMessage()
 
-type ProfileForm = Omit<Pick<User, 'nickname' | 'gender' | 'introduction' | 'email' | 'birthday'>, 'birthday'> & {
-  birthday: number | null
+type ProfileForm = Omit<Pick<User, 'nickname' | 'gender' | 'introduction' | 'email' | 'birthday' | 'school'>, 'birthday'> & {
+  birthday: number
 }
 const profileForm = ref<ProfileForm>({
   nickname: '',
   gender: '0',
   introduction: '一句话介绍不了我',
   email: '',
-  birthday: null,
+  birthday: 0,
+  school: '',
 })
 onMounted(async () => {
-  await userApi.getInfoById(id).then(response => {
-    const data = pick(response.info, ['nickname', 'gender', 'introduction', 'email', 'birthday'] as const)
-    profileForm.value = {
-      ...data,
-      birthday: data.birthday ? new Date(data.birthday).getTime() : null
+  await userApi.getInfoById(id).then(res => {
+    const { code, info, msg } = res
+    if (code == 200 && info) {
+      const data = pick(info, ['nickname', 'gender', 'introduction', 'email', 'birthday', 'school'] as const)
+      profileForm.value = {
+        ...data,
+        birthday: data.birthday ? new Date(data.birthday).getTime() : 0
+      }
+      
+    } else {
+      message.error('获取用户信息失败:' + msg)
     }
   }).catch(error => {
     console.error('获取用户信息失败:', error)
@@ -36,7 +44,7 @@ onMounted(async () => {
 // 将时间戳转换为字符串用于 API 提交
 const birthdayForSubmit = computed(() => {
   return profileForm.value.birthday
-    ? new Date(profileForm.value.birthday  + 100000 ) .toISOString().split('T')[0]
+    ? new Date(profileForm.value.birthday + 100000).toISOString().split('T')[0]
     : ''
 })
 const genderOptions = [
@@ -45,13 +53,14 @@ const genderOptions = [
 ]
 const { avatar } = storeToRefs(useUserStore())
 const handleAvatarChange = async (options: any) => {
-  await userApi.updateAvatar(options.file.file).then(response => {
-    if (response.code == 200) {
-      avatar.value = response.info
+  await userApi.updateAvatar(options.file.file).then(res => {
+    const { code, info, msg } = res;
+    if (code == 200 && info) {
+      avatar.value = info
       message.success('头像更新成功')
     }
     else {
-      message.error('头像更新失败: ' + response.msg)
+      message.error('头像更新失败: ' + msg)
     }
   }).catch(error => {
     message.error('头像更新失败')
@@ -61,7 +70,7 @@ const handleValidateButtonClick = async () => {
   await userApi.updateUser({
     ...profileForm.value,
     birthday: birthdayForSubmit.value
-  }).then(response => {
+  }).then(res => {
     message.success('用户信息更新成功')
   }).catch(error => {
     console.error('Failed to update profile', error)
@@ -108,10 +117,18 @@ const handlePositiveClick = () => {
       <n-input v-model:value="profileForm.email" placeholder="请输入邮箱" />
     </n-form-item>
     <n-form-item label="生日">
+
       <n-date-picker type="date" v-model:value="profileForm.birthday" />
     </n-form-item>
-    <!-- TODO: 添加学校 -->
-    <!--  -->
+    <n-form-item label="学校">
+      <n-select
+        v-model:value="profileForm.school"
+        :options="schoolSelectOptions"
+        filterable
+        clearable
+        placeholder="搜索选择学校"
+      />
+    </n-form-item>
     <n-form-item label="头像">
       <n-upload v-model:file-list="fileList" :show-file-list="false" :on-change="handleAvatarChange" accept="image/*">
         <n-button>

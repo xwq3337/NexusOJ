@@ -3,8 +3,8 @@ import type { ApiResponse } from '@nexusoj/type'
 import type { Problem, ProblemListDTO } from '@nexusoj/type'
 
 export const problemApi = {
-  getProblemList: (): Promise<ApiResponse<ProblemListDTO[]>> => {
-    return Request.get('/problem/list')
+  getProblemList: (page?: number, pageSize?: number, search?: string): Promise<ApiResponse<{ problems: ProblemListDTO[], total: number }>> => {
+    return Request.get('/problem/list', { params: { page, page_size: pageSize, search } })
   },
   getProblemDetail: (id: string): Promise<ApiResponse<{
     problem : Problem,
@@ -18,8 +18,8 @@ export const problemApi = {
   SubmitCode: (options: SubmitCodeOptions): Promise<ApiResponse<any>> => {
     return Request.post('/problem/submit', { ...options })
   },
-  // TODO:标明类型
-  updateProblem: (id: string, options: any): Promise<ApiResponse<void>> => {
+  // TODO:标明options类型
+  updateProblem: (id: number, options: any): Promise<ApiResponse<void>> => {
     return Request.post('/problem/update', { id, ...options })
   },
   createProblem: (options: any): Promise<ApiResponse<void>> => {

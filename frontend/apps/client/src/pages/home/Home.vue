@@ -123,7 +123,7 @@
                 </p>
               </div>
               <n-button class="text-xs text-white px-3 py-1.5 rounded transition-colors cursor-pointer font-terminal"
-                @click="$router.push({ name: 'ProblemDetail', params: { id: contest.id } })"
+                @click="$router.push({ name: 'ContestDetail', params: { id: contest.id } })"
                 :style="{ backgroundColor: 'var(--btn-primary)' }">
                 JOIN
               </n-button>

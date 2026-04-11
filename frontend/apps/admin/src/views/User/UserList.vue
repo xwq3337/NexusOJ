@@ -18,21 +18,21 @@ const searchForm = reactive({
 // 封禁相关
 const banDialogVisible = ref(false)
 const banForm = reactive({
-  userId: '',
+  userId: 0,
   endTime: null as Date | null
 })
 
 // 角色相关
 const roleDialogVisible = ref(false)
 const roleForm = reactive({
-  userId: '',
-  role: ''
+  userId: 0,
+  role: 'user' as 'user' | 'admin'
 })
 
 const fetchUserList = async () => {
   loading.value = true
   await userApi.AdminUserList(page.value, pageSize.value, searchForm).then((res) => {
-    const { code , info} = res
+    const { code, info } = res
     if (code === 200 && info) {
       userList.value = info
     } else {
@@ -65,26 +65,26 @@ const handleCurrentChange = (val: number) => {
   fetchUserList()
 }
 
-const getRoleTagType = (role: number) => {
+const getRoleTagType = (role: string) => {
   switch (role) {
-    case 1:
+    case 'user':
       return ''
-    case 2:
+    case 'admin':
       return 'warning'
-    case 3:
+    case 'super_admin':
       return 'danger'
     default:
       return 'info'
   }
 }
 
-const getRoleName = (role: number) => {
+const getRoleName = (role: string) => {
   switch (role) {
-    case 1:
+    case 'user':
       return '普通用户'
-    case 2:
+    case 'admin':
       return '管理员'
-    case 3:
+    case 'super_admin':
       return '超级管理员'
     default:
       return '未知'
@@ -92,7 +92,7 @@ const getRoleName = (role: number) => {
 }
 
 const handleBan = (user: User) => {
-  banForm.userId = user.id
+  banForm.userId = Number(user.id)
   banForm.endTime = null
   banDialogVisible.value = true
 }
@@ -119,7 +119,7 @@ const confirmBan = async () => {
   }
 }
 
-const handleUnban = async (user: User) => {
+const handleUnban = async (user : User) => {
   try {
     await ElMessageBox.confirm('确定要解封该用户吗？', '提示', {
       type: 'warning'
@@ -138,22 +138,24 @@ const handleUnban = async (user: User) => {
 }
 
 const handleUpdateRole = (user: User) => {
-  roleForm.userId = user.id
-  roleForm.role = user.user_role
+  roleForm.userId = Number(user.id)
+  roleForm.role = user.user_role as 'user' | 'admin'
   roleDialogVisible.value = true
 }
 
 const confirmUpdateRole = async () => {
   try {
-    // await Request.put({
-    //   url: `/user/${roleForm.userId}/role`,
-    //   data: {
-    //     role: roleForm.role
-    //   }
-    // })
-    ElMessage.success('修改角色成功')
-    roleDialogVisible.value = false
-    fetchUserList()
+    await userApi.AdminUpdateRole(roleForm.userId, roleForm.role).then((res) => {
+      const { code } = res
+      if (code === 200) {
+        ElMessage.success('修改角色成功')
+      } else {
+        ElMessage.error('修改角色失败')
+      }
+    }).finally(() => {
+      roleDialogVisible.value = false
+      fetchUserList()
+    })
   } catch (error) {
     ElMessage.error('修改角色失败')
     console.error(error)
@@ -194,9 +196,9 @@ onMounted(() => {
     </div>
 
     <el-table v-loading="loading" :data="userList" border style="width: 100%">
-      <el-table-column prop="username" label="用户名" width="70" show-overflow-tooltip />
-      <el-table-column prop="email" label="邮箱" width="200" />
-      <el-table-column label="姓名" min-width="120">
+      <el-table-column prop="username" label="用户名" width="100" show-overflow-tooltip />
+      <el-table-column prop="email" label="邮箱" width="180" />
+      <el-table-column label="姓名" min-width="90">
         <template #default="{ row }">
           {{ row.nickname }}
         </template>
@@ -208,7 +210,7 @@ onMounted(() => {
           {{ row.submission }}/{{ row.accept }}
         </template>
       </el-table-column>
-      <el-table-column label="用户角色" width="100" align="center">
+      <el-table-column label="用户角色" width="110" align="center">
         <template #default="{ row }">
           <el-tag :type="getRoleTagType(row.user_role)">
             {{ getRoleName(row.user_role) }}
@@ -231,7 +233,7 @@ onMounted(() => {
             <el-button v-else type="success" size="small" @click="handleUnban(row)">
               解封
             </el-button>
-            <el-button type="primary" size="small" @click="handleUpdateRole(row)">
+            <el-button v-if="row.user_role != 'super_admin'" type="primary" size="small" @click="handleUpdateRole(row)">
               修改角色
             </el-button>
           </el-button-group>
@@ -268,9 +270,8 @@ onMounted(() => {
       <el-form :model="roleForm" label-width="100px">
         <el-form-item label="用户角色">
           <el-select v-model="roleForm.role" style="width: 240px" placeholder="选择角色">
-            <el-option label="普通用户" :value="1" />
-            <el-option label="管理员" :value="2" />
-            <el-option label="超级管理员" :value="3" />
+            <el-option label="普通用户" :value="'user'" />
+            <el-option label="管理员" :value="'admin'" />
           </el-select>
         </el-form-item>
       </el-form>

@@ -25,7 +25,8 @@
     <div class="flex flex-col md:flex-row gap-6">
       <div class="flex-1">
         <n-list bordered>
-          <n-list-item v-for="blog in blogs" :key="blog.id" class="p-2" :style="{ '--n-color-hover': 'var(--surface-secondary)' }">
+          <n-list-item v-for="blog in blogs" :key="blog.id" class="p-2"
+            :style="{ '--n-color-hover': 'var(--surface-secondary)' }">
             <n-row>
               <span @click="$router.push({ name: 'BlogDetail', params: { id: blog.id } })"
                 class="font-bold text-lg  cursor-pointer"> {{ blog.title }}</span>
@@ -37,7 +38,8 @@
               <n-col>
                 <div class="text-[#8A919F] justify-center align-center flex gap-2">
                   <UserCard :user_id="blog.user_id">
-                    <span class="text-sm cursor-pointer" :style="{ color: 'var(--text-secondary)' }">{{ blog.username }}</span>
+                    <span class="text-sm cursor-pointer" :style="{ color: 'var(--text-secondary)' }">{{ blog.username
+                      }}</span>
                   </UserCard>
                 </div>
               </n-col>
@@ -71,8 +73,9 @@
           <n-list>
             <n-list-item v-for="user in activeUsers" :key="user.id" class="py-2!">
               <div class="flex items-center gap-3">
+                <!-- TODO: backgroundColor使用金色主题变量 -->
                 <div class="flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold" :style="{
-                  backgroundColor: user.rank <= 3 ? 'var(--hero-bg-from)' : 'var(--divider-color)',
+                  backgroundColor: getRankBackgroundColor(user.rank),
                   color: user.rank <= 3 ? '#fff' : 'var(--text-secondary)'
                 }">
                   {{ user.rank }}
@@ -191,6 +194,18 @@ const pagination = reactive({
     loadBlogs(searchQuery.value)
   }
 })
+const getRankBackgroundColor = (rank: number) => {
+  switch (rank) {
+    case 1:
+      return '#FFD700'
+    case 2:
+      return '#C0C0C0'
+    case 3:
+      return 'rgb(184, 115, 51)'
+    default:
+      return 'var(--divider-color)'
+  }
+}
 const router = useRouter()
 const route = useRoute()
 // 博客数据
@@ -198,9 +213,12 @@ const blogs = ref<(Blog & { user_id: string, username: string })[]>()
 // 加载博客数据
 const loadBlogs = async (query = '') => {
   try {
-    const { info: { data, total} } = await blogApi.getAvailableList(query, pagination.page, pagination.pageSize)
-    blogs.value = data
-    totalBlogs.value = total
+    const { code, info } = await blogApi.getAvailableList(query, pagination.page, pagination.pageSize)
+    if (code == 200 && info) {
+      const { data, total } = info
+      blogs.value = data
+      totalBlogs.value = total
+    }
   } catch (error) {
     console.error('获取博客数据失败:', error)
   }

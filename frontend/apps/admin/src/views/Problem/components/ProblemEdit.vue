@@ -9,7 +9,7 @@ const emit = defineEmits(['submit'])
 const form = defineModel<Problem>('form',{required: true})
 import DashBoardJudgeCase from './DashBoardJudgeCase.vue'
 import DashBoardJudgeSample from './DashBoardJudgeSample.vue'
-import type { Problem } from '../type'
+import type { Problem } from '@nexusoj/type'
 const { label } = defineProps(['label'])
 
 const check = () => {
@@ -39,7 +39,7 @@ const display = computed(() => {
     `## 输入格式\n${form.value.input_description}\n\n` +
     `## 输出格式\n${form.value.output_description}\n\n ` +
     `## 样例\n${res}\n\n` +
-    `## 提示\n ${form.value.tip} \n\n` +
+    `## 提示\n ${form.value.tips} \n\n` +
     `### 造题人\n${username.value} `
 })
 const JudgeCaseVisiable = ref(false)
@@ -49,7 +49,7 @@ const resetForm = () => {
   form.value.context = ''
   form.value.input_description = ''
   form.value.output_description = ''
-  form.value.tip = ''
+  form.value.tips = ''
   form.value.judge_case = [
     {
       input: '',
@@ -68,7 +68,7 @@ const resetForm = () => {
   ]
   form.value.tags = []
   form.value.user_id = id.value
-  form.value.difficulty = '1'
+  form.value.difficulty = 1
 }
 </script>
 
@@ -109,15 +109,15 @@ const resetForm = () => {
         <el-input v-model="form.title"  placeholder="题目名称" />
         <el-input v-model="form.context" autosize placeholder="题目描述" type="textarea" />
         <el-select v-model="form.difficulty" placeholder="难度">
-          <el-option label="C" value="1" />
-          <el-option label="B" value="2" />
-          <el-option label="A" value="3" />
-          <el-option label="S" value="4" />
-          <el-option label="SS" value="5" />
+          <el-option label="C" :value="1" />
+          <el-option label="B" :value="2" />
+          <el-option label="A" :value="3" />
+          <el-option label="S" :value="4" />
+          <el-option label="SS" :value="5" />
         </el-select>
         <el-input v-model="form.input_description" autosize placeholder="输入描述" type="textarea" />
         <el-input v-model="form.output_description" autosize placeholder="输出描述" type="textarea" />
-        <el-input v-model="form.tip" placeholder="提示" autosize type="textarea" />
+        <el-input v-model="form.tips" placeholder="提示" autosize type="textarea" />
       </el-card>
     </el-splitter-panel>
     <el-splitter-panel :min="200">

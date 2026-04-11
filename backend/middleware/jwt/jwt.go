@@ -131,6 +131,9 @@ func GetUserIDFromToken(tokenString string) uint64 {
 		return j.SigningKey, nil
 	})
 
+	if token == nil {
+		return 0
+	}
 	// 即使解析失败（包括过期），也尝试获取claims
 	if claims, ok := token.Claims.(*CustomClaims); ok {
 		return claims.UserID

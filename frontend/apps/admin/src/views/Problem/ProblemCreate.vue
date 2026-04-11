@@ -2,13 +2,15 @@
 import { onMounted, ref, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { storeToRefs } from 'pinia'
-import { HttpStatusCode } from 'axios'
 const store = useUserStore()
 const { id } = storeToRefs(store)
 const form = ref<Problem>({
+  id: 0,
+  accept: 0,
+  submission: 0,
   title: '',
   context: '',
-  difficulty: '0',
+  difficulty: 0,
   judge_case: [
     {
       input: '',
@@ -28,14 +30,16 @@ const form = ref<Problem>({
   tags: [],
   input_description: '',
   output_description: '',
-  tip: '',
+  tips: '',
   user_id: id.value,
 })
 import { useCache } from '@/stores/Cache'
 import { ElMessage } from 'element-plus'
 import ProblemEdit from './components/ProblemEdit.vue'
-import type { Problem } from './type'
+import type { Problem } from '@nexusoj/type'
 import { problemApi } from '@nexusoj/server'
+import { pick } from 'lodash'
+
 const cache = useCache()
 const { addCache, getCache } = cache
 
@@ -43,26 +47,12 @@ watch(() => form.value, () => {
   addCache('problemCreateForm', form.value)
 }, { deep: true })
 onMounted(() => { form.value = getCache('problemCreateForm') || form.value })
-
 const onSubmit = async () => {
-  await problemApi.createProblem(
-    {
-      title: form.value.title,
-      context: form.value.context,
-      difficulty: +form.value.difficulty,
-      judge_case: form.value.judge_case,
-      judge_config: form.value.judge_config,
-      judge_sample: form.value.judge_sample,
-      tags: form.value.tags,
-      input_description: form.value.input_description,
-      output_description: form.value.output_description,
-      user_id: id.value,
-      tip: form.value.tip,
-    }
-  )
+  const obj = pick(form.value, ['title', 'context', 'judge_case', 'difficulty', 'judge_config', 'judge_sample', 'tags', 'input_description', 'output_description', 'tips', 'user_id'])
+  await problemApi.createProblem(obj)
     .then((res) => {
       const { code } = res
-      if (code == HttpStatusCode.Ok) {
+      if (code == 200) {
         ElMessage({ message: '题目创建成功', type: 'success' })
       } else {
         ElMessage({ message: '题目创建失败', type: 'error' })

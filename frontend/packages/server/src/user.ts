@@ -9,7 +9,7 @@ export const userApi = {
     return Request.post('/user/login', { username, password })
   },
   AdminLogin : (username: string, password: string)=> {
-    return Request.post('/admin/login', { username, password })
+    return Request.post('/admin/user/login', { username, password })
   },
   Register: (
     username: string,
@@ -36,7 +36,7 @@ export const userApi = {
   ValidateToken: (): Promise<ApiResponse<string>> => {
     return Request.get('/user/validate-token')
   },
-  getInfoById: (id: string): Promise<ApiResponse<User>> => {
+  getInfoById: (id: Number): Promise<ApiResponse<User>> => {
     return Request.get(`/user/${id}`)
   },
   updateAvatar: (file: File): Promise<ApiResponse<string>> => {
@@ -86,7 +86,7 @@ export const userApi = {
     return Request.get('/user/top-rating')
   },
   getUserRecordList: (
-    id: string,
+    id: Number,
     params: Partial<GetRecordListParams>
   ): Promise<ApiResponse<{ records: GetRecordListResponse[], total: number }>> => {
     return Request.get(`/record/user/${id}`, { params: params })
@@ -101,6 +101,9 @@ export const userApi = {
     return Request.post(`/chat/mark-read`, { friend_id })
   },
   AdminUserList: (page: number = 1, page_size: number = 10, _ : any): Promise<ApiResponse<User[]>> => {
-    return Request.get(`/admin/user-list`, { params: { page, page_size } })
+    return Request.get(`/admin/user/list`, { params: { page, page_size } })
+  },
+  AdminUpdateRole: (id: Number, role: 'admin' | 'user' | 'super_admin'): Promise<ApiResponse<null>> => {
+    return Request.post(`/admin/user/update-role`, { id, role })
   }
 }

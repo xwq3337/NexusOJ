@@ -1,3 +1,4 @@
+import { forEach, pick } from 'lodash'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
@@ -7,16 +8,14 @@ export const useUserStore = defineStore(
     const id = ref(0)
     const username = ref('')
     const nickname = ref('')
-    const gender = ref()
+    const gender = ref('')
     const avatar = ref('')
-    const rating = ref()
-    function initStore({ Id, Username, Nickname, Gender, Avatar, Rating }) {
-      id.value = Id
-      username.value = Username
-      nickname.value = Nickname
-      gender.value = Gender
-      avatar.value = Avatar
-      rating.value = Rating
+    const rating = ref(0)
+    function initStore( obj : { id : Number, username: string, nickname : string, gender : string, avatar: string, rating: number } ) {
+      const pickedObj = pick(obj, ['id', 'username', 'nickname', 'gender', 'avatar', 'rating'])
+      forEach(pickedObj, (val, key) => {
+        eval(key).value = val
+      })
     }
 
     const resetStore = () => {
@@ -25,7 +24,7 @@ export const useUserStore = defineStore(
       nickname.value = ''
       gender.value = ''
       avatar.value = ''
-      rating.value = ''
+      rating.value = 0
     }
     return {
       id,
@@ -40,7 +39,7 @@ export const useUserStore = defineStore(
   },
   {
     persist: {
-      key: 'User',
+      key: 'user_cache',
       storage: localStorage
     }
   }

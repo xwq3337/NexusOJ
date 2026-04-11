@@ -1,5 +1,4 @@
-import type { Problem, Contest } from '@nexusoj/type'
-export const MOCK_PROBLEMS: Problem[] = [
+export const MOCK_PROBLEMS = [
   {
     id: 1,
     title: '两数之和',
@@ -152,32 +151,29 @@ export const MOCK_PROBLEMS: Problem[] = [
   }
 ]
 
-export const MOCK_CONTESTS: (Contest)[] = [
+export const MOCK_CONTESTS = [
   {
-    id: '1',
+    id: '792516153393221',
     title: '周赛 1',
     begin_at: '2025/12/15 14:44',
     duration: 90,
     participants: 12450,
-    type : 'Weekly',
     status: 'Live'
   },
   {
-    id: '2',
+    id: '792516153393221',
     title: '双周赛 1',
     begin_at: '2025/12/16 14:44',
     duration: 90,
     participants: 4300,
-    type : 'Biweekly',
     status: 'Upcoming'
   },
   {
-    id: '3',
+    id: '792516153393221',
     title: 'Nexus新手杯 #1',
     begin_at: '2025/12/17 14:44',
     duration: 120,
     participants: 1200,
-    type: 'Cup',
     status: 'Upcoming'
   }
 ]

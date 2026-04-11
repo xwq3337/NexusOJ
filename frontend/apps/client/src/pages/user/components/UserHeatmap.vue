@@ -15,7 +15,7 @@ import type { HeatmapFirstDayOfWeek } from 'naive-ui'
 import { heatmapMockData } from 'naive-ui'
 
 const props = defineProps<{
-  userId?: string
+  userId?: Number
   period?: 'recent' | '2025' | '2024'
 }>()
 

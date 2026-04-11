@@ -18,7 +18,7 @@ export interface Contest {
   submission: number
   accept: number
   seal_rank: boolean
-  userID: Number
+  userID: number
   created_at: string
   updated_at: string
 }
@@ -113,7 +113,7 @@ export interface ContestProblemStat {
 }
 
 export interface ContestTopParticipant {
-  user_id: Number
+  user_id: number
   username: string
   rank: number
   score: number

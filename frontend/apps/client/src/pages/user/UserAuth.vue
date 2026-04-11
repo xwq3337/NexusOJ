@@ -140,10 +140,10 @@ import { NForm, NFormItem, NInput, NButton, useMessage } from 'naive-ui'
 import { User, Lock, LogIn } from 'lucide-vue-next'
 import { useRoute, RouterLink, useRouter } from 'vue-router'
 import { inject, ref } from 'vue'
-import { HttpStatusCode } from 'axios'
 import { useLocalStorage } from '@vueuse/core'
 import { useUserStore } from '@/stores/useUserStore'
 import { userApi } from '@nexusoj/server'
+import { pick } from 'lodash'
 
 const route = useRoute()
 const router = useRouter()
@@ -240,27 +240,17 @@ const handleValidateButtonClick = (e: MouseEvent) => {
       userApi
         .Login(modelRef.value.username as string, modelRef.value.password as string)
         .then((res) => {
-          console.log(res)
-
           const { msg, info, code } = res
-          if (code === HttpStatusCode.Ok && info && Array.isArray(msg)) {
+          if (code === 200 && info && Array.isArray(msg)) {
             if (!msg || msg.length < 2 || typeof msg[0] !== 'string' || typeof msg[1] !== 'string') {
               message.error('登录失败，服务器返回数据异常')
               return
             }
-            AccessToken.value = msg[0]
-            RefreshToken.value = msg[1]
-            initStore({
-              Id: info.id,
-              Username: modelRef.value.username,
-              Nickname: info.nickname,
-              Gender: info.gender,
-              Avatar: info.avatar,
-              Rating: info.rating
-            })
+            [AccessToken.value,RefreshToken.value ] = msg
+            const obj = pick(info, ['id', 'username', 'nickname', 'gender', 'avatar', 'rating'])
+            initStore(obj)
             // 应该刷新页面
             window.location.href = redirectPath
-
           } else {
             message.error('登录失败，请检查用户名和密码')
           }

@@ -1,39 +1,50 @@
-import { API_BASE_URL } from '@nexusoj/config';
 import { defineConfig, loadEnv } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
+import { dirname, resolve } from 'node:path'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', '')
+
+// monorepo 根目录（.env 所在目录）
+const monorepoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../')
+
+export default defineConfig(({ mode, command }) => {
+  const env = loadEnv(mode, monorepoRoot, '')
+  const isDev = mode === 'development'
+  const isBuild = command === 'build'
   return {
     server: {
-      port: 3000,
-      host: '0.0.0.0',
+      port: Number(env.CLIENT_DEV_PORT),
+      host: env.VITE_HOST,
       proxy: {
         // 使用通配符匹配多个后端路径
         '^/(sse|service)': {
-          target: API_BASE_URL.development,
+          target: env.BACKEND_URL,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/(sse|service)/, ''),
-          onError: (err, req, res) => {
-            console.log('后端代理错误，检查服务是否启动在8080端口')
+          onError: (err: any, req: any, res: any) => {
+            console.log({
+              msg: '后端代理错误，检查服务是否启动在8080端口',
+              err,
+              req,
+              res
+            })
             // 可以在这里添加降级逻辑
           }
         },
         '/agent': {
-          target: API_BASE_URL.agent,
+          target: env.AGENT_URL,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/agent/, ''),
-          onError: (err, req, res) => {
+          onError: (err: any, req: any, res: any) => {
             console.log('代理错误，检查服务是否启动在5557端口')
             // 可以在这里添加降级逻辑
           }
         },
         '/ws': {
-          target: API_BASE_URL.ws,
+          target: env.WEBSOCKET_URL,
           secure: false,
           changeOrigin: true
-        },
+        }
       }
     },
     plugins: [vue(), vueDevTools()],

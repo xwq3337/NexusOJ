@@ -6,8 +6,7 @@
     <div class="container mx-auto px-4 h-16 flex items-center justify-between">
       <div class="flex items-center gap-8">
         <RouterLink to="/" class="flex items-center gap-2 font-bold text-xl">
-          <div
-            class="w-8 h-8 rounded-md flex items-center justify-center text-xs font-terminal font-bold neon-border"
+          <div class="w-8 h-8 rounded-md flex items-center justify-center text-xs font-terminal font-bold neon-border"
             :style="{
               backgroundColor: 'var(--neon-cyan)',
               color: '#0a0e1a',
@@ -44,6 +43,11 @@
             :style="isActiveStyle('/blogs')">
             <LibraryBig :size="16" /> 博客
           </RouterLink>
+          <RouterLink to="/moments"
+            class="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2"
+            :style="isActiveStyle('/moments')">
+            <Diameter :size="16" /> 动态
+          </RouterLink>
         </div>
       </div>
 
@@ -51,8 +55,7 @@
       <div class="hidden md:flex items-center gap-4">
         <!-- 主题切换按钮 -->
         <button @click="toggleTheme"
-          class="flex items-center justify-center w-9 h-9 rounded-md transition-all duration-200 cursor-pointer"
-          :style="{
+          class="flex items-center justify-center w-9 h-9 rounded-md transition-all duration-200 cursor-pointer" :style="{
             color: 'var(--text-secondary)',
             // backgroundColor: 'var(--surface-secondary)',
             // border: '1px solid var(--border-color)'
@@ -80,8 +83,7 @@
           :style="{
             border: '2px solid var(--accent-color)',
             boxShadow: '0 0 8px var(--neon-glow-cyan)'
-          }"
-          @click="$router.push({ name: 'Profile' })">
+          }" @click="$router.push({ name: 'Profile' })">
           <n-avatar round :src="avatar" size="small" />
         </button>
         <button v-else
@@ -89,8 +91,7 @@
           :style="{
             backgroundColor: 'var(--btn-primary)',
             boxShadow: '0 0 12px var(--neon-glow-cyan)'
-          }"
-          @click="$router.push({ name: `Auth` })">
+          }" @click="$router.push({ name: `Auth` })">
           登录
         </button>
       </div>
@@ -120,6 +121,7 @@ import {
   Sun,
   Moon,
   FileText,
+  Diameter,
   Menu,
   MessageSquareText,
   BookOpen,
@@ -127,7 +129,7 @@ import {
 } from 'lucide-vue-next'
 import { useTheme } from '@/composables/useTheme'
 import { useUserStore } from '@/stores/useUserStore'
-import { h, inject, onMounted, ref, Ref, watch } from 'vue'
+import { h, inject, ref, Ref, watch } from 'vue'
 import { useNexusEventSource } from '@/composables/useEventSource'
 import router from '@/router'
 const { id, avatar } = useUserStore()
@@ -156,7 +158,7 @@ type Response = {
 
 watch(isAuthorization, (auth) => {
   if (auth) {
-    const { close, addListener } = useNexusEventSource(`/sse/chat/unread?id=${id}`, {
+    const { addListener } = useNexusEventSource(`/sse/chat/unread?id=${id}`, {
       onError(err) {
         console.log("unread err", err)
       },
@@ -167,12 +169,12 @@ watch(isAuthorization, (auth) => {
         console.log('unread close')
       }
     })
-    addListener('message', (msg : Response) => {
+    addListener('message', (msg: Response) => {
       unRead.value = Number(msg.data)
-     })
-    addListener('heartbeat', (msg : Response) => {
+    })
+    addListener('heartbeat', (msg: Response) => {
       console.log('unread heartbeat')
-     })
+    })
   }
 }, { immediate: true })
 
@@ -200,6 +202,10 @@ const options = [
   {
     label: '消息',
     key: 'Messages'
+  },
+  {
+    label : '动态',
+    key: 'Moments'
   },
   {
     label: "个人主页",

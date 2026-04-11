@@ -22,7 +22,7 @@ func (AdminController) AdminLogin(c *gin.Context) {
 		utils.ReturnError(c, 400, err.Error())
 		return
 	}
-	user, err := models.User{Username: param.Username, Password: param.Password, UserRole: "admin"}.QueryUser()
+	user, err := models.User{Username: param.Username, UserRole: "admin"}.QueryUser()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", param.Username))
@@ -32,8 +32,18 @@ func (AdminController) AdminLogin(c *gin.Context) {
 			return
 		}
 	}
+
 	if user.ID == 0 {
-		utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", param.Username))
+		utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户", param.Username))
+		return
+	}
+	match, err := utils.VerifyPassword(param.Password, user.Password)
+	if err != nil {
+		utils.ReturnError(c, http.StatusInternalServerError, fmt.Sprintf("密码验证出错 %v", err))
+		return
+	}
+	if !match {
+		utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("%s: 密码错误", param.Username))
 		return
 	}
 	access_token, _ := generateToken(user, 6*60*60)

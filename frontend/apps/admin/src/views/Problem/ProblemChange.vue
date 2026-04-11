@@ -7,9 +7,10 @@ const problem_id = Number(useRoute().query.id);
 const store = useUserStore()
 const { id } = storeToRefs(store)
 const form = ref<Problem>({
-  id : 0,
+  id: 0,
   user_id: id.value,
-  accept : 0,
+  accept: 0,
+  submission: 0,
   title: '',
   context: '',
   difficulty: 1,
@@ -36,10 +37,11 @@ const form = ref<Problem>({
 })
 onMounted(async () => {
   await problemApi.getProblemDetail(String(problem_id)).then((res) => {
-    const {code ,info } = res
-    if (code == 200 && info){
-      form.value = info
-    }else {
+    const { code, info } = res
+    if (code == 200 && info) {
+      const { problem } = info
+      form.value = problem
+    } else {
       message.error('获取题目信息失败')
     }
   }).catch((e) => {
@@ -52,20 +54,13 @@ import { useRoute } from 'vue-router'
 import ProblemEdit from './components/ProblemEdit.vue'
 import { problemApi } from '@nexusoj/server'
 import type { Problem } from '@nexusoj/type'
-
+import { pick } from 'lodash'
 const onSubmit = async () => {
-  await problemApi.updateProblem(String(problem_id), {
-    title: form.value.title,
-    context: form.value.context,
+  const obj = pick(form.value, ['title', 'context', 'judge_case', 'judge_config', 'judge_sample', 'tags', 'input_description', 'output_description', 'tips'])
+  await problemApi.updateProblem(problem_id, {
+    ...obj,
     difficulty: +form.value.difficulty,
-    judge_case: form.value.judge_case,
-    judge_config: form.value.judge_config,
-    judge_sample: form.value.judge_sample,
-    tags: form.value.tags,
-    input_description: form.value.input_description,
-    output_description: form.value.output_description,
     user_id: id.value,
-    tips: form.value.tips,
   })
     .then((res) => {
       if (res.code == 200) {

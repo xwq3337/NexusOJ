@@ -7,6 +7,7 @@ import (
 	"log"
 	"nexus/dao"
 	"nexus/models"
+	"nexus/utils"
 	"sort"
 	"strconv"
 	"time"
@@ -139,7 +140,7 @@ func CacheContestPassword(contestID, password string, endAt time.Time) error {
 	return dao.RedisClient.Set(ctx, key, password, ttl).Err()
 }
 
-// VerifyContestPassword 验证比赛密码
+// VerifyContestPassword 验证比赛密码（Argon2）
 func VerifyContestPassword(contestID, password string) (bool, error) {
 	key := fmt.Sprintf(redisContestPassword, contestID)
 	stored, err := dao.RedisClient.Get(ctx, key).Result()
@@ -149,7 +150,7 @@ func VerifyContestPassword(contestID, password string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return stored == password, nil
+	return utils.VerifyPassword(password, stored)
 }
 
 // CacheParticipant 缓存参赛者到 Redis SET + Bitmap

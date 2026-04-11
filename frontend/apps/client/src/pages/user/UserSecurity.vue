@@ -146,7 +146,6 @@ const handleUpdatePassword = async () => {
 
     message.success('密码修改成功，请重新登录')
     handleReset()
-
     // 延迟后退出登录
     setTimeout(() => {
       handleLogout()

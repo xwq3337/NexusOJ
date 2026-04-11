@@ -103,6 +103,12 @@ func (SolutionController) CreateSolution(c *gin.Context) {
 		Status:    req.Status,
 	}
 
+	exists, _ := models.ExistsActiveSolutionByUserAndProblem(userID, req.ProblemID)
+	if exists {
+		utils.ReturnError(c, http.StatusConflict, "你已经发布过该题目的题解")
+		return
+	}
+
 	if err := models.CreateSolution(solution); err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, "创建失败")
 		return

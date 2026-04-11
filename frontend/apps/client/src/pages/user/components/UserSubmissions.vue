@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, h } from 'vue'
 import { useRouter } from 'vue-router'
-import { NDataTable,NButton, NTag, NEmpty, NSpin, NPagination, NSelect, NInput } from 'naive-ui'
+import { NDataTable, NButton, NTag, NEmpty, NSpin, NPagination, NSelect, NInput } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { userApi } from '@nexusoj/server'
 import { formatMemory, formatRelativeTime, formatTime } from '@/utils/format'
 import { STATUS_COLORS, LANGUAGE_CONFIG } from '@/constants'
 import type { GetRecordListResponse } from '@nexusoj/type'
 
-const props = defineProps<{ userId: string }>()
+const props = defineProps<{ userId: Number }>()
 const router = useRouter()
 
 const PAGE_SIZE = 20
@@ -50,19 +50,36 @@ const resetFilters = () => {
 const handleViewSubmission = (row: any) => {
   router.push({ name: 'RecordDetail', params: { id: row.id } })
 }
+const handleViewProblem = (row: any) => {
+  router.push({ name: 'ProblemDetail', params: { id: row.problem_id } })
+}
 
 const columns: DataTableColumns<any> = [
   {
     title: 'ID',
     key: 'id',
-    width: 200,
+    width: 160,
+    render(row) {
+      return h('span',
+        {
+          class: 'truncate',
+          onClick: () => handleViewSubmission(row)
+        },
+        row.id)
+    }
   },
   {
     title: '题目',
     key: 'problem_title',
-    width: 150,
+    width: 200,
+
     render(row) {
-      return row.problem_title
+      return h('span',
+        {
+          class: 'truncate',
+          onClick: () => handleViewProblem(row)
+        },
+        row.problem_title)
     }
   },
   {
@@ -122,44 +139,22 @@ onMounted(() => {
   <div class="space-y-4">
     <!-- Filters -->
     <div class="flex gap-4 items-center flex-nowrap overflow-x-auto">
-      <NSelect
-        v-model:value="statusFilter"
-        :options="Object.entries(STATUS_COLORS).map(([value]) => ({ label: value, value }))"
-        placeholder="状态筛选"
-        clearable
-        size="small"
-        style="min-width: 140px"
-      />
-      <NSelect
-        v-model:value="languageFilter"
+      <NSelect v-model:value="statusFilter"
+        :options="Object.entries(STATUS_COLORS).map(([value]) => ({ label: value, value }))" placeholder="状态筛选"
+        clearable size="small" style="min-width: 140px" />
+      <NSelect v-model:value="languageFilter"
         :options="Object.entries(LANGUAGE_CONFIG).map(([value, cfg]) => ({ label: cfg.label, value }))"
-        placeholder="语言筛选"
-        clearable
-        size="small"
-        style="min-width: 120px"
-      />
+        placeholder="语言筛选" clearable size="small" style="min-width: 120px" />
       <NButton size="small" @click="resetFilters">重置</NButton>
     </div>
 
     <!-- Table -->
     <NSpin :show="loading">
-      <n-data-table
-        :columns="columns"
-        :data="submissions"
-        :row-key="(row: any) => row.id"
-        size="small"
-        :loading="loading"
-        :pagination="false"
-        :row-class-name="() => 'cursor-pointer'"
-        @click-row="handleViewSubmission"
-      />
+      <n-data-table :columns="columns" :data="submissions" :row-key="(row: any) => row.id" size="small"
+        :loading="loading" :pagination="false" :row-class-name="() => 'cursor-pointer'" />
       <div class="flex justify-end py-4" v-if="total > 0">
-        <NPagination
-          v-model:page="currentPage"
-          :page-size="PAGE_SIZE"
-          :item-count="total"
-          @update:page="fetchSubmissions"
-        />
+        <NPagination v-model:page="currentPage" :page-size="PAGE_SIZE" :item-count="total"
+          @update:page="fetchSubmissions" />
       </div>
     </NSpin>
   </div>

@@ -130,7 +130,7 @@ import { difficultyMap } from '@/constants'
 import { solutionApi } from '@nexusoj/server'
 
 const props = defineProps<{
-  userId?: string
+  userId?: Number
 }>()
 
 const router = useRouter()

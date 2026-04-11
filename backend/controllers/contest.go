@@ -67,6 +67,17 @@ func (ContestController) CreateContest(c *gin.Context) {
 		req.Duration = int(endAt.Sub(beginAt).Minutes())
 	}
 
+	// 哈希比赛密码
+	password := req.Password
+	if req.IsPrivate && req.Password != "" {
+		hash, err := utils.HashPassword(req.Password)
+		if err != nil {
+			utils.ReturnError(c, http.StatusInternalServerError, "密码加密失败")
+			return
+		}
+		password = hash
+	}
+
 	contest := &models.Contest{
 		Title:        req.Title,
 		Introduction: req.Introduction,
@@ -76,7 +87,7 @@ func (ContestController) CreateContest(c *gin.Context) {
 		EndAt:        endAt,
 		Duration:     req.Duration,
 		IsPrivate:    req.IsPrivate,
-		Password:     req.Password,
+		Password:     password,
 		SealRank:     req.SealRank,
 	}
 	contest.Status = services.CheckContestStatus(contest)
@@ -89,7 +100,7 @@ func (ContestController) CreateContest(c *gin.Context) {
 
 	// 缓存密码到 Redis
 	if req.IsPrivate && req.Password != "" {
-		_ = services.CacheContestPassword(contest.ID, req.Password, endAt)
+		_ = services.CacheContestPassword(contest.ID, password, endAt)
 	}
 
 	_ = services.CacheContestInfo(*contest)
@@ -143,7 +154,17 @@ func (ContestController) UpdateContest(c *gin.Context) {
 	}
 	existing.IsPrivate = req.IsPrivate
 	existing.SealRank = req.SealRank
-	existing.Password = req.Password
+	// 哈希比赛密码
+	if req.IsPrivate && req.Password != "" {
+		hash, err := utils.HashPassword(req.Password)
+		if err != nil {
+			utils.ReturnError(c, http.StatusInternalServerError, "密码加密失败")
+			return
+		}
+		existing.Password = hash
+	} else {
+		existing.Password = req.Password
+	}
 
 	contestModel := models.Contest{}
 	if err := contestModel.UpdateContest(&existing); err != nil {
@@ -153,7 +174,7 @@ func (ContestController) UpdateContest(c *gin.Context) {
 
 	// 更新密码缓存
 	if existing.IsPrivate && req.Password != "" {
-		_ = services.CacheContestPassword(existing.ID, req.Password, existing.EndAt)
+		_ = services.CacheContestPassword(existing.ID, existing.Password, existing.EndAt)
 	} else {
 		dao.RedisClient.Del(contestCtx, fmt.Sprintf("contest:password:%s", existing.ID))
 	}

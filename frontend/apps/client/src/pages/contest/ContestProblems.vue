@@ -161,7 +161,7 @@ const contestStats = computed(() => {
                 <template #prefix>
                   <NIcon :size="16" style="color: var(--warning-color)"><Target /></NIcon>
                 </template>
-                {{ contestStats.acceptRate }}%
+                {{ contestStats.acceptRate }}
               </NStatistic>
             </NGi>
           </NGrid>

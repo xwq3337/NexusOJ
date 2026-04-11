@@ -171,10 +171,13 @@
       <NDrawerContent :title="currentSolution ? currentSolution.title : '题解列表'" closable>
         <!-- 题解详情 -->
         <template v-if="currentSolution">
-          <n-button size="small" quaternary @click="backToList" class="mb-3">
-            &larr; 返回列表
-          </n-button>
           <div class="flex items-center gap-2 mb-3">
+            <n-button size="small" quaternary @click="backToList" class="mb-3">
+              <template #icon>
+                <ArrowLeft :size="14" />
+              </template>
+              返回列表
+            </n-button>
             <NAvatar v-if="currentSolution.avatar" round :size="28" :src="currentSolution.avatar" />
             <span class="text-sm" :style="{ color: 'var(--text-secondary)' }">
               {{ currentSolution.username }}
@@ -184,7 +187,7 @@
             </span>
           </div>
           <NDivider style="margin: 8px 0" />
-          <MarkdownPreviewV2 v-if="currentSolution.context" :text="currentSolution.context" />
+          <v-md-preview v-if="currentSolution.context" :text="currentSolution.context" />
         </template>
 
         <!-- 题解列表 -->
@@ -210,23 +213,23 @@
                 @click="viewSolutionDetail(item.id)">
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 mb-1">
-                    <span class="font-medium truncate flex-1" :style="{ color: 'var(--text-primary)' }">
+                    <span class="font-medium text-xl truncate flex-1" :style="{ color: 'var(--text-primary)' }">
                       {{ item.title }}
                     </span>
-                    <n-tag v-if="item.username === 'admin'" size="tiny" :bordered="false"
+                    <n-tag v-if="item.username === 'NexusOJ'" size="tiny" :bordered="false"
                       style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; font-weight: 600; flex-shrink: 0;">
                       官方
                     </n-tag>
                   </div>
                   <div class="flex items-center gap-2 text-xs" :style="{ color: 'var(--text-primary)' }">
-                    <span class="text-xl">{{ item.username }}</span>
-                    <span>·</span>
+                    <span>{{ item.username }}</span>
+                    <NDivider vertical />
                     <span>{{ item.view }} 阅读</span>
-                    <span>·</span>
+                    <NDivider vertical />
                     <span>{{ item.like }} 赞</span>
                   </div>
                   <div v-if="item.tags?.length" class="flex gap-1 mt-1">
-                    <NTag v-for="tag in item.tags" :key="tag" size="tiny" :bordered="false">
+                    <NTag v-for="tag in item.tags" :key="tag" size="tiny" type="info" :bordered="false">
                       {{ tag }}
                     </NTag>
                   </div>
@@ -243,16 +246,21 @@
       <NDrawerContent :title="currentRecord ? '提交详情' : '提交记录'" closable :style="{ color: 'var(--text-primary)' }">
         <!-- 记录详情 -->
         <template v-if="currentRecord">
-          <n-button size="small" quaternary @click="backToRecordList" class="mb-3">&larr; 返回列表</n-button>
           <div class="space-y-3">
             <div class="flex items-center gap-3">
+              <n-button size="small" quaternary @click="backToRecordList" class="mb-3">
+                <template #icon>
+                  <ArrowLeft :size="14" />
+                </template>
+                返回列表
+              </n-button>
               <n-tag size="small" :bordered="false" :style="convertToCss(STATUS_COLORS[currentRecord.verdict])">
                 {{ currentRecord.verdict }}
               </n-tag>
               <n-tag size="small" :bordered="false"
                 :style="convertToCss(LANGUAGE_CONFIG[currentRecord.language as keyof typeof LANGUAGE_CONFIG]?.color)">
                 {{ LANGUAGE_CONFIG[currentRecord.language as keyof typeof LANGUAGE_CONFIG]?.label ||
-                currentRecord.language }}
+                  currentRecord.language }}
               </n-tag>
             </div>
             <div class="grid grid-cols-2 gap-3 text-sm">
@@ -285,8 +293,9 @@
             <div v-if="currentRecord.code">
               <div class="text-xs mb-1" :style="{ color: 'var(--text-tertiary)' }">代码</div>
               <n-card content-style="padding: 0;" :bordered="false">
-                <pre class="p-3 text-xs overflow-x-auto font-mono"
-                  :style="{ backgroundColor: 'var(--surface-secondary)', color: 'var(--text-primary)' }">{{ currentRecord.code }}</pre>
+                <pre class="p-3 text-sm overflow-x-auto font-mono"
+                  :style="{ backgroundColor: 'var(--surface-secondary)', color: 'var(--text-primary)' }">{{ currentRecord.code
+                  }}</pre>
               </n-card>
             </div>
           </div>
@@ -374,7 +383,7 @@ import {
   NTooltip,
 } from 'naive-ui'
 import { LANGUAGE_CONFIG, EDITOR_THEME_OPTIONS, type EDITOR_THEHE, type LanguageValue, LANGUAGE_OPTIONS, convertToCss, STATUS_MESSAGE } from '@/constants'
-import { Play, RotateCcw, Settings, Target, Tag, Clock, Cpu, BookOpen, History, Plus, Send } from 'lucide-vue-next'
+import { Play, ArrowLeft, RotateCcw, Settings, Target, Tag, Clock, Cpu, BookOpen, History, Plus, Send } from 'lucide-vue-next'
 import AiAssistant from '@/components/AiAssistant.vue'
 import MarkdownPreviewV2 from '@/components/MarkdownPreviewV2.vue'
 import { useLocalStorage } from '@vueuse/core'

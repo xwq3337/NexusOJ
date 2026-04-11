@@ -1,40 +1,72 @@
 <template>
   <div class="animate-fade-in max-w-6xl mx-auto">
     <div class="mb-8 whitespace-nowrap">
-      <!-- TODO:搜索 -->
+      <div class="mb-4 flex items-center gap-3">
+        <n-input
+          v-model:value="searchKeyword"
+          placeholder="搜索题目标题或 ID..."
+          clearable
+          @keyup.enter="handleSearch"
+        >
+          <template #prefix>
+            <Search class="w-4 h-4" style="color: var(--text-secondary)" />
+          </template>
+        </n-input>
+        <n-button type="primary" @click="handleSearch">搜索</n-button>
+      </div>
       <div class="divide-y" :style="{
         borderBottomColor: 'var(--border-color)',
         borderBottomWidth: '1px',
         borderStyle: 'solid'
       }">
-        <n-data-table :columns="columns" :data="Problems" :pagination="pagination" :bordered="false">
-        </n-data-table>
+        <n-data-table
+          :columns="columns"
+          :data="Problems"
+          :pagination="paginationReactive"
+          :loading="loading"
+          :bordered="false"
+          remote
+          @update:page="handlePageChange"
+          @update:page-size="handlePageSizeChange"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h, renderList, onMounted } from 'vue'
+import { ref, reactive, h, renderList, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { CheckCircle2, Circle, AlertCircle, ArrowRight } from 'lucide-vue-next'
-import { NTag, NDataTable, useMessage, NTab, NCol } from 'naive-ui'
-const message = useMessage()
+import { CheckCircle2, Circle, AlertCircle, Search } from 'lucide-vue-next'
+import { NTag, NDataTable, NInput, NButton, useMessage } from 'naive-ui'
 import { difficultyMap } from '@/constants'
-const pagination = {
+import { formatAcceptance } from '@/utils/format'
+import { problemApi } from '@nexusoj/server'
+import type { ProblemListDTO } from '@nexusoj/type'
+
+const message = useMessage()
+const loading = ref(false)
+const Problems = ref<ProblemListDTO[]>([])
+const searchKeyword = ref('')
+
+const paginationReactive = reactive({
   page: 1,
-  pageSize: 10
-}
+  pageSize: 10,
+  itemCount: 0,
+  showSizePicker: true,
+  pageSizes: [10, 20, 50],
+})
+
 const columns = [
   {
     title: '状态',
     key: 'status',
     width: 60,
-    render(row) {
+    render(row : any) {
       let icon
       let iconClass
       let statusText
-      
+
       switch (row.status) {
         case 'solved':
           icon = CheckCircle2
@@ -53,7 +85,7 @@ const columns = [
           statusText = '未尝试'
           break
       }
-      
+
       return h(icon, {
         size: 18,
         class: iconClass,
@@ -67,7 +99,7 @@ const columns = [
   {
     title: '题目',
     key: 'title',
-    render(row) {
+    render(row : any) {
       return h('div', { class: 'items-center space-x-2' }, [
         h(
           RouterLink,
@@ -99,7 +131,7 @@ const columns = [
   {
     title: '通过率',
     key: 'acceptance',
-    render(row) {
+    render(row : any) {
       return h(
         'span',
         { class: 'text-sm' },
@@ -110,7 +142,7 @@ const columns = [
   {
     title: '难度',
     key: 'difficulty',
-    render(row) {
+    render(row : any) {
       return h(
         NTag,
         {
@@ -128,15 +160,40 @@ const columns = [
   }
 ]
 
-const Problems = ref<ProblemListDTO[]>([])
-import { formatAcceptance } from '@/utils/format'
-import { problemApi } from '@nexusoj/server'
-import { ProblemListDTO } from '@nexusoj/type'
-onMounted(async () => {
-  await problemApi.getProblemList()
-    .then((res) => {
-      Problems.value = res.info
-    })
-    .catch((e) => { })
-})
+const fetchProblems = async () => {
+  loading.value = true
+  try {
+    const res = await problemApi.getProblemList(
+      paginationReactive.page,
+      paginationReactive.pageSize,
+      searchKeyword.value || undefined,
+    )
+    if (res.code === 200 && res.info) {
+      Problems.value = res.info.problems || []
+      paginationReactive.itemCount = res.info.total || 0
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loading.value = false
+  }
+}
+
+const handlePageChange = (page: number) => {
+  paginationReactive.page = page
+  fetchProblems()
+}
+
+const handlePageSizeChange = (pageSize: number) => {
+  paginationReactive.pageSize = pageSize
+  paginationReactive.page = 1
+  fetchProblems()
+}
+
+const handleSearch = () => {
+  paginationReactive.page = 1
+  fetchProblems()
+}
+
+onMounted(fetchProblems)
 </script>

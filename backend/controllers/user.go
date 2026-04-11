@@ -58,6 +58,12 @@ func (UserController) CreateUser(c *gin.Context) {
 		return
 	}
 	user.ID = uint64(idgen.NextId())
+	hash, err := utils.HashPassword(user.Password)
+	if err != nil {
+		utils.ReturnError(c, http.StatusInternalServerError, "密码加密失败")
+		return
+	}
+	user.Password = hash
 	if err := models.CreateUser(user); err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
@@ -75,7 +81,7 @@ func (UserController) UserLogin(c *gin.Context) {
 		utils.ReturnError(c, 400, err.Error())
 		return
 	}
-	user, err := models.User{Username: params.Username, Password: params.Password}.QueryUser()
+	user, err := models.User{Username: params.Username}.QueryUser()
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", params.Username))
@@ -86,6 +92,13 @@ func (UserController) UserLogin(c *gin.Context) {
 		}
 	}
 	if user.ID == 0 {
+		utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", params.Username))
+		return
+	}
+	// Argon2 验证密码
+	match, _ := utils.VerifyPassword(params.Password, user.Password)
+
+	if !match {
 		utils.ReturnError(c, http.StatusNotFound, fmt.Sprintf("未找到名为 %s 的用户或者密码错误", params.Username))
 		return
 	}
@@ -104,7 +117,7 @@ func (UserController) UpdateUser(c *gin.Context) {
 		return
 	}
 	user.ID, _ = ParserToken(c)
-	err = models.UpdateUser(user)
+	err = models.UpdateUserInfo(user)
 	if err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
@@ -250,16 +263,6 @@ func (UserController) UpdatePassword(c *gin.Context) {
 
 // TODO需要密码?
 func (UserController) RefreshToken(c *gin.Context) {
-	// var params struct {
-	// 	Username     string `json:"username"`
-	// 	Password     string `json:"password"`
-	// 	RefreshToken string `json:"refresh_token" binding:"required"`
-	// }
-	// if err := c.ShouldBindJSON(&params); err != nil {
-	// 	utils.ReturnError(c, http.StatusBadRequest, "请求参数错误"+err.Error())
-	// 	return
-	// }
-	fmt.Println(c.Request.Header.Get("Authorization"))
 	_id, err := ParserToken(c)
 	if err != nil {
 		utils.ReturnError(c, http.StatusUnauthorized, "未授权"+err.Error())
@@ -337,4 +340,24 @@ func (UserController) ValidateToken(c *gin.Context) {
 		return
 	}
 	utils.ReturnSuccess(c, http.StatusOK, "success", "token有效")
+}
+
+func (UserController) UpdateRole(c *gin.Context) {
+	var params struct {
+		Id   uint64 `json:"id"`
+		Role string `json:"role"`
+	}
+	if err := c.ShouldBindJSON(&params); err != nil {
+		utils.ReturnError(c, http.StatusBadRequest, "请求参数错误"+err.Error())
+		return
+	}
+	if params.Role != "admin" && params.Role != "user" {
+		utils.ReturnError(c, http.StatusBadRequest, "角色不合法")
+		return
+	}
+	if err := models.UpdateUserRole(params.Id, params.Role); err != nil {
+		utils.ReturnError(c, http.StatusInternalServerError, "更新角色失败"+err.Error())
+		return
+	}
+	utils.ReturnSuccess(c, http.StatusOK, "success", nil)
 }

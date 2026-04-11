@@ -67,6 +67,7 @@ const columns: DataTableColumns<any> = [
     title: '题目',
     key: 'problem_title',
     width: 150,
+    ellipsis: true,
     render(row) {
       return h('div',{
         style: { color: 'var(--accent-color)' },

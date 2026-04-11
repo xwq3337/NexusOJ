@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { contestApi } from '@nexusoj/server'
 import { ElMessage } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 import type { Contest, ContestRankItem } from '@nexusoj/type'
 
 const route = useRoute()
@@ -100,6 +101,75 @@ const handleTabChange = (tab: string) => {
   }
 }
 
+// ====== 密码管理 ======
+const passwordDialog = reactive({ visible: false, loading: false })
+const passwordForm = reactive({ newPassword: '', confirmPassword: '' })
+const passwordFormRef = ref<FormInstance>()
+
+const passwordRules = reactive<FormRules>({
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+  ],
+  confirmPassword: [
+    { required: true, message: '请再次输入新密码', trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (value !== passwordForm.newPassword) {
+          callback(new Error('两次输入密码不一致'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur',
+    },
+  ],
+})
+
+const openPasswordDialog = () => {
+  passwordForm.newPassword = ''
+  passwordForm.confirmPassword = ''
+  passwordDialog.visible = true
+}
+
+const submitPasswordChange = async () => {
+  if (!passwordFormRef.value) return
+  try {
+    await passwordFormRef.value.validate()
+    passwordDialog.loading = true
+    const res = await contestApi.updateContest({ id: contestId, password: passwordForm.newPassword } as any)
+    if (res.code === 200) {
+      ElMessage.success('密码修改成功')
+      passwordDialog.visible = false
+    } else {
+      ElMessage.error(res.msg || '密码修改失败')
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    passwordDialog.loading = false
+  }
+}
+
+const handlePrivateChange = async (val: boolean) => {
+  try {
+    const res = await contestApi.updateContest({
+      id: contestId,
+      is_private: val,
+      password: val ? undefined : '',
+    } as any)
+    if (res.code === 200) {
+      ElMessage.success(val ? '已设为私密比赛' : '已设为公开比赛')
+    } else {
+      // 恢复开关状态
+      if (contest.value) contest.value.is_private = !val
+      ElMessage.error(res.msg || '操作失败')
+    }
+  } catch (e) {
+    if (contest.value) contest.value.is_private = !val
+    ElMessage.error('操作失败')
+  }
+}
+
 onMounted(fetchDetail)
 </script>
 
@@ -122,11 +192,31 @@ onMounted(fetchDetail)
           <el-descriptions-item label="结束时间">{{ formatTime(contest.end_at) }}</el-descriptions-item>
           <el-descriptions-item label="时长">{{ contest.duration }} 分钟</el-descriptions-item>
           <el-descriptions-item label="参赛人数">{{ participantCount }}</el-descriptions-item>
-          <el-descriptions-item label="私密">{{ contest.is_private ? '是' : '否' }}</el-descriptions-item>
           <el-descriptions-item label="封榜">{{ contest.seal_rank ? '是' : '否' }}</el-descriptions-item>
           <el-descriptions-item label="提交/通过">{{ contest.submission }} / {{ contest.accept }}</el-descriptions-item>
           <el-descriptions-item label="介绍" :span="2">{{ contest.introduction || '-' }}</el-descriptions-item>
         </el-descriptions>
+
+        <el-card style="margin-top: 20px">
+          <template #header>
+            <span>访问控制</span>
+          </template>
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <div>
+              <span style="font-weight: 500">私密比赛</span>
+              <span style="color: #999; font-size: 12px; margin-left: 8px">
+                开启后参赛者需要输入密码才能报名
+              </span>
+            </div>
+            <el-switch v-model="contest.is_private" @change="handlePrivateChange" :disabled="isContestEnded()" />
+          </div>
+          <div v-if="contest.is_private" style="margin-top: 16px">
+            <el-button type="primary" size="small" @click="openPasswordDialog" :disabled="isContestEnded()">
+              修改密码
+            </el-button>
+            <span style="color: #999; font-size: 12px; margin-left: 8px">密码不会在此显示</span>
+          </div>
+        </el-card>
       </el-tab-pane>
 
       <el-tab-pane label="题目列表" name="problems">
@@ -191,5 +281,22 @@ onMounted(fetchDetail)
         </div>
       </el-tab-pane>
     </el-tabs>
+
+    <el-dialog v-model="passwordDialog.visible" title="修改比赛密码" width="500px">
+      <el-form ref="passwordFormRef" :model="passwordForm" :rules="passwordRules" label-width="100px">
+        <el-form-item label="新密码" prop="newPassword">
+          <el-input v-model="passwordForm.newPassword" type="password" show-password placeholder="设置新密码" />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input v-model="passwordForm.confirmPassword" type="password" show-password placeholder="再次输入新密码" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="passwordDialog.visible = false">取消</el-button>
+        <el-button type="primary" @click="submitPasswordChange" :loading="passwordDialog.loading">
+          确认
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>

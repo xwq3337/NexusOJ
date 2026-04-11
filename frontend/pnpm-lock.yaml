@@ -32,15 +32,15 @@ importers:
       '@microsoft/applicationinsights-web':
         specifier: ^3.1.2
         version: 3.3.11(tslib@2.3.0)
-      '@nexusoj/config':
-        specifier: workspace:*
-        version: link:../../packages/config
       '@nexusoj/server':
         specifier: workspace:*
         version: link:../../packages/server
       '@nexusoj/type':
         specifier: workspace:*
         version: link:../../packages/types
+      '@nexusoj/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       '@types/prismjs':
         specifier: ^1.26.5
         version: 1.26.6
@@ -65,6 +65,9 @@ importers:
       katex:
         specifier: ^0.16.21
         version: 0.16.38
+      lodash:
+        specifier: ^4.17.23
+        version: 4.17.23
       markdown:
         specifier: ^0.5.0
         version: 0.5.0
@@ -201,9 +204,6 @@ importers:
       '@microsoft/fetch-event-source':
         specifier: ^2.0.1
         version: 2.0.1
-      '@nexusoj/config':
-        specifier: workspace:*
-        version: link:../../packages/config
       '@nexusoj/server':
         specifier: workspace:*
         version: link:../../packages/server
@@ -213,6 +213,9 @@ importers:
       '@nexusoj/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@nexusoj/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       '@types/katex':
         specifier: ^0.16.8
         version: 0.16.8
@@ -264,6 +267,9 @@ importers:
       pinia-plugin-persistedstate:
         specifier: ^4.7.1
         version: 4.7.1(pinia@3.0.4(typescript@5.8.3)(vue@3.5.30(typescript@5.8.3)))
+      plyr:
+        specifier: ^3.8.4
+        version: 3.8.4
       prismjs:
         specifier: ^1.30.0
         version: 1.30.0
@@ -2049,6 +2055,9 @@ packages:
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
+  custom-event-polyfill@1.0.7:
+    resolution: {integrity: sha512-TDDkd5DkaZxZFM8p+1I3yAlvM3rSr1wbrOliG4yJiwinMZN8z/iGL7BTlDkrJcYTmgUSb4ywVCc3ZaUtOtC76w==}
+
   cytoscape-cose-bilkent@4.1.0:
     resolution: {integrity: sha512-wgQlVIUJF13Quxiv5e1gstZ08rnZj2XaLHGoFMYXz7SkNfCDOOteKBE6SYRfA9WxxI/iBc3ajfDoc6hb/MRAHQ==}
     peerDependencies:
@@ -3167,6 +3176,9 @@ packages:
   linkify-it@5.0.0:
     resolution: {integrity: sha512-5aHCbzQRADcdP+ATqnDuhhJ/MRIqDkZX5pyjFHRRysS8vZ5AbqGEoFIb6pYHPZ+L/OC2Lc+xT8uHVVR5CAK/wQ==}
 
+  loadjs@4.3.0:
+    resolution: {integrity: sha512-vNX4ZZLJBeDEOBvdr2v/F+0aN5oMuPu7JTqrMwp+DtgK+AryOlpy6Xtm2/HpNr+azEa828oQjOtWsB6iDtSfSQ==}
+
   local-pkg@1.1.2:
     resolution: {integrity: sha512-arhlxbFRmoQHl33a0Zkle/YWlmNwoyt6QNZEIJcqNbdrsix5Lvc4HyyI3EnwxTYlZYc32EbYrQ8SzEZ7dqgg9A==}
     engines: {node: '>=14'}
@@ -3659,6 +3671,9 @@ packages:
   pkg-types@2.3.0:
     resolution: {integrity: sha512-SIqCzDRg0s9npO5XQ3tNZioRY1uK06lA41ynBC1YmFTmnY6FjUjVt6s4LoADmwoig1qqD0oK8h1p/8mlMx8Oig==}
 
+  plyr@3.8.4:
+    resolution: {integrity: sha512-DrzLbK9Wol3zeiuZCleD9aUOl0KAaBHR9H6WVVVYPZ4Ya+LYxUFTgSF1jooHcMQCv96Ws96wCaZzIoP3bES8pQ==}
+
   posix-character-classes@0.1.1:
     resolution: {integrity: sha512-xTgYBc3fuo7Yt7JbiuFxSYGToMoz8fLoE6TC9Wx1P/u+LfeThMOAqmuyECnlBaaJb+u1m9hHiXUEtwW4OzfUJg==}
     engines: {node: '>=0.10.0'}
@@ -3718,6 +3733,9 @@ packages:
 
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
+
+  rangetouch@2.0.1:
+    resolution: {integrity: sha512-sln+pNSc8NGaHoLzwNBssFSf/rSYkqeBXzX1AtJlkJiUaVSJSbRAWJk+4omsXkN+EJalzkZhWQ3th1m0FpR5xA==}
 
   read-package-json-fast@4.0.0:
     resolution: {integrity: sha512-qpt8EwugBWDw2cgE2W+/3oxC+KTez2uSVR8JU9Q36TXPAGCaozfQUs59v4j4GFpWTaw0i6hAZSvOmu1J0uOEUg==}
@@ -4213,6 +4231,9 @@ packages:
   urix@0.1.0:
     resolution: {integrity: sha512-Am1ousAhSLBeB9cG/7k7r2R0zj50uDRlZHPGbazid5s9rlF1F/QKYObEKSIunSjIOkJZqwRRLpvewjEkM7pSqg==}
     deprecated: Please see https://github.com/lydell/urix#deprecated
+
+  url-polyfill@1.1.14:
+    resolution: {integrity: sha512-p4f3TTAG6ADVF3mwbXw7hGw+QJyw5CnNGvYh5fCuQQZIiuKUswqcznyV3pGDP9j0TSmC4UvRKm8kl1QsX1diiQ==}
 
   use@3.1.1:
     resolution: {integrity: sha512-cwESVXlO3url9YWlFW/TA9cshCEhtu7IKJ/p5soJ/gGpj7vbvFrAY/eIioQ6Dw23KjZhYgiIo8HOs1nQ2vr/oQ==}
@@ -6352,6 +6373,8 @@ snapshots:
 
   csstype@3.2.3: {}
 
+  custom-event-polyfill@1.0.7: {}
+
   cytoscape-cose-bilkent@4.1.0(cytoscape@3.33.1):
     dependencies:
       cose-base: 1.0.3
@@ -7514,6 +7537,8 @@ snapshots:
     dependencies:
       uc.micro: 2.1.0
 
+  loadjs@4.3.0: {}
+
   local-pkg@1.1.2:
     dependencies:
       mlly: 1.8.1
@@ -8121,6 +8146,14 @@ snapshots:
       exsolve: 1.0.8
       pathe: 2.0.3
 
+  plyr@3.8.4:
+    dependencies:
+      core-js: 3.48.0
+      custom-event-polyfill: 1.0.7
+      loadjs: 4.3.0
+      rangetouch: 2.0.1
+      url-polyfill: 1.1.14
+
   posix-character-classes@0.1.1: {}
 
   postcss-selector-parser@6.1.2:
@@ -8176,6 +8209,8 @@ snapshots:
   quansync@0.2.11: {}
 
   queue-microtask@1.2.3: {}
+
+  rangetouch@2.0.1: {}
 
   read-package-json-fast@4.0.0:
     dependencies:
@@ -8666,6 +8701,8 @@ snapshots:
       punycode: 2.3.1
 
   urix@0.1.0: {}
+
+  url-polyfill@1.1.14: {}
 
   use@3.1.1: {}
 
