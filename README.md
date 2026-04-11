@@ -16,8 +16,8 @@
 ## 技术栈
 
 ### 后端技术栈
+|  语言   | Go 1.25   |
 | --- | --- |
-| 语言 | Go 1.25 |
 | 框架 | Gin |
 | ORM | GORM |
 | 数据库 | MySQL（主存储）、Redis（缓存/SSE）、MongoDB（聊天记录/比赛报告） |
@@ -28,8 +28,8 @@
 | 热重载 | Air |
 
 ### 前端技术栈
+|框架|Vue 3 + TypeScript|
 | --- | --- |
-| 框架 | Vue 3 + TypeScript |
 | 构建 | Vite 6 + Turborepo（monorepo） |
 | 包管理 | pnpm workspaces |
 | UI 库 | Naive UI（客户端）、Element Plus（管理端） |
