@@ -13,7 +13,7 @@ import (
 
 type JudgeTask struct {
 	SubmissionID int64
-	ProblemID    string // 题库题目ID（比赛时为 ContestProblem.ID）
+	ProblemID    int64 // 题库题目ID（比赛时为 ContestProblem.ID）
 	UserID       uint64
 	Code         string
 	Language     string

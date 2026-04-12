@@ -8,6 +8,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"net/http"
+	"nexus/dao"
 	jwtgo "nexus/middleware/jwt"
 	"nexus/models"
 	"nexus/utils"
@@ -21,6 +22,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"github.com/yitter/idgenerator-go/idgen"
 	"gorm.io/gorm"
 )
@@ -42,6 +44,34 @@ func (UserController) GetUserInfo(c *gin.Context) {
 	utils.ReturnError(c, http.StatusInternalServerError, err)
 }
 
+func (UserController) GetUserHomePage(c *gin.Context) {
+	id := c.Param("id")
+	userID, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		utils.ReturnError(c, http.StatusBadRequest, "无效的用户ID")
+		return
+	}
+	user, err := models.User{}.QueryUserById(userID)
+	// TODO 若题目数量过多，需要增加
+	r := redis.BitCount{
+		Start: 0,
+		End:   100,
+	}
+	var solved int64
+	solved, err = dao.RedisClient.BitCount(ctx, fmt.Sprintf(ProblemStatusSolvedBit, userID), &r).Result()
+	if err != nil {
+		solved = 0
+	}
+	result := models.UserDTO{
+		User:   user,
+		Solved: solved,
+	}
+	if err == nil {
+		utils.ReturnSuccess(c, http.StatusOK, "success", result)
+		return
+	}
+	utils.ReturnError(c, http.StatusInternalServerError, err)
+}
 func (UserController) GetNumber(c *gin.Context) {
 	count, err := models.User{}.GetUserNumber()
 	if err == nil {

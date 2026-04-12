@@ -83,7 +83,8 @@ func Router() *gin.Engine {
 		chatGroup.POST("/mark-read", controllers.ChatController{}.MarkMessagesAsRead) // 标记消息已读
 	}
 	userGroup.GET("/refresh", controllers.UserController{}.RefreshToken) // 刷新token
-
+	// 把mysql 数据同步到 redis 里
+	r.GET("/refresh-redis", controllers.RedisCache{}.RefreshRedisCache) // 刷新redis缓存
 	//#####################################################################
 	// -----------------------以下为JWT验证相关代码---------------------------
 	r.Use(jwt.Auth())
@@ -97,6 +98,7 @@ func Router() *gin.Engine {
 		userGroup.POST("/friend-request", controllers.FriendshipController{}.CreateFriendship)               // 添加好友，发送好友请求
 		userGroup.POST("/handle-friend-request", controllers.FriendshipController{}.HandleFriendshipRequest) // 处理新的好友请求，拒绝或者接受
 		userGroup.GET("/:id", controllers.UserController{}.GetUserInfo)                                      // 根据id获取用户信息
+		userGroup.GET("/homepage/:id", controllers.UserController{}.GetUserHomePage)                         // 根据id获取用户主页信息
 		adminUserGroup.GET("/list", controllers.AdminController{}.GetUserList)                               // 获取用户列表
 		adminUserGroup.POST("/update-role", controllers.UserController{}.UpdateRole)
 	}

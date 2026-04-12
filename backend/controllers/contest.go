@@ -633,7 +633,7 @@ func (ContestController) SubmitContestProblem(c *gin.Context) {
 	// 创建判题任务
 	task := &services.JudgeTask{
 		SubmissionID: submissionID,
-		ProblemID:    fmt.Sprintf("%d", contestProblem.ID),
+		ProblemID:    contestProblem.ID,
 		UserID:       userID,
 		Code:         req.Code,
 		Language:     req.Language,

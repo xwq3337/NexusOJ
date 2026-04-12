@@ -20,7 +20,7 @@ type Result struct {
 type Record struct {
 	ID          int64                                    `json:"id" gorm:"primarykey"`
 	UserId      uint64                                   `json:"user_id" gorm:"index:idx_user_problem"`
-	ProblemId   string                                   `json:"problem_id" gorm:"index:idx_user_problem"`
+	ProblemId   int64                                    `json:"problem_id" gorm:"index:idx_user_problem"`
 	Code        string                                   `json:"code" gorm:"type:longtext"`
 	Language    string                                   `json:"language" gorm:"index:idx_language_verdict"`
 	Verdict     JudgeVerdict                             `json:"verdict" gorm:"index:idx_language_verdict"`
@@ -50,15 +50,15 @@ func QueryRecord(record Record) (Record, error) {
  */
 // UserRecordItem 用户提交记录列表项
 type UserRecordItem struct {
-	ID            int64     `json:"id"`
-	ProblemID     string    `json:"problem_id"`
-	Language      string    `json:"language"`
-	Verdict       string    `json:"verdict"`
-	MaxTime       float32   `json:"max_time"`
-	MaxMemory     float32   `json:"max_memory"`
-	CreatedAt     time.Time `json:"created_at"`
-	ProblemTitle  string    `json:"problem_title"`
-	Total         int64     `json:"-" gorm:"column:total"`
+	ID           int64     `json:"id"`
+	ProblemID    string    `json:"problem_id"`
+	Language     string    `json:"language"`
+	Verdict      string    `json:"verdict"`
+	MaxTime      float32   `json:"max_time"`
+	MaxMemory    float32   `json:"max_memory"`
+	CreatedAt    time.Time `json:"created_at"`
+	ProblemTitle string    `json:"problem_title"`
+	Total        int64     `json:"-" gorm:"column:total"`
 }
 
 func QueryRecordByUserId(userID string, page int, pageSize int, verdict string, language string) ([]UserRecordItem, int64, error) {
@@ -166,7 +166,7 @@ func (Record) GetAllRecord(page, pageSize int, search, verdict, language, proble
 			total = t.(int64)
 		}
 	}
-
+	// TODO:无需删除total字段
 	for i := range results {
 		delete(results[i], "total")
 	}

@@ -67,7 +67,7 @@ type JudgeInputStruct struct {
 	SeccompProfile  string               `json:"seccomp_profile"`
 }
 type ProblemJudgeStruct struct {
-	ProblemID string `json:"problem_id"`
+	ProblemID int64  `json:"problem_id"`
 	Code      string `json:"code"`
 	Language  string `json:"language"`
 }

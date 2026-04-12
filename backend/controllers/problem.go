@@ -47,15 +47,14 @@ func (ProblemController) GetProblemInfo(c *gin.Context) {
 	userID, err := ParserToken(c)
 	if err == nil && userID > 0 {
 		ctx := context.Background()
-		hash := fmt.Sprintf("user:%d:problem_status", userID)
-		key := fmt.Sprintf("problem:%s", id)
-		verdict, err := dao.RedisClient.HGet(ctx, hash, key).Result()
-		if err == nil {
-			if verdict == string(models.Accepted) {
-				myStatus = "accepted"
-			} else {
-				myStatus = "attempted"
-			}
+		key_solved := fmt.Sprintf(ProblemStatusSolvedBit, userID)
+		key_attempted := fmt.Sprintf(ProblemStatusAttemptedBit, userID)
+		solved := dao.RedisClient.GetBit(ctx, key_solved, problem.ID-1000).Val()
+		attempted := dao.RedisClient.GetBit(ctx, key_attempted, problem.ID-1000).Val()
+		if solved == 1 {
+			myStatus = "solved"
+		} else if attempted == 1 {
+			myStatus = "attempted"
 		}
 	}
 
@@ -85,34 +84,36 @@ func (ProblemController) GetList(c *gin.Context) {
 	}
 
 	// 获取题目列表的 ID 数组
-	problemIDs := make([]string, len(problems))
+	problemIDs := make([]int64, len(problems))
 	for i, problem := range problems {
-		problemIDs[i] = fmt.Sprintf("problem:%d", problem.ID)
+		problemIDs[i] = problem.ID - 1000
 	}
 
 	// 查询 Redis，获取用户题目状态
 	ctx := c.Request.Context()
-	var statuses []interface{}
+	pipe := dao.RedisClient.Pipeline()
+	cmds_solved := make([]*redis.IntCmd, len(problemIDs))
+	cmds_attempted := make([]*redis.IntCmd, len(problemIDs))
 	if userID > 0 && len(problemIDs) > 0 {
-		hash := fmt.Sprintf("user:%d:problem_status", userID)
-		statuses, _ = dao.RedisClient.HMGet(ctx, hash, problemIDs...).Result()
+		SolvedHash := fmt.Sprintf(ProblemStatusSolvedBit, userID)
+		AttemptedHash := fmt.Sprintf(ProblemStatusAttemptedBit, userID)
+		for i, problemId := range problemIDs {
+			cmds_solved[i] = pipe.GetBit(ctx, SolvedHash, problemId)
+			cmds_attempted[i] = pipe.GetBit(ctx, AttemptedHash, problemId)
+		}
+		pipe.Exec(ctx)
 	}
 
 	// 组装结果
 	result := make([]models.ProblemDTO, len(problems))
 	for i, p := range problems {
 		var statusStr string
-		if statuses != nil && i < len(statuses) {
-			switch statuses[i] {
-			case nil:
-				statusStr = "unattempted"
-			case "Accepted":
-				statusStr = "solved"
-			default:
-				statusStr = "attempted"
-			}
-		} else {
-			statusStr = "unattempted"
+		statusStr = "unattempted"
+		if cmds_solved[i].Val() == 1 {
+			statusStr = "solved"
+		} else if cmds_attempted[i].Val() == 1 {
+			statusStr = "attempted"
+
 		}
 		result[i] = models.ProblemDTO{
 			Problem: p.Problem,
@@ -167,7 +168,7 @@ func (ProblemController) SubmitProblem(c *gin.Context) {
 		return
 	}
 	// 验证必填字段
-	if data.ProblemID == "" || data.Code == "" || data.Language == "" {
+	if data.ProblemID == 0 || data.Code == "" || data.Language == "" {
 		utils.ReturnError(c, http.StatusBadRequest, "缺少必填字段")
 		return
 	}
@@ -226,25 +227,13 @@ func (ProblemController) SubmitProblem(c *gin.Context) {
 		// mysql 更新
 		models.UpdateSubmission(userID, result.Verdict == "Accepted")
 		// redis 更新
-		ctx := c.Request.Context()
-		hash := fmt.Sprintf("user:%d:problem_status", userID)
-		key := fmt.Sprintf("problem:%s", data.ProblemID)
-		// 只要是Redis 里是Accepted就不改了，其他都改成当前的结果
-		currentVerdict, err := dao.RedisClient.HGet(ctx, hash, key).Result()
-		if err == redis.Nil {
-			// Redis 里没有这个记录，直接设置当前结果
-			dao.RedisClient.HSet(ctx, hash, key, string(result.Verdict))
-		} else if err != nil {
-			// Redis 错误
-			fmt.Println("Error getting from Redis:", err)
-		} else {
-			// Redis 里有记录，检查是否是 Accepted
-			if currentVerdict != string(models.Accepted) {
-				// 不是 Accepted，更新为当前结果
-				dao.RedisClient.HSet(ctx, hash, key, string(result.Verdict))
-			}
-			// 如果是 Accepted，不做任何操作，保持 Accepted 状态
+		ctx := context.Background()
+		key_solved := fmt.Sprintf(ProblemStatusSolvedBit, userID)
+		key_attempted := fmt.Sprintf(ProblemStatusAttemptedBit, userID)
+		if result.Verdict == "Accepted" {
+			dao.RedisClient.SetBit(ctx, key_solved, problem.ID-1000, 1)
 		}
+		dao.RedisClient.SetBit(ctx, key_attempted, problem.ID-1000, 1)
 	}()
 }
 

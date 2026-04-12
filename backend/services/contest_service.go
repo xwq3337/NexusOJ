@@ -16,13 +16,13 @@ import (
 )
 
 const (
-	redisContestPassword       = "contest:password:%s"
-	redisContestParticipants   = "contest:participants:%s"
-	redisContestRanking        = "contest:ranking:%s"
-	redisContestRankDetail     = "contest:ranking:detail:%s"
-	redisContestInfo           = "contest:info:%s"
-	redisContestParticipantBit = "contest:participants:bit:%s"        // bitmap: key=contestID
-	redisContestProblemStatus  = "contest:problem_status:%s:%d"       // hash: contestID:userID
+	redisContestPassword       = "contest:%s:password"
+	redisContestParticipants   = "contest:%s:participants"
+	redisContestRanking        = "contest:%s:ranking"
+	redisContestRankDetail     = "contest:%s:ranking:detail"
+	redisContestInfo           = "contest:%s:info"
+	redisContestParticipantBit = "contest:%s:participants:bit"  // bitmap: key=contestID
+	redisContestProblemStatus  = "contest:%s:problem_status:%d" // hash: contestID:userID
 )
 
 // globalMapper 全局用户ID→紧凑索引映射，供所有比赛的 bitmap 共享
@@ -274,7 +274,7 @@ func GetContestRankingFromRedis(contestID string, count int64) ([]models.Contest
 				rank.Solved++
 			}
 			rank.Score += p.Score
-				rank.TotalPenalty += p.Penalty
+			rank.TotalPenalty += p.Penalty
 		}
 
 		rankings = append(rankings, rank)

@@ -54,6 +54,7 @@ func (ContestRecord) GetContestRecordByID(id string) (*ContestRecordDetail, erro
 }
 
 // GetContestRecords 获取比赛提交列表（分页），使用窗口函数一次查询返回数据和总数
+
 func (ContestRecord) GetContestRecords(contestID string, page, pageSize int, verdict, language, problemLabel string) ([]map[string]interface{}, int64, error) {
 	offset := (page - 1) * pageSize
 
@@ -91,7 +92,7 @@ func (ContestRecord) GetContestRecords(contestID string, page, pageSize int, ver
 			total = t.(int64)
 		}
 	}
-
+	// TODO不需要 delete 字段
 	for i := range results {
 		delete(results[i], "total")
 	}

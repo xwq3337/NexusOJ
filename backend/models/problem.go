@@ -102,9 +102,9 @@ func (Problem) QueryProblemByKeyword(keyword string) ([]ProblemDetail, error) {
 	}
 	return problems, nil
 }
-func (Problem) GetProblemInfoWithoutUsername(id string) (Problem, error) {
+func (Problem) GetProblemInfoWithoutUsername(problem_id int64) (Problem, error) {
 	var p Problem
-	err := dao.MysqlClient.Model(Problem{}).Where("id = ?", id).First(&p).Error
+	err := dao.MysqlClient.Model(Problem{}).Where("id = ?", problem_id).First(&p).Error
 	return p, err
 }
 
