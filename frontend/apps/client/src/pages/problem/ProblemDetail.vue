@@ -628,7 +628,7 @@ const handleRun = async () => {
 
   try {
     await problemApi.SubmitCode({
-      problem_id: String(route.params.id),
+      problem_id: Number(route.params.id),
       user_id: userStore.id,
       code: code.value,
       language: languageToApi(Language.value)

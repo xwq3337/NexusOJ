@@ -11,7 +11,6 @@ import {
   NSpace,
   NIcon,
   NMenu,
-  NDivider
 } from 'naive-ui'
 import type { MenuOption } from 'naive-ui'
 import {

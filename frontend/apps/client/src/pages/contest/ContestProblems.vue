@@ -105,7 +105,7 @@ const contestStats = computed(() => {
                     {{ problem.difficulty <= 1 ? '简单' : problem.difficulty <= 3 ? '中等' : '困难' }}
                   </NTag>
                   <span :style="{ color: 'var(--text-secondary)' }">
-                    通过率 {{ problem.submission > 0 ? ((problem.accept / problem.submission) * 100).toFixed(1) : 0 }}%
+                    通过率 {{ problem.submission > 0 ? ((problem.accept / problem.submission) * 100).toFixed(1) : 0 }} %
                   </span>
                   <span :style="{ color: 'var(--text-secondary)' }">{{ problem.accept || 0 }} 人通过</span>
                 </NSpace>
@@ -161,7 +161,7 @@ const contestStats = computed(() => {
                 <template #prefix>
                   <NIcon :size="16" style="color: var(--warning-color)"><Target /></NIcon>
                 </template>
-                {{ contestStats.acceptRate }}
+                {{ contestStats.acceptRate }}%
               </NStatistic>
             </NGi>
           </NGrid>

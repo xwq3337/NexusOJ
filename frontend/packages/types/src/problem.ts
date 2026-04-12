@@ -1,6 +1,6 @@
 export interface Problem {
   id: number
-  user_id : Number
+  user_id : number
   title: string
   context: string
   input_description: string

@@ -11,6 +11,7 @@ export interface User {
   user_role: 'user' | 'admin' | 'super_admin'
   gender: string
   submission: number
+  solved? : number,
   accept: number
   codeforces: string
   birthday: string

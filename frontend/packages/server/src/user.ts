@@ -39,6 +39,9 @@ export const userApi = {
   getInfoById: (id: Number): Promise<ApiResponse<User>> => {
     return Request.get(`/user/${id}`)
   },
+  getHomePageInfoById: (id: Number): Promise<ApiResponse<User>> => {
+    return Request.get(`/user/homepage/${id}`)
+  },
   updateAvatar: (file: File): Promise<ApiResponse<string>> => {
     const formData = new FormData()
     formData.append('avatar', file)

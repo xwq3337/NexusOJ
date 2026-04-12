@@ -97,7 +97,7 @@
               </div>
               <div class="flex items-center gap-2" :style="{ color: 'var(--text-secondary)' }">
                 <CheckCircle :size="16" :style="{ color: 'var(--success-color)' }" />
-                <span><span class="font-terminal" :style="{ color: 'var(--text-primary)' }"> TODO: </span>
+                <span><span class="font-terminal" :style="{ color: 'var(--text-primary)' }"> {{ user.solved }}</span>
                   道题通过</span>
               </div>
               <div class="flex items-center gap-2" :style="{ color: 'var(--text-secondary)' }">
@@ -264,7 +264,7 @@
                 </div>
                 <div class="flex items-end gap-2">
                   <span class="text-3xl font-bold font-terminal" :style="{ color: 'var(--text-primary)' }">
-                    TODO 通过题目数量!=通过次数
+                    {{ user.solved }}
                   </span>
                   <span class="text-sm mb-1" :style="{ color: 'var(--text-tertiary)' }">题</span>
                 </div>
@@ -458,6 +458,7 @@ const user = ref<User>({
   rating: 0,
   submission: 0,
   status: 0,
+  solved : 0,
   email: '',
   nickname: '',
   gender: '0',
@@ -497,7 +498,7 @@ const handleAddFriend = () => {
 
 const fetchUserInfo = async () => {
   try {
-    const { code, info } = await userApi.getInfoById(userId.value)
+    const { code, info } = await userApi.getHomePageInfoById(userId.value)
     if (code === 200 && info) {
       user.value = info
     }

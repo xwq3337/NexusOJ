@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, h } from 'vue'
 import { useRouter } from 'vue-router'
-import { NDataTable, NTag, NEmpty, NSpin, NCard, NPagination, NButton, NSelect } from 'naive-ui'
+import { NDataTable, NTag, NSpin, NCard, NPagination, NButton, NSelect } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import { useUserStore } from '@/stores/useUserStore'
 import { formatMemory, formatDate, formatTime } from '@/utils/format'
@@ -11,7 +11,7 @@ import { userApi } from '@nexusoj/server'
 import type { GetRecordListResponse } from '@nexusoj/type'
 
 const userStore = useUserStore()
-const userId = String(userStore.id)
+const userId = userStore.id
 
 const PAGE_SIZE = 20
 const currentPage = ref(1)
