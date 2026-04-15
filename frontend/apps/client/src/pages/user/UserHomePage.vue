@@ -242,162 +242,179 @@
         </div>
 
         <!-- Main Content Area -->
-        <div class="lg:col-span-9 space-y-6">
-          <!-- Stats Cards -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Solved -->
-            <div class="rounded-xl p-5 relative overflow-hidden group cyber-glow-card" :style="{
-              backgroundColor: 'var(--surface-primary)',
-              border: '1px solid var(--border-color)'
-            }">
-              <div class="absolute -top-4 -right-4 w-16 h-16 rounded-full opacity-10 blur-md" :style="{
-                backgroundColor: '#4ade80'
-              }"></div>
-              <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                  <span class="text-sm font-medium" :style="{ color: 'var(--text-secondary)' }">通过题目</span>
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center" :style="{
-                    backgroundColor: 'rgba(74, 222, 128, 0.1)'
-                  }">
-                    <CheckCircle :size="18" :style="{ color: '#4ade80' }" />
+        <div class="lg:col-span-9">
+          <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            <!-- Left: Problem Data -->
+            <div class="xl:col-span-7 space-y-6">
+              <!-- Stats Cards -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Solved -->
+                <div class="rounded-xl p-5 relative overflow-hidden group cyber-glow-card" :style="{
+                  backgroundColor: 'var(--surface-primary)',
+                  border: '1px solid var(--border-color)'
+                }">
+                  <div class="absolute -top-4 -right-4 w-16 h-16 rounded-full opacity-10 blur-md" :style="{
+                    backgroundColor: '#4ade80'
+                  }"></div>
+                  <div class="relative z-10">
+                    <div class="flex items-center justify-between mb-3">
+                      <span class="text-sm font-medium" :style="{ color: 'var(--text-secondary)' }">通过题目</span>
+                      <div class="w-8 h-8 rounded-lg flex items-center justify-center" :style="{
+                        backgroundColor: 'rgba(74, 222, 128, 0.1)'
+                      }">
+                        <CheckCircle :size="18" :style="{ color: '#4ade80' }" />
+                      </div>
+                    </div>
+                    <div class="flex items-end gap-2">
+                      <span class="text-3xl font-bold font-terminal" :style="{ color: 'var(--text-primary)' }">
+                        {{ user.solved }}
+                      </span>
+                      <span class="text-sm mb-1" :style="{ color: 'var(--text-tertiary)' }">题</span>
+                    </div>
                   </div>
                 </div>
-                <div class="flex items-end gap-2">
-                  <span class="text-3xl font-bold font-terminal" :style="{ color: 'var(--text-primary)' }">
-                    {{ user.solved }}
-                  </span>
-                  <span class="text-sm mb-1" :style="{ color: 'var(--text-tertiary)' }">题</span>
+
+                <!-- Submissions -->
+                <div class="rounded-xl p-5 relative overflow-hidden group cyber-glow-card" :style="{
+                  backgroundColor: 'var(--surface-primary)',
+                  border: '1px solid var(--border-color)'
+                }">
+                  <div class="absolute -top-4 -right-4 w-16 h-16 rounded-full opacity-10 blur-md" :style="{
+                    backgroundColor: '#38bdf8'
+                  }"></div>
+                  <div class="relative z-10">
+                    <div class="flex items-center justify-between mb-3">
+                      <span class="text-sm font-medium" :style="{ color: 'var(--text-secondary)' }">总提交</span>
+                      <div class="w-8 h-8 rounded-lg flex items-center justify-center" :style="{
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)'
+                      }">
+                        <Send :size="18" :style="{ color: '#38bdf8' }" />
+                      </div>
+                    </div>
+                    <div class="flex items-end gap-2">
+                      <span class="text-3xl font-bold font-terminal" :style="{ color: 'var(--text-primary)' }">
+                        {{ user.submission }}
+                      </span>
+                      <span class="text-sm mb-1" :style="{ color: 'var(--text-tertiary)' }">次</span>
+                    </div>
+                  </div>
                 </div>
+
+                <!-- Acceptance Rate -->
+                <div class="rounded-xl p-5 relative overflow-hidden group cyber-glow-card" :style="{
+                  backgroundColor: 'var(--surface-primary)',
+                  border: '1px solid var(--border-color)'
+                }">
+                  <div class="absolute -top-4 -right-4 w-16 h-16 rounded-full opacity-10 blur-md" :style="{
+                    backgroundColor: '#fbbf24'
+                  }"></div>
+                  <div class="relative z-10">
+                    <div class="flex items-center justify-between mb-3">
+                      <span class="text-sm font-medium" :style="{ color: 'var(--text-secondary)' }">通过率</span>
+                      <div class="w-8 h-8 rounded-lg flex items-center justify-center" :style="{
+                        backgroundColor: 'rgba(251, 191, 36, 0.1)'
+                      }">
+                        <TrendingUp :size="18" :style="{ color: '#fbbf24' }" />
+                      </div>
+                    </div>
+                    <div class="flex items-end gap-2">
+                      <span class="text-3xl font-bold font-terminal" :style="{ color: 'var(--text-primary)' }">
+                        {{ formatAcceptance(user.accept, user.submission) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Rating -->
+                <div class="rounded-xl p-5 relative overflow-hidden group cyber-glow-card" :style="{
+                  backgroundColor: 'var(--surface-primary)',
+                  border: '1px solid var(--border-color)'
+                }">
+                  <div class="absolute -top-4 -right-4 w-16 h-16 rounded-full blur-md" :style="{
+                    backgroundColor: formatRating(user.rating).bgColor,
+                    opacity: 0.2
+                  }"></div>
+                  <div class="relative z-10">
+                    <div class="flex items-center justify-between mb-3">
+                      <span class="text-sm font-medium" :style="{ color: 'var(--text-secondary)' }">Rating</span>
+                      <div class="w-8 h-8 rounded-lg flex items-center justify-center" :style="{
+                        backgroundColor: formatRating(user.rating).bgColor
+                      }">
+                        <Trophy :size="18" :style="{ color: formatRating(user.rating).color }" />
+                      </div>
+                    </div>
+                    <div class="flex items-end gap-2">
+                      <span class="text-3xl font-bold font-terminal" :style="{ color: formatRating(user.rating).color }">
+                        {{ user.rating }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Activity Heatmap -->
+              <div class="rounded-xl p-5 cyber-glow-card" :style="{
+                backgroundColor: 'var(--surface-primary)',
+                border: '1px solid var(--border-color)'
+              }">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-sm font-semibold flex items-center gap-2" :style="{ color: 'var(--text-primary)' }">
+                    <Flame :size="16" :style="{ color: 'var(--accent-color)' }" />
+                    活动热图
+                  </h3>
+                  <n-radio-group v-model:value="heatmapPeriod" size="small">
+                    <n-radio-button value="recent">最近一年</n-radio-button>
+                    <n-radio-button value="2026">2026</n-radio-button>
+                    <n-radio-button value="2025">2025</n-radio-button>
+                  </n-radio-group>
+                </div>
+                <UserHeatmap :user-id="userId" :period="heatmapPeriod" :heatmap-data="heatmapRawData" />
+              </div>
+
+              <!-- Tabs Section -->
+              <div class="rounded-xl overflow-hidden cyber-glow-card" :style="{
+                backgroundColor: 'var(--surface-primary)',
+                border: '1px solid var(--border-color)'
+              }">
+                <n-tabs v-model:value="activeTab" type="line" animated>
+                  <n-tab-pane name="submissions" tab="提交记录">
+                    <div class="p-6">
+                      <UserSubmissions :user-id="userId" />
+                    </div>
+                  </n-tab-pane>
+
+                  <n-tab-pane name="solutions" tab="题解">
+                    <div class="p-6">
+                      <UserSolutions :user-id="userId" />
+                    </div>
+                  </n-tab-pane>
+
+                  <n-tab-pane name="blogs" tab="博客">
+                    <div class="p-6">
+                      <UserBlogs :user-id="userId" />
+                    </div>
+                  </n-tab-pane>
+
+                  <n-tab-pane name="discussions" tab="讨论">
+                    <div class="p-6">
+                      <UserDiscussions :user-id="userId" />
+                    </div>
+                  </n-tab-pane>
+                </n-tabs>
               </div>
             </div>
 
-            <!-- Submissions -->
-            <div class="rounded-xl p-5 relative overflow-hidden group cyber-glow-card" :style="{
-              backgroundColor: 'var(--surface-primary)',
-              border: '1px solid var(--border-color)'
-            }">
-              <div class="absolute -top-4 -right-4 w-16 h-16 rounded-full opacity-10 blur-md" :style="{
-                backgroundColor: '#38bdf8'
-              }"></div>
-              <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                  <span class="text-sm font-medium" :style="{ color: 'var(--text-secondary)' }">总提交</span>
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center" :style="{
-                    backgroundColor: 'rgba(14, 165, 233, 0.1)'
-                  }">
-                    <Send :size="18" :style="{ color: '#38bdf8' }" />
-                  </div>
-                </div>
-                <div class="flex items-end gap-2">
-                  <span class="text-3xl font-bold font-terminal" :style="{ color: 'var(--text-primary)' }">
-                    {{ user.submission }}
-                  </span>
-                  <span class="text-sm mb-1" :style="{ color: 'var(--text-tertiary)' }">次</span>
+            <!-- Right: Placeholder -->
+            <div class="xl:col-span-5">
+              <div class="xl:sticky xl:top-24">
+                <div class="rounded-xl p-5 cyber-glow-card min-h-40 flex items-center justify-center" :style="{
+                  backgroundColor: 'var(--surface-primary)',
+                  border: '1px solid var(--border-color)'
+                }">
+                  <span :style="{ color: 'var(--text-tertiary)' }">敬请期待</span>
                 </div>
               </div>
             </div>
-
-            <!-- Acceptance Rate -->
-            <div class="rounded-xl p-5 relative overflow-hidden group cyber-glow-card" :style="{
-              backgroundColor: 'var(--surface-primary)',
-              border: '1px solid var(--border-color)'
-            }">
-              <div class="absolute -top-4 -right-4 w-16 h-16 rounded-full opacity-10 blur-md" :style="{
-                backgroundColor: '#fbbf24'
-              }"></div>
-              <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                  <span class="text-sm font-medium" :style="{ color: 'var(--text-secondary)' }">通过率</span>
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center" :style="{
-                    backgroundColor: 'rgba(251, 191, 36, 0.1)'
-                  }">
-                    <TrendingUp :size="18" :style="{ color: '#fbbf24' }" />
-                  </div>
-                </div>
-                <div class="flex items-end gap-2">
-                  <span class="text-3xl font-bold font-terminal" :style="{ color: 'var(--text-primary)' }">
-                    {{ formatAcceptance(user.accept, user.submission) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Rating -->
-            <div class="rounded-xl p-5 relative overflow-hidden group cyber-glow-card" :style="{
-              backgroundColor: 'var(--surface-primary)',
-              border: '1px solid var(--border-color)'
-            }">
-              <div class="absolute -top-4 -right-4 w-16 h-16 rounded-full blur-md" :style="{
-                backgroundColor: formatRating(user.rating).bgColor,
-                opacity: 0.2
-              }"></div>
-              <div class="relative z-10">
-                <div class="flex items-center justify-between mb-3">
-                  <span class="text-sm font-medium" :style="{ color: 'var(--text-secondary)' }">Rating</span>
-                  <div class="w-8 h-8 rounded-lg flex items-center justify-center" :style="{
-                    backgroundColor: formatRating(user.rating).bgColor
-                  }">
-                    <Trophy :size="18" :style="{ color: formatRating(user.rating).color }" />
-                  </div>
-                </div>
-                <div class="flex items-end gap-2">
-                  <span class="text-3xl font-bold font-terminal" :style="{ color: formatRating(user.rating).color }">
-                    {{ user.rating }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Activity Heatmap -->
-          <div class="rounded-xl p-5 cyber-glow-card" :style="{
-            backgroundColor: 'var(--surface-primary)',
-            border: '1px solid var(--border-color)'
-          }">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-sm font-semibold flex items-center gap-2" :style="{ color: 'var(--text-primary)' }">
-                <Flame :size="16" :style="{ color: 'var(--accent-color)' }" />
-                活动热图
-              </h3>
-              <n-radio-group v-model:value="heatmapPeriod" size="small">
-                <n-radio-button value="recent">最近一年</n-radio-button>
-                <n-radio-button value="2025">2025</n-radio-button>
-                <n-radio-button value="2024">2024</n-radio-button>
-              </n-radio-group>
-            </div>
-            <UserHeatmap :user-id="userId" :period="heatmapPeriod" />
-          </div>
-
-          <!-- Tabs Section -->
-          <div class="rounded-xl overflow-hidden cyber-glow-card" :style="{
-            backgroundColor: 'var(--surface-primary)',
-            border: '1px solid var(--border-color)'
-          }">
-            <n-tabs v-model:value="activeTab" type="line" animated>
-              <n-tab-pane name="submissions" tab="提交记录">
-                <div class="p-6">
-                  <UserSubmissions :user-id="userId" />
-                </div>
-              </n-tab-pane>
-
-              <n-tab-pane name="solutions" tab="题解">
-                <div class="p-6">
-                  <UserSolutions :user-id="userId" />
-                </div>
-              </n-tab-pane>
-
-              <n-tab-pane name="blogs" tab="博客">
-                <div class="p-6">
-                  <UserBlogs :user-id="userId" />
-                </div>
-              </n-tab-pane>
-
-              <n-tab-pane name="discussions" tab="讨论">
-                <div class="p-6">
-                  <UserDiscussions :user-id="userId" />
-                </div>
-              </n-tab-pane>
-            </n-tabs>
           </div>
         </div>
       </div>
@@ -446,7 +463,7 @@ const route = useRoute()
 const { id: currentUserId } = useUserStore()
 
 const userId = ref<Number>(Number(route.params.id as string))
-const user = ref<User>({
+const user = ref<User & { solved: number }>({
   id: 0,
   username: '',
   avatar: '',
@@ -458,7 +475,7 @@ const user = ref<User>({
   rating: 0,
   submission: 0,
   status: 0,
-  solved : 0,
+  solved: 0,
   email: '',
   nickname: '',
   gender: '0',
@@ -467,12 +484,12 @@ const user = ref<User>({
   banned_to: '',
   balance: 0,
   created_at: '',
-  updated_at: ''
+  updated_at: '',
 })
 
 const rank = ref(42)
 const activeTab = ref('submissions')
-const heatmapPeriod = ref<'recent' | '2025' | '2024'>('recent')
+const heatmapPeriod = ref<'recent' | '2026' | '2025'>('recent')
 
 const defaultAvatar = computed(() =>
   `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.value.username}`
@@ -491,6 +508,11 @@ const handleShare = async () => {
   message.success("网页地址已复制")
 }
 
+const heatmapRawData = ref<{
+  heatmaps?: Record<string, Record<string, number>>
+  past_year_heatmap?: Record<string, number>
+}>({})
+
 const handleAddFriend = () => {
   // TODO: Implement add friend functionality
   console.log('Add friend:', userId.value)
@@ -501,6 +523,10 @@ const fetchUserInfo = async () => {
     const { code, info } = await userApi.getHomePageInfoById(userId.value)
     if (code === 200 && info) {
       user.value = info
+      heatmapRawData.value = {
+        heatmaps: info.heatmaps,
+        past_year_heatmap: info.past_year_heatmap
+      }
     }
   } catch (error) {
     console.error('Failed to fetch user info:', error)

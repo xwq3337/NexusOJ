@@ -1,34 +1,44 @@
 <template>
   <div class="animate-fade-in max-w-6xl mx-auto">
-    <div class="mb-8 whitespace-nowrap">
-      <div class="mb-4 flex items-center gap-3">
-        <n-input
-          v-model:value="searchKeyword"
-          placeholder="搜索题目标题或 ID..."
-          clearable
-          @keyup.enter="handleSearch"
-        >
-          <template #prefix>
-            <Search class="w-4 h-4" style="color: var(--text-secondary)" />
-          </template>
-        </n-input>
-        <n-button type="primary" @click="handleSearch">搜索</n-button>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Left: Problem List -->
+      <div class="lg:col-span-8 mb-8 whitespace-nowrap">
+        <div class="mb-4 flex items-center gap-3">
+          <n-input
+            v-model:value="searchKeyword"
+            placeholder="搜索题目标题或 ID..."
+            clearable
+            @keyup.enter="handleSearch"
+          >
+            <template #prefix>
+              <Search class="w-4 h-4" style="color: var(--text-secondary)" />
+            </template>
+          </n-input>
+          <n-button type="primary" @click="handleSearch">搜索</n-button>
+        </div>
+        <div class="divide-y" :style="{
+          borderBottomColor: 'var(--border-color)',
+          borderBottomWidth: '1px',
+          borderStyle: 'solid'
+        }">
+          <n-data-table
+            :columns="columns"
+            :data="Problems"
+            :pagination="paginationReactive"
+            :loading="loading"
+            :bordered="false"
+            remote
+            @update:page="handlePageChange"
+            @update:page-size="handlePageSizeChange"
+          />
+        </div>
       </div>
-      <div class="divide-y" :style="{
-        borderBottomColor: 'var(--border-color)',
-        borderBottomWidth: '1px',
-        borderStyle: 'solid'
-      }">
-        <n-data-table
-          :columns="columns"
-          :data="Problems"
-          :pagination="paginationReactive"
-          :loading="loading"
-          :bordered="false"
-          remote
-          @update:page="handlePageChange"
-          @update:page-size="handlePageSizeChange"
-        />
+
+      <!-- Right: Recommendations -->
+      <div class="lg:col-span-4">
+        <div class="lg:sticky lg:top-24">
+          <UserRecommendations />
+        </div>
       </div>
     </div>
   </div>
@@ -43,6 +53,7 @@ import { difficultyMap } from '@/constants'
 import { formatAcceptance } from '@/utils/format'
 import { problemApi } from '@nexusoj/server'
 import type { ProblemListDTO } from '@nexusoj/type'
+import UserRecommendations from '@/pages/user/components/UserRecommendations.vue'
 
 const message = useMessage()
 const loading = ref(false)

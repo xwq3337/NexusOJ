@@ -204,5 +204,16 @@ func Router() *gin.Engine {
 		logGroup.GET("/date", controllers.LogController{}.GetDate) // 获取所有日志日期
 		logGroup.GET("/list", controllers.LogController{}.GetList) // 获取某一天的日志列表
 	}
+
+	recommend := r.Group("/recommend")
+	{
+		recommend.GET("/profile", controllers.RecommendationController{}.GetMyProfile)            // 当前用户画像
+		recommend.GET("/profile/:id", controllers.RecommendationController{}.GetUserProfile)      // 其他用户画像
+		recommend.GET("/ability", controllers.RecommendationController{}.GetAbilityAnalysis)       // 能力分析
+		recommend.GET("/activity", controllers.RecommendationController{}.GetActivityStats)        // 活跃度统计
+		recommend.GET("/problems", controllers.RecommendationController{}.GetRecommendations)      // 推荐题目
+		recommend.POST("/refresh", controllers.RecommendationController{}.RefreshRecommendations)  // 刷新推荐
+	}
+
 	return r
 }

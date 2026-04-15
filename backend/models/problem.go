@@ -149,3 +149,79 @@ func (Problem) GetAllProblemPaginated(page, pageSize int, search string) ([]Prob
 
 	return results, total, nil
 }
+
+// ProblemMeta 题目元数据（用于构建 Redis 索引）
+type ProblemMeta struct {
+	ID         int64    `json:"id"`
+	Difficulty float32  `json:"difficulty"`
+	Tags       []string `json:"tags"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+// GetAllProblemMeta 获取所有题目的元数据（ID, Difficulty, Tags, CreatedAt）
+func (Problem) GetAllProblemMeta() ([]ProblemMeta, error) {
+	var problems []Problem
+	err := dao.MysqlClient.Model(Problem{}).
+		Select("id, difficulty, tags, created_at").
+		Where("deleted_at IS NULL").
+		Find(&problems).Error
+	if err != nil {
+		return nil, err
+	}
+	metas := make([]ProblemMeta, len(problems))
+	for i, p := range problems {
+		metas[i] = ProblemMeta{
+			ID:         p.ID,
+			Difficulty: p.Difficulty,
+			Tags:       p.Tags,
+			CreatedAt:  p.CreatedAt,
+		}
+	}
+	return metas, nil
+}
+
+// GetProblemsByDifficultyRange 获取指定难度范围内的题目（排除已解决的）
+func (Problem) GetProblemsByDifficultyRange(minDiff, maxDiff float32, excludeIDs []int64, limit int) ([]Problem, error) {
+	var problems []Problem
+	query := dao.MysqlClient.Model(Problem{}).
+		Select("id, title, difficulty, tags, accept, submission").
+		Where("difficulty BETWEEN ? AND ? AND deleted_at IS NULL", minDiff, maxDiff)
+	if len(excludeIDs) > 0 {
+		query = query.Where("id NOT IN ?", excludeIDs)
+	}
+	err := query.Order("accept DESC").Limit(limit).Find(&problems).Error
+	return problems, err
+}
+
+// GetProblemsByTags 获取包含指定标签的题目（排除指定的 ID）
+func (Problem) GetProblemsByTags(tags []string, excludeIDs []int64, limit int) ([]Problem, error) {
+	if len(tags) == 0 {
+		return nil, nil
+	}
+	var problems []Problem
+	query := dao.MysqlClient.Model(Problem{}).
+		Select("id, title, difficulty, tags, accept, submission").
+		Where("deleted_at IS NULL")
+	// JSON_CONTAINS 检查 tags 字段是否包含指定标签
+	for _, tag := range tags {
+		query = query.Where("JSON_CONTAINS(tags, ?)", `"`+tag+`"`)
+	}
+	if len(excludeIDs) > 0 {
+		query = query.Where("id NOT IN ?", excludeIDs)
+	}
+	err := query.Order("accept DESC").Limit(limit).Find(&problems).Error
+	return problems, err
+}
+
+// GetFreshProblems 获取最新创建的题目（排除已解决的）
+func (Problem) GetFreshProblems(excludeIDs []int64, limit int) ([]Problem, error) {
+	var problems []Problem
+	query := dao.MysqlClient.Model(Problem{}).
+		Select("id, title, difficulty, tags, accept, submission, created_at").
+		Where("deleted_at IS NULL")
+	if len(excludeIDs) > 0 {
+		query = query.Where("id NOT IN ?", excludeIDs)
+	}
+	err := query.Order("created_at DESC").Limit(limit).Find(&problems).Error
+	return problems, err
+}

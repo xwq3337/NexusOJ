@@ -32,3 +32,12 @@ export interface JudgeConfig {
 export interface ProblemListDTO extends Problem {
   status: "unattempted" | "attempted" | "solved"
 }
+
+export interface RecommendedProblem {
+  problem_id: number
+  title: string
+  difficulty: number
+  tags: string[]
+  score: number
+  reason: string
+}

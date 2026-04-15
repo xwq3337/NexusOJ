@@ -11,15 +11,20 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { NHeatmap } from 'naive-ui'
-import type { HeatmapFirstDayOfWeek } from 'naive-ui'
-import { heatmapMockData } from 'naive-ui'
+import type { HeatmapFirstDayOfWeek, HeatmapData } from 'naive-ui'
+
+interface HeatmapRawData {
+  heatmaps?: Record<string, Record<string, number>>
+  past_year_heatmap?: Record<string, number>
+}
 
 const props = defineProps<{
   userId?: Number
-  period?: 'recent' | '2025' | '2024'
+  period?: 'recent' | '2026' | '2025'
+  heatmapData?: HeatmapRawData
 }>()
 
-const internalValue = ref<'recent' | number>(props.period || 'recent')
+const internalValue = ref<'recent' | '2026' | '2025'>(props.period || 'recent')
 const loading = ref(false)
 const firstDayOfWeek = ref<HeatmapFirstDayOfWeek>(0)
 
@@ -29,26 +34,38 @@ watch(() => props.period, (newValue) => {
   }
 })
 
+function convertToHeatmapData(rawData: Record<string, number>, year?: string): HeatmapData {
+  return Object.entries(rawData).map(([dateStr, value]) => {
+    let fullDateStr = dateStr
+    // heatmaps 内层的 key 格式为 "MM-DDT00:00:00+08:00"，需要拼接年份
+    if (year && /^\d{2}-\d{2}T/.test(dateStr)) {
+      fullDateStr = `${year}-${dateStr}`
+    }
+    return {
+      timestamp: new Date(fullDateStr).getTime(),
+      value
+    }
+  })
+}
+
 const yearData = computed(() => {
-  return heatmapMockData(internalValue.value)
-})
+  if (!props.heatmapData) return []
 
-const dataStats = computed(() => {
-  const data = yearData.value
-  const total = data.length
-  const zeros = data.filter(d => d.value === 0).length
-  const maxValue = Math.max(...data.map(d => d.value ?? 0))
-  const avgValue
-    = Math.round(
-      (data.reduce((sum, d) => sum + (d.value ?? 0), 0) / total) * 100
-    ) / 100
-
-  return {
-    total,
-    zeros,
-    maxValue,
-    avgValue,
-    zeroPercent: Math.round((zeros / total) * 100)
+  if (internalValue.value === 'recent') {
+    if (props.heatmapData.past_year_heatmap) {
+      return convertToHeatmapData(props.heatmapData.past_year_heatmap)
+    }
+    return []
   }
+
+  const yearKey = String(internalValue.value)
+  if (props.heatmapData.heatmaps?.[yearKey]) {
+    return convertToHeatmapData(props.heatmapData.heatmaps[yearKey], yearKey)
+  }
+  return []
 })
+
+setInterval(() => {
+  console.log(yearData.value)
+}, 2000)
 </script>

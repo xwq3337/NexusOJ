@@ -11,11 +11,13 @@ import (
 	"nexus/dao"
 	jwtgo "nexus/middleware/jwt"
 	"nexus/models"
+	"nexus/services"
 	"nexus/utils"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"nexus/config"
@@ -52,25 +54,51 @@ func (UserController) GetUserHomePage(c *gin.Context) {
 		return
 	}
 	user, err := models.User{}.QueryUserById(userID)
-	// TODO 若题目数量过多，需要增加
-	r := redis.BitCount{
-		Start: 0,
-		End:   100,
-	}
-	var solved int64
-	solved, err = dao.RedisClient.BitCount(ctx, fmt.Sprintf(ProblemStatusSolvedBit, userID), &r).Result()
 	if err != nil {
-		solved = 0
-	}
-	result := models.UserDTO{
-		User:   user,
-		Solved: solved,
-	}
-	if err == nil {
-		utils.ReturnSuccess(c, http.StatusOK, "success", result)
+		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
 	}
-	utils.ReturnError(c, http.StatusInternalServerError, err)
+
+	// 并发获取 solved 数和热力图
+	var solved int64
+	var heatmaps map[string]map[string]int
+	var pastYearHeatmap map[string]int
+	var streak int
+	var lastActive string
+
+	var wg sync.WaitGroup
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		r := redis.BitCount{Start: 0, End: 100}
+		solved, _ = dao.RedisClient.BitCount(ctx, fmt.Sprintf(ProblemStatusSolvedBit, userID), &r).Result()
+	}()
+	go func() {
+		defer wg.Done()
+		profile, err := services.EnsureProfile(userID)
+		if err == nil && profile.Activity != nil {
+			heatmaps = profile.Activity.Heatmaps
+			streak = profile.Activity.Streak
+			if !profile.Activity.LastActive.IsZero() {
+				lastActive = profile.Activity.LastActive.Format("2006-01-02")
+			}
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		pastYearHeatmap, _ = services.GetPastYearHeatmap(userID)
+	}()
+	wg.Wait()
+
+	result := models.UserDTO{
+		User:            user,
+		Solved:          solved,
+		Heatmaps:        heatmaps,
+		PastYearHeatmap: pastYearHeatmap,
+		Streak:          streak,
+		LastActive:      lastActive,
+	}
+	utils.ReturnSuccess(c, http.StatusOK, "success", result)
 }
 func (UserController) GetNumber(c *gin.Context) {
 	count, err := models.User{}.GetUserNumber()

@@ -10,6 +10,7 @@ import (
 	"nexus/utils"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -234,6 +235,17 @@ func (ProblemController) SubmitProblem(c *gin.Context) {
 			dao.RedisClient.SetBit(ctx, key_solved, problem.ID-1000, 1)
 		}
 		dao.RedisClient.SetBit(ctx, key_attempted, problem.ID-1000, 1)
+
+		// 画像增量更新
+		services.SubmitProfileUpdate(&services.ProfileUpdateEvent{
+			UserID:     userID,
+			ProblemID:  data.ProblemID,
+			Verdict:    result.Verdict,
+			Language:   data.Language,
+			Difficulty: problem.Difficulty,
+			Tags:       problem.Tags,
+			Timestamp:  time.Now(),
+		})
 	}()
 }
 
