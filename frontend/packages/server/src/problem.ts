@@ -8,7 +8,7 @@ export const problemApi = {
   },
   getProblemDetail: (id: string): Promise<ApiResponse<{
     problem : Problem,
-    my_status : "unattempted" | "attempted" | "accepted",
+    my_status : "unattempted" | "attempted" | "solved",
   }>> => {
     return Request.get(`/problem/${id}`)
   },

@@ -1,40 +1,57 @@
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 
+interface Message {
+  id: number
+  role: 'user' | 'model'
+  content: string
+  timestamp: number
+}
+
 /**
  * Stream AI response from backend SSE endpoint
- * @param query - User's question or prompt
+ * @param messages - Chat message history
  * @param onMessage - Callback function for each message chunk
  * @param onError - Callback function for errors
  * @param onClose - Callback function when connection closes
  * @param abortController - Controller to abort the request
  */
 export const streamResponse = async (
-  query: string,
+  messages: Message[],
   onMessage: (chunk: string) => void,
   onError: (error: Error) => void,
   onClose: () => void,
   abortController: AbortController
 ) => {
-  await fetchEventSource('/agent/test', {
+  // RAG 检索耗时较长，需要延长超时
+  const timeoutId = setTimeout(() => abortController.abort(), 120_000)
+
+  await fetchEventSource('/agent/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({ messages }),
     signal: abortController.signal,
 
     onmessage(msg) {
-      if (msg.data === '[DONE]') {
-        onClose()
-        return
-      }
-
       try {
         const data = JSON.parse(msg.data)
-        if (data.content) {
-          onMessage(data.content)
+
+        if (data.done) {
+          clearTimeout(timeoutId)
+          onClose()
+          return
         }
-      } catch (e) {
+
+        if (data.error) {
+          onError(new Error(data.error))
+          return
+        }
+
+        if (data.text) {
+          onMessage(data.text)
+        }
+      } catch {
         // If not JSON, treat as plain text
         if (msg.data) {
           onMessage(msg.data)
@@ -43,11 +60,13 @@ export const streamResponse = async (
     },
 
     onerror(error) {
+      clearTimeout(timeoutId)
       onError(new Error('SSE connection error: ' + error.message))
       throw error // Re-throw to stop reconnection
     },
 
     onclose() {
+      clearTimeout(timeoutId)
       onClose()
     }
   })

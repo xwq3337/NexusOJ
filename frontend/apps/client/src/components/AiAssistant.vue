@@ -77,7 +77,7 @@
             backgroundColor: message.role === 'user' ? 'var(--accent-color)' : 'var(--surface-secondary)',
             color: message.role === 'user' ? 'white' : 'var(--text-primary)'
           }">
-            <div class="text-sm  leading-relaxed message-content" v-html="renderMessage(message.text)"></div>
+            <div class="text-sm  leading-relaxed message-content" v-html="renderMessage(message.content)"></div>
             <div class="text-xs mt-1 opacity-70"
               :style="{ color: message.role === 'user' ? 'white' : 'var(--text-tertiary)' }">
               {{ formateTimeStamp(message.timestamp) }}
@@ -89,18 +89,9 @@
       <!-- Input Area -->
       <div class="p-4 border-t" :style="{ borderColor: 'var(--border-color)' }">
         <form @submit.prevent="sendMessage" class="flex gap-2 items-end">
-          <n-input
-            type="textarea"
-            v-model:value="inputMessage"
-            ref="inputRef"
-            placeholder="输入你的问题..."
-            :disabled="isLoading"
-            :autosize="{ minRows: 1, maxRows: 6 }"
-            :show-count="false"
-            :input-props="{ style: { fontSize: '0.875rem' } }"
-            class="flex-1"
-            @keydown="handleKeydown"
-          />
+          <n-input type="textarea" v-model:value="inputMessage" ref="inputRef" placeholder="输入你的问题..."
+            :disabled="isLoading" :autosize="{ minRows: 1, maxRows: 6 }" :show-count="false"
+            :input-props="{ style: { fontSize: '0.875rem' } }" class="flex-1" @keydown="handleKeydown" />
           <button type="submit" :disabled="!inputMessage.trim() || isLoading"
             class="px-4 py-2.5 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shrink-0"
             :style="{
@@ -134,19 +125,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
+import { ref, nextTick, onMounted, watch, computed } from 'vue'
 import { Bot, X, User, Send, Loader2 } from 'lucide-vue-next'
 import { useLocalStorage, useEventListener } from '@vueuse/core'
-
 import { streamResponse } from '@nexusoj/server'
-import type { ChatMessage } from '@nexusoj/type'
 import MarkdownIt from 'markdown-it'
 import { NPopconfirm, NButton, NInput, useMessage } from "naive-ui"
 import { formateTimeStamp } from '@/utils/format'
-import { safeJsonParse } from '@nexusoj/utils'
+import { useRoute } from 'vue-router'
 const message = useMessage()
+// 附加的信息
+const additionalMessage = computed(() => {
+  const route = useRoute()
+  const path = route.path
+
+})
+const AiAssistantMessages = useLocalStorage<AIMessage[]>('ai-assistant-messages', [])
+
 // Initialize markdown-it
-const AiAssistantMessages = useLocalStorage('ai-assistant-messages', null)
 const md = new MarkdownIt({
   html: false,
   linkify: true,
@@ -154,10 +150,16 @@ const md = new MarkdownIt({
   breaks: true
 })
 
+interface AIMessage {
+  id: number
+  role: 'model' | 'user'
+  content: string
+  timestamp: number // Timestamp in milliseconds
+}
 // State
 const isOpen = ref(false)
 const inputMessage = ref('')
-const messages = ref<ChatMessage[]>([])
+const messages = ref<AIMessage[]>([])
 const isLoading = ref(false)
 const isTyping = ref(false)
 const messagesContainer = ref<HTMLElement>()
@@ -173,16 +175,7 @@ const quickPrompts = [
 ]
 // Load messages from localStorage
 onMounted(() => {
-  if (AiAssistantMessages.value) {
-    try {
-      const { data ,err } = safeJsonParse(AiAssistantMessages.value)
-      if(!err){
-         messages.value = data
-      }
-    } catch (e) {
-      console.error('Failed to load messages:', e)
-    }
-  }
+  messages.value = AiAssistantMessages.value
   // Check if mobile
   checkMobile()
 })
@@ -195,7 +188,7 @@ useEventListener('resize', checkMobile)
 
 // Save messages to localStorage
 watch(messages, (newMessages) => {
-  AiAssistantMessages.value = JSON.stringify(newMessages)
+  AiAssistantMessages.value = newMessages
 }, { deep: true })
 
 // Toggle chat
@@ -296,10 +289,10 @@ const sendMessage = async () => {
   if (!text || isLoading.value) return
 
   // Add user message
-  const userMessage: ChatMessage = {
-    id: Date.now().toString(),
+  const userMessage: AIMessage = {
+    id: 1,
     role: 'user',
-    text,
+    content : text,
     timestamp: Date.now()
   }
   messages.value.push(userMessage)
@@ -313,11 +306,10 @@ const sendMessage = async () => {
   isTyping.value = true
 
   // Create an initial AI message for streaming
-  const aiMessageId = (Date.now() + 1).toString()
-  const aiMessage: ChatMessage = {
-    id: aiMessageId,
+  const aiMessage: AIMessage = {
+    id: 2,
     role: 'model',
-    text: '',
+    content: '',
     timestamp: Date.now()
   }
   messages.value.push(aiMessage)
@@ -330,16 +322,16 @@ const sendMessage = async () => {
 
   try {
     await streamResponse(
-      text,
+      messages.value,
       // onMessage - append each chunk to the AI message
       (chunk: string) => {
-        messages.value[aiMessageIndex].text += chunk
+        messages.value[aiMessageIndex].content += chunk
         scrollToBottom()
       },
       // onError
       (error: Error) => {
         console.error('SSE Error:', error)
-        messages.value[aiMessageIndex].text = '抱歉，我遇到了一些问题。请稍后再试。'
+        messages.value[aiMessageIndex].content = '抱歉，我遇到了一些问题。请稍后再试。'
         scrollToBottom()
       },
       // onClose
@@ -353,7 +345,7 @@ const sendMessage = async () => {
     console.error('Failed to get AI response:', error)
 
     // Update message with error
-    messages.value[aiMessageIndex].text = '抱歉，我遇到了一些问题。请稍后再试。'
+    messages.value[aiMessageIndex].content = '抱歉，我遇到了一些问题。请稍后再试。'
     scrollToBottom()
 
     isLoading.value = false
@@ -374,10 +366,15 @@ const handleKeydown = (e: KeyboardEvent) => {
     toggleChat()
   }
 
-  // Enter to send, Shift + Enter for new line
+  // Enter to send
   if (e.key === 'Enter' && !e.shiftKey && !isLoading.value && inputMessage.value.trim()) {
     e.preventDefault()
-    sendMessage()
+    // sendMessage()
+  }
+  // Shift + Enter for new line
+  else if (e.key === 'Enter' && e.shiftKey) {
+    e.preventDefault()
+    inputMessage.value += '\n'
   }
 }
 useEventListener('keydown', handleKeydown)

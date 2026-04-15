@@ -156,7 +156,7 @@
                       </n-gi>
                     </n-grid>
                   </n-tab-pane>
-                  <n-tab-pane name="console" tab="控制台"> 模拟 {{ result }} </n-tab-pane>
+                  <n-tab-pane name="console" tab="控制台"> 等待运行... {{ result }} </n-tab-pane>
                 </n-tabs>
               </div>
             </template>
@@ -195,14 +195,14 @@
           <div class="flex justify-end mb-3">
             <n-tooltip trigger="hover">
               <template #trigger>
-                <n-button size="small" type="primary" :disabled="!hasAccepted" @click="goCreateSolution">
+                <n-button size="small" type="primary" :disabled="!hasSolved" @click="goCreateSolution">
                   <template #icon>
                     <Plus :size="14" />
                   </template>
                   发布题解
                 </n-button>
               </template>
-              {{ hasAccepted ? '发布你的题解' : '通过本题后才能发布题解' }}
+              {{ hasSolved ? '发布你的题解' : '通过本题后才能发布题解' }}
             </n-tooltip>
           </div>
           <NSpin :show="solutionLoading">
@@ -548,7 +548,7 @@ onMounted(async () => {
       }
       const { problem: pb, my_status } = info
       problem.value = pb
-      hasAccepted.value = my_status === 'accepted'
+      hasSolved.value = my_status === 'solved'
       // 如果有样例，使用第一个样例作为默认测试用例
       if (pb.judge_sample && pb.judge_sample.length > 0 && !testCaseInput.value) {
         test_case.value.input = pb.judge_sample[0].input
@@ -637,7 +637,7 @@ const handleRun = async () => {
         const { code, info, msg } = res
         if (code === 200 && info) {
           if (info.verdict === 'Accepted') {
-            hasAccepted.value = true
+            hasSolved.value = true
             message.success(STATUS_MESSAGE[info.verdict as JudgeVerdictType])
           } else {
             message.error(STATUS_MESSAGE[info.verdict as JudgeVerdictType])
@@ -719,7 +719,7 @@ const backToList = () => {
 }
 
 // 检查用户是否已通过本题
-const hasAccepted = ref(false)
+const hasSolved = ref(false)
 
 const goCreateSolution = () => {
   router.push({
