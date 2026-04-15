@@ -26,3 +26,5 @@ coverage
 *.tsbuildinfo
 /cypress/videos/
 /cypress/screenshots/
+.claude
+CLAUDE.md
