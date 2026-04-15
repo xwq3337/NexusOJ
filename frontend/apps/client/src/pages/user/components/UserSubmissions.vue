@@ -71,8 +71,7 @@ const columns: DataTableColumns<any> = [
   {
     title: '题目',
     key: 'problem_title',
-    width: 200,
-
+    width: 150,
     render(row) {
       return h('span',
         {

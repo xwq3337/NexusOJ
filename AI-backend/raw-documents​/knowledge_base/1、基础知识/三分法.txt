@@ -1,0 +1,944 @@
+三分法（Ternary Search）
+======================
+
+算法概述
+--------
+三分法是用于在单峰或单谷函数中查找极值点的算法，通过每次将区间分成三部分，抛弃一部分，
+从而快速缩小搜索范围。它的核心思想是：在区间上取两个点，比较它们的大小关系，确定极值点所在区间。
+
+核心思想
+--------
+1. 前提条件：函数在区间上是单峰（有唯一最大值）或单谷（有唯一最小值）的
+2. 在区间[l, r]上取两个三分点：mid1 = l + (r-l)/3, mid2 = r - (r-l)/3
+3. 比较f(mid1)和f(mid2)的大小：
+   - 如果f(mid1) < f(mid2)，对于求最大值，极值在[mid1, r]
+   - 如果f(mid1) > f(mid2)，对于求最大值，极值在[l, mid2]
+   - 如果f(mid1) = f(mid2)，极值在[mid1, mid2]
+4. 重复直到区间足够小
+5. 时间复杂度：O(log3 n) ≈ O(log n)
+
+整数三分（求极大值）
+------------------
+适用于离散的单峰函数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+int a[MAXN];
+int n;
+
+// 查询函数值（这里是直接访问数组，实际可以是任意函数）
+int f(int x) {
+    if (x < 1 || x > n) return INT_MIN;
+    return a[x];
+}
+
+// 整数三分求最大值
+int ternary_search_max() {
+    int left = 1, right = n;
+
+    while (right - left > 3) {  // 剩余元素少于等于3个时停止
+        int mid1 = left + (right - left) / 3;
+        int mid2 = right - (right - left) / 3;
+
+        if (f(mid1) < f(mid2)) {
+            left = mid1;
+        } else {
+            right = mid2;
+        }
+    }
+
+    // 在剩余的元素中找到最大值
+    int result = f(left);
+    for (int i = left + 1; i <= right; i++) {
+        result = max(result, f(i));
+    }
+    return result;
+}
+
+// 整数三分求最大值位置
+int ternary_search_max_pos() {
+    int left = 1, right = n;
+
+    while (right - left > 3) {
+        int mid1 = left + (right - left) / 3;
+        int mid2 = right - (right - left) / 3;
+
+        if (f(mid1) < f(mid2)) {
+            left = mid1;
+        } else {
+            right = mid2;
+        }
+    }
+
+    int pos = left;
+    for (int i = left + 1; i <= right; i++) {
+        if (f(i) > f(pos)) {
+            pos = i;
+        }
+    }
+    return pos;
+}
+
+int main() {
+    cin >> n;
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+    }
+
+    int max_val = ternary_search_max();
+    int max_pos = ternary_search_max_pos();
+
+    cout << "Maximum value: " << max_val << endl;
+    cout << "Position: " << max_pos << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List
+
+def ternary_search_max(a: List[int]) -> int:
+    """整数三分求最大值"""
+    n = len(a)
+    left, right = 0, n - 1
+
+    def f(x: int) -> int:
+        if x < 0 or x >= n:
+            return float('-inf')
+        return a[x]
+
+    while right - left > 3:
+        mid1 = left + (right - left) // 3
+        mid2 = right - (right - left) // 3
+
+        if f(mid1) < f(mid2):
+            left = mid1
+        else:
+            right = mid2
+
+    # 在剩余元素中找最大值
+    result = f(left)
+    for i in range(left + 1, right + 1):
+        result = max(result, f(i))
+
+    return result
+
+def ternary_search_max_pos(a: List[int]) -> int:
+    """整数三分求最大值位置"""
+    n = len(a)
+    left, right = 0, n - 1
+
+    def f(x: int) -> int:
+        if x < 0 or x >= n:
+            return float('-inf')
+        return a[x]
+
+    while right - left > 3:
+        mid1 = left + (right - left) // 3
+        mid2 = right - (right - left) // 3
+
+        if f(mid1) < f(mid2):
+            left = mid1
+        else:
+            right = mid2
+
+    pos = left
+    for i in range(left + 1, right + 1):
+        if f(i) > f(pos):
+            pos = i
+
+    return pos
+
+if __name__ == "__main__":
+    a = [1, 2, 3, 4, 5, 4, 3, 2, 1]
+    max_val = ternary_search_max(a)
+    max_pos = ternary_search_max_pos(a)
+    print(f"Maximum value: {max_val}")
+    print(f"Position: {max_pos}")
+```
+
+整数三分（求极小值）
+------------------
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+int a[MAXN];
+int n;
+
+int f(int x) {
+    if (x < 1 || x > n) return INT_MAX;
+    return a[x];
+}
+
+// 整数三分求最小值
+int ternary_search_min() {
+    int left = 1, right = n;
+
+    while (right - left > 3) {
+        int mid1 = left + (right - left) / 3;
+        int mid2 = right - (right - left) / 3;
+
+        if (f(mid1) > f(mid2)) {  // 注意：这里是 > 而不是 <
+            left = mid1;
+        } else {
+            right = mid2;
+        }
+    }
+
+    int result = f(left);
+    for (int i = left + 1; i <= right; i++) {
+        result = min(result, f(i));
+    }
+    return result;
+}
+
+// 整数三分求最小值位置
+int ternary_search_min_pos() {
+    int left = 1, right = n;
+
+    while (right - left > 3) {
+        int mid1 = left + (right - left) / 3;
+        int mid2 = right - (right - left) / 3;
+
+        if (f(mid1) > f(mid2)) {
+            left = mid1;
+        } else {
+            right = mid2;
+        }
+    }
+
+    int pos = left;
+    for (int i = left + 1; i <= right; i++) {
+        if (f(i) < f(pos)) {
+            pos = i;
+        }
+    }
+    return pos;
+}
+
+int main() {
+    cin >> n;
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+    }
+
+    int min_val = ternary_search_min();
+    int min_pos = ternary_search_min_pos();
+
+    cout << "Minimum value: " << min_val << endl;
+    cout << "Position: " << min_pos << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List
+
+def ternary_search_min(a: List[int]) -> int:
+    """整数三分求最小值"""
+    n = len(a)
+    left, right = 0, n - 1
+
+    def f(x: int) -> int:
+        if x < 0 or x >= n:
+            return float('inf')
+        return a[x]
+
+    while right - left > 3:
+        mid1 = left + (right - left) // 3
+        mid2 = right - (right - left) // 3
+
+        if f(mid1) > f(mid2):  # 注意：这里是 > 而不是 <
+            left = mid1
+        else:
+            right = mid2
+
+    result = f(left)
+    for i in range(left + 1, right + 1):
+        result = min(result, f(i))
+
+    return result
+
+def ternary_search_min_pos(a: List[int]) -> int:
+    """整数三分求最小值位置"""
+    n = len(a)
+    left, right = 0, n - 1
+
+    def f(x: int) -> int:
+        if x < 0 or x >= n:
+            return float('inf')
+        return a[x]
+
+    while right - left > 3:
+        mid1 = left + (right - left) // 3
+        mid2 = right - (right - left) // 3
+
+        if f(mid1) > f(mid2):
+            left = mid1
+        else:
+            right = mid2
+
+    pos = left
+    for i in range(left + 1, right + 1):
+        if f(i) < f(pos):
+            pos = i
+
+    return pos
+
+if __name__ == "__main__":
+    a = [5, 4, 3, 2, 1, 2, 3, 4, 5]
+    min_val = ternary_search_min(a)
+    min_pos = ternary_search_min_pos(a)
+    print(f"Minimum value: {min_val}")
+    print(f"Position: {min_pos}")
+```
+
+浮点数三分（求极大值）
+--------------------
+适用于连续的单峰函数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const double EPS = 1e-8;
+
+// 示例函数：f(x) = -x^2 + 4x（在[0, 4]上有最大值）
+double f(double x) {
+    return -x * x + 4 * x;
+}
+
+// 浮点数三分求最大值
+double ternary_search_max(double left, double right) {
+    while (right - left > EPS) {
+        double mid1 = left + (right - left) / 3;
+        double mid2 = right - (right - left) / 3;
+
+        if (f(mid1) < f(mid2)) {
+            left = mid1;
+        } else {
+            right = mid2;
+        }
+    }
+
+    return (left + right) / 2;
+}
+
+// 或者使用固定迭代次数
+double ternary_search_max_iter(double left, double right) {
+    for (int i = 0; i < 100; i++) {
+        double mid1 = left + (right - left) / 3;
+        double mid2 = right - (right - left) / 3;
+
+        if (f(mid1) < f(mid2)) {
+            left = mid1;
+        } else {
+            right = mid2;
+        }
+    }
+
+    return (left + right) / 2;
+}
+
+int main() {
+    double left = 0, right = 4;
+
+    double x = ternary_search_max(left, right);
+    double max_val = f(x);
+
+    cout << "Maximum at x = " << fixed << setprecision(8) << x << endl;
+    cout << "Maximum value = " << max_val << endl;
+    cout << "Expected: x = 2, value = 4" << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+EPS = 1e-8
+
+def f(x: float) -> float:
+    """示例函数：f(x) = -x^2 + 4x"""
+    return -x * x + 4 * x
+
+def ternary_search_max(left: float, right: float) -> float:
+    """浮点数三分求最大值"""
+    while right - left > EPS:
+        mid1 = left + (right - left) / 3
+        mid2 = right - (right - left) / 3
+
+        if f(mid1) < f(mid2):
+            left = mid1
+        else:
+            right = mid2
+
+    return (left + right) / 2
+
+def ternary_search_max_iter(left: float, right: float) -> float:
+    """固定迭代次数的浮点数三分"""
+    for _ in range(100):
+        mid1 = left + (right - left) / 3
+        mid2 = right - (right - left) / 3
+
+        if f(mid1) < f(mid2):
+            left = mid1
+        else:
+            right = mid2
+
+    return (left + right) / 2
+
+if __name__ == "__main__":
+    left, right = 0.0, 4.0
+    x = ternary_search_max(left, right)
+    max_val = f(x)
+    print(f"Maximum at x = {x:.8f}")
+    print(f"Maximum value = {max_val:.8f}")
+    print("Expected: x = 2, value = 4")
+```
+
+浮点数三分（求极小值）
+--------------------
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const double EPS = 1e-8;
+
+// 示例函数：f(x) = x^2 - 4x + 5（在[0, 4]上有最小值）
+double f(double x) {
+    return x * x - 4 * x + 5;
+}
+
+// 浮点数三分求最小值
+double ternary_search_min(double left, double right) {
+    while (right - left > EPS) {
+        double mid1 = left + (right - left) / 3;
+        double mid2 = right - (right - left) / 3;
+
+        if (f(mid1) > f(mid2)) {  // 注意：这里是 > 而不是 <
+            left = mid1;
+        } else {
+            right = mid2;
+        }
+    }
+
+    return (left + right) / 2;
+}
+
+int main() {
+    double left = 0, right = 4;
+
+    double x = ternary_search_min(left, right);
+    double min_val = f(x);
+
+    cout << "Minimum at x = " << fixed << setprecision(8) << x << endl;
+    cout << "Minimum value = " << min_val << endl;
+    cout << "Expected: x = 2, value = 1" << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+EPS = 1e-8
+
+def f(x: float) -> float:
+    """示例函数：f(x) = x^2 - 4x + 5"""
+    return x * x - 4 * x + 5
+
+def ternary_search_min(left: float, right: float) -> float:
+    """浮点数三分求最小值"""
+    while right - left > EPS:
+        mid1 = left + (right - left) / 3
+        mid2 = right - (right - left) / 3
+
+        if f(mid1) > f(mid2):  # 注意：这里是 > 而不是 <
+            left = mid1
+        else:
+            right = mid2
+
+    return (left + right) / 2
+
+if __name__ == "__main__":
+    left, right = 0.0, 4.0
+    x = ternary_search_min(left, right)
+    min_val = f(x)
+    print(f"Minimum at x = {x:.8f}")
+    print(f"Minimum value = {min_val:.8f}")
+    print("Expected: x = 2, value = 1")
+```
+
+应用一：求函数极值
+----------------
+问题：给定一个单峰函数，求其在区间上的最大值
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const double EPS = 1e-8;
+
+// 单峰函数示例：f(x) = -x^3 + 6x^2 - 9x + 10
+double f(double x) {
+    return -x * x * x + 6 * x * x - 9 * x + 10;
+}
+
+double ternary_search(double left, double right) {
+    while (right - left > EPS) {
+        double mid1 = left + (right - left) / 3;
+        double mid2 = right - (right - left) / 3;
+
+        if (f(mid1) < f(mid2)) {
+            left = mid1;
+        } else {
+            right = mid2;
+        }
+    }
+    return (left + right) / 2;
+}
+
+int main() {
+    double left = 0, right = 4;
+
+    double x = ternary_search(left, right);
+    cout << "Maximum at x = " << fixed << setprecision(8) << x << endl;
+    cout << "Maximum value = " << f(x) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+EPS = 1e-8
+
+def f(x: float) -> float:
+    """单峰函数：f(x) = -x^3 + 6x^2 - 9x + 10"""
+    return -x**3 + 6*x**2 - 9*x + 10
+
+def ternary_search(left: float, right: float) -> float:
+    """三分法求最大值"""
+    while right - left > EPS:
+        mid1 = left + (right - left) / 3
+        mid2 = right - (right - left) / 3
+
+        if f(mid1) < f(mid2):
+            left = mid1
+        else:
+            right = mid2
+
+    return (left + right) / 2
+
+if __name__ == "__main__":
+    left, right = 0.0, 4.0
+    x = ternary_search(left, right)
+    print(f"Maximum at x = {x:.8f}")
+    print(f"Maximum value = {f(x):.8f}")
+```
+
+应用二：优化问题 - 杆子上平衡点
+-------------------------------
+问题：在一根杆子上放置多个物体，找到平衡点
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const double EPS = 1e-8;
+
+int n;
+double weights[105];
+double positions[105];
+
+// 计算以x为支点的力矩
+double calculate_moment(double x) {
+    double moment = 0;
+    for (int i = 0; i < n; i++) {
+        moment += weights[i] * (positions[i] - x);
+    }
+    return abs(moment);
+}
+
+// 三分法找平衡点（使力矩最小的位置）
+double find_balance_point(double left, double right) {
+    while (right - left > EPS) {
+        double mid1 = left + (right - left) / 3;
+        double mid2 = right - (right - left) / 3;
+
+        if (calculate_moment(mid1) > calculate_moment(mid2)) {
+            left = mid1;
+        } else {
+            right = mid2;
+        }
+    }
+    return (left + right) / 2;
+}
+
+int main() {
+    cin >> n;
+    double max_pos = 0;
+    for (int i = 0; i < n; i++) {
+        cin >> weights[i] >> positions[i];
+        max_pos = max(max_pos, positions[i]);
+    }
+
+    double balance = find_balance_point(0, max_pos);
+    cout << "Balance point: " << fixed << setprecision(8) << balance << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+EPS = 1e-8
+
+def find_balance_point(weights, positions):
+    """三分法找平衡点"""
+    n = len(weights)
+    max_pos = max(positions)
+
+    def calculate_moment(x):
+        """计算以x为支点的力矩"""
+        moment = 0
+        for i in range(n):
+            moment += weights[i] * (positions[i] - x)
+        return abs(moment)
+
+    left, right = 0.0, max_pos
+
+    while right - left > EPS:
+        mid1 = left + (right - left) / 3
+        mid2 = right - (right - left) / 3
+
+        if calculate_moment(mid1) > calculate_moment(mid2):
+            left = mid1
+        else:
+            right = mid2
+
+    return (left + right) / 2
+
+if __name__ == "__main__":
+    n = int(input())
+    weights = []
+    positions = []
+    for _ in range(n):
+        w, p = map(float, input().split())
+        weights.append(w)
+        positions.append(p)
+
+    balance = find_balance_point(weights, positions)
+    print(f"Balance point: {balance:.8f}")
+```
+
+应用三：生产优化问题
+------------------
+问题：在生产过程中找到最优参数设置
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const double EPS = 1e-8;
+
+// 生产效率函数（单峰函数）
+double efficiency(double x) {
+    // 模拟一个生产效率函数
+    return 100 - (x - 5) * (x - 5);
+}
+
+// 三分法求最优参数
+double find_optimal_parameter(double left, double right) {
+    while (right - left > EPS) {
+        double mid1 = left + (right - left) / 3;
+        double mid2 = right - (right - left) / 3;
+
+        if (efficiency(mid1) < efficiency(mid2)) {
+            left = mid1;
+        } else {
+            right = mid2;
+        }
+    }
+    return (left + right) / 2;
+}
+
+int main() {
+    double left = 0, right = 10;
+
+    double optimal = find_optimal_parameter(left, right);
+    cout << "Optimal parameter: " << fixed << setprecision(8) << optimal << endl;
+    cout << "Max efficiency: " << efficiency(optimal) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+EPS = 1e-8
+
+def efficiency(x):
+    """生产效率函数（单峰函数）"""
+    return 100 - (x - 5) ** 2
+
+def find_optimal_parameter(left, right):
+    """三分法求最优参数"""
+    while right - left > EPS:
+        mid1 = left + (right - left) / 3
+        mid2 = right - (right - left) / 3
+
+        if efficiency(mid1) < efficiency(mid2):
+            left = mid1
+        else:
+            right = mid2
+
+    return (left + right) / 2
+
+if __name__ == "__main__":
+    left, right = 0.0, 10.0
+    optimal = find_optimal_parameter(left, right)
+    print(f"Optimal parameter: {optimal:.8f}")
+    print(f"Max efficiency: {efficiency(optimal):.8f}")
+```
+
+应用四：三角函数极值
+------------------
+问题：求三角函数在特定区间的极值
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const double EPS = 1e-8;
+const double PI = acos(-1);
+
+// 三角函数
+double f(double x) {
+    return sin(x) + cos(x);
+}
+
+// 三分法求最大值
+double ternary_search_max(double left, double right) {
+    while (right - left > EPS) {
+        double mid1 = left + (right - left) / 3;
+        double mid2 = right - (right - left) / 3;
+
+        if (f(mid1) < f(mid2)) {
+            left = mid1;
+        } else {
+            right = mid2;
+        }
+    }
+    return (left + right) / 2;
+}
+
+int main() {
+    double left = 0, right = 2 * PI;
+
+    double x = ternary_search_max(left, right);
+    cout << "Maximum at x = " << fixed << setprecision(8) << x << endl;
+    cout << "Maximum value = " << f(x) << endl;
+    cout << "Expected: x = PI/4 ≈ 0.785398, value = sqrt(2) ≈ 1.414214" << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import math
+
+EPS = 1e-8
+
+def f(x):
+    """三角函数"""
+    return math.sin(x) + math.cos(x)
+
+def ternary_search_max(left, right):
+    """三分法求最大值"""
+    while right - left > EPS:
+        mid1 = left + (right - left) / 3
+        mid2 = right - (right - left) / 3
+
+        if f(mid1) < f(mid2):
+            left = mid1
+        else:
+            right = mid2
+
+    return (left + right) / 2
+
+if __name__ == "__main__":
+    left, right = 0.0, 2 * math.pi
+    x = ternary_search_max(left, right)
+    print(f"Maximum at x = {x:.8f}")
+    print(f"Maximum value = {f(x):.8f}")
+    print("Expected: x = PI/4 ≈ 0.785398, value = sqrt(2) ≈ 1.414214")
+```
+
+应用五：距离优化问题
+------------------
+问题：求点到曲线的最短距离
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const double EPS = 1e-8;
+
+double px, py;  // 点的坐标
+
+// 曲线方程：y = x^2
+double curve_y(double x) {
+    return x * x;
+}
+
+// 计算点到曲线上点(x, curve_y(x))的距离平方
+double distance_squared(double x) {
+    double dx = x - px;
+    double dy = curve_y(x) - py;
+    return dx * dx + dy * dy;
+}
+
+// 三分法求最小距离
+double find_min_distance(double left, double right) {
+    while (right - left > EPS) {
+        double mid1 = left + (right - left) / 3;
+        double mid2 = right - (right - left) / 3;
+
+        if (distance_squared(mid1) > distance_squared(mid2)) {
+            left = mid1;
+        } else {
+            right = mid2;
+        }
+    }
+    double x = (left + right) / 2;
+    return sqrt(distance_squared(x));
+}
+
+int main() {
+    px = 2, py = 3;
+
+    double left = -10, right = 10;
+    double min_dist = find_min_distance(left, right);
+
+    cout << "Minimum distance: " << fixed << setprecision(8) << min_dist << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import math
+
+EPS = 1e-8
+
+def find_min_distance(px, py, left, right):
+    """三分法求点到曲线的最小距离"""
+
+    def curve_y(x):
+        """曲线方程：y = x^2"""
+        return x * x
+
+    def distance_squared(x):
+        """距离平方"""
+        dx = x - px
+        dy = curve_y(x) - py
+        return dx * dx + dy * dy
+
+    while right - left > EPS:
+        mid1 = left + (right - left) / 3
+        mid2 = right - (right - left) / 3
+
+        if distance_squared(mid1) > distance_squared(mid2):
+            left = mid1
+        else:
+            right = mid2
+
+    x = (left + right) / 2
+    return math.sqrt(distance_squared(x))
+
+if __name__ == "__main__":
+    px, py = 2.0, 3.0
+    left, right = -10.0, 10.0
+    min_dist = find_min_distance(px, py, left, right)
+    print(f"Minimum distance: {min_dist:.8f}")
+```
+
+典型例题
+--------
+1. 洛谷P3382：三分法模板题，求单峰函数极值
+2. 洛谷P1883：函数模板，求多个函数的极值
+3. 凸函数优化：在凸函数上找最小值
+4. 生产优化：寻找最优生产参数
+5. 距离优化：求点到曲线/曲面的最短距离
+6. 平衡点问题：找使系统平衡的位置
+7. 光线反射：最短路径问题
+8. 数值优化：求单峰/单谷函数的极值点
+
+注意事项
+--------
+1. 单峰/单谷性判断：
+   - 三分法只适用于单峰或单谷函数
+   - 如果函数有多个极值点，三分法可能找到局部极值
+   - 使用前要确认函数的单峰性
+
+2. 整数三分 vs 浮点三分：
+   - 整数三分：注意剩余元素少于3个时的处理
+   - 浮点三分：注意精度控制，建议使用固定迭代次数
+
+3. 边界处理：
+   - 确保初始区间包含极值点
+   - 函数在边界处的取值要合理
+
+4. 精度控制：
+   - 浮点三分使用EPS控制精度（通常1e-8）
+   - 或者固定迭代100次左右，已足够精确
+
+5. 比较方向：
+   - 求最大值：f(mid1) < f(mid2)，left = mid1
+   - 求最小值：f(mid1) > f(mid2)，left = mid1
+   - 容易混淆，要仔细判断
+
+6. 特殊情况：
+   - 函数在区间上是单调的（退化情况）
+   - 平坦区域（函数值相等）
+   - 离散函数的整数三分
+
+7. 性能考虑：
+   - 三分法时间复杂度：O(log3 n) ≈ O(log n)
+   - 每次迭代需要计算两次函数值
+   - 对于复杂的函数，可以考虑其他优化方法
+
+8. 与其他算法比较：
+   - 导数法：如果函数可导，可以用牛顿法等更快的方法
+   - 黄金分割搜索：也是一种求极值的方法
+   - 梯度下降：用于多维函数优化
+
+时间复杂度总结
+--------------
+- 整数三分：O(log3 n) ≈ O(log n)
+- 浮点三分：O(log(范围/精度)) 或 O(固定迭代次数)
+- 空间复杂度：O(1)
+
+三分法是求解单峰/单谷函数极值的重要工具，在优化问题和数值计算中有着广泛应用。

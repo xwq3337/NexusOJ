@@ -1,0 +1,671 @@
+启发式搜索（Heuristic Search）
+==============================
+
+算法概述
+--------
+启发式搜索是一种在搜索过程中使用启发信息来指导搜索方向的算法。与盲目搜索（如BFS、DFS）不同，
+启发式搜索使用估价函数来评估每个状态的价值，优先搜索更有可能达到目标的状态。
+这种策略可以大幅减少搜索空间，提高搜索效率。
+
+核心思想
+--------
+1. 使用估价函数f(n)来评估状态的价值
+2. 优先扩展f(n)值较小的节点
+3. 估价函数通常由两部分组成：f(n) = g(n) + h(n)
+   - g(n): 从初始状态到当前状态的实际代价
+   - h(n): 从当前状态到目标状态的估计代价（启发函数）
+4. 启发函数h(n)的设计是关键，直接影响搜索效率
+5. 时间复杂度取决于启发函数的质量
+
+基础模板：最佳优先搜索
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];  // adj[u] = {(v, w), ...}
+int dist[MAXN];
+int h[MAXN];  // 启发函数值（到终点的估计距离）
+
+// 估价函数
+int f(int u) {
+    return dist[u] + h[u];
+}
+
+void best_first_search(int start, int end) {
+    memset(dist, 0x3f, sizeof(dist));
+    dist[start] = 0;
+
+    // 优先队列，按照f值排序
+    priority_queue<pair<int, int>,
+                   vector<pair<int, int>>,
+                   greater<pair<int, int>>> pq;
+
+    pq.push({f(start), start});
+
+    while (!pq.empty()) {
+        auto [fu, u] = pq.top();
+        pq.pop();
+
+        if (fu != f(u)) continue;  // 已经有更优的解
+
+        if (u == end) {
+            cout << "到达终点，距离: " << dist[end] << '\n';
+            return;
+        }
+
+        for (auto& [v, w] : adj[u]) {
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                pq.push({f(v), v});
+            }
+        }
+    }
+
+    cout << "无法到达终点\n";
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    }
+
+    // 输入启发函数值（实际应用中需要设计）
+    for (int i = 1; i <= n; i++) {
+        cin >> h[i];
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    best_first_search(start, end);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+import heapq
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        adj[v].append((u, w))
+
+    dist = [float('inf')] * (n + 1)
+    h = [0] * (n + 1)
+
+    # 输入启发函数值（实际应用中需要设计）
+    for i in range(1, n + 1):
+        h[i] = int(input())
+
+    def f(u):
+        return dist[u] + h[u]
+
+    def best_first_search(start, end):
+        dist[start] = 0
+        pq = [(f(start), start)]
+
+        while pq:
+            fu, u = heapq.heappop(pq)
+
+            if fu != f(u):
+                continue
+
+            if u == end:
+                print(f"到达终点，距离: {dist[end]}")
+                return
+
+            for v, w in adj[u]:
+                if dist[u] + w < dist[v]:
+                    dist[v] = dist[u] + w
+                    heapq.heappush(pq, (f(v), v))
+
+        print("无法到达终点")
+
+    start, end = map(int, input().split())
+    best_first_search(start, end)
+
+solve()
+```
+
+应用一：八数码问题
+----------------
+在一个3x3的棋盘上，有8个数字方块和一个空位，每次可以将空位相邻的方块移动到空位中。
+求从初始状态到目标状态的最少移动次数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 目标状态
+const string TARGET = "123456780";
+
+// 计算启发函数值：不在正确位置的数字个数
+int heuristic(const string& state) {
+    int cnt = 0;
+    for (int i = 0; i < 9; i++) {
+        if (state[i] != '0' && state[i] != TARGET[i]) {
+            cnt++;
+        }
+    }
+    return cnt;
+}
+
+// 曼哈顿距离启发函数
+int manhattan_distance(const string& state) {
+    int dist = 0;
+    for (int i = 0; i < 9; i++) {
+        if (state[i] == '0') continue;
+
+        int num = state[i] - '0';
+        int cur_row = i / 3, cur_col = i % 3;
+        int target_row = (num - 1) / 3, target_col = (num - 1) % 3;
+
+        dist += abs(cur_row - target_row) + abs(cur_col - target_col);
+    }
+    return dist;
+}
+
+struct State {
+    string board;
+    int g;  // 实际代价
+    int h;  // 启发值
+    int f() const { return g + h; }
+
+    bool operator>(const State& other) const {
+        return f() > other.f();
+    }
+};
+
+int eight_puzzle(string start) {
+    if (start == TARGET) return 0;
+
+    priority_queue<State, vector<State>, greater<State>> pq;
+    unordered_map<string, int> dist;
+
+    pq.push({start, 0, manhattan_distance(start)});
+    dist[start] = 0;
+
+    int dx[4] = {0, 0, 1, -1};
+    int dy[4] = {1, -1, 0, 0};
+
+    while (!pq.empty()) {
+        State cur = pq.top();
+        pq.pop();
+
+        if (cur.board == TARGET) {
+            return cur.g;
+        }
+
+        if (cur.g > dist[cur.board]) continue;
+
+        int pos = cur.board.find('0');
+        int x = pos / 3, y = pos % 3;
+
+        for (int i = 0; i < 4; i++) {
+            int nx = x + dx[i];
+            int ny = y + dy[i];
+            int npos = nx * 3 + ny;
+
+            if (nx >= 0 && nx < 3 && ny >= 0 && ny < 3) {
+                string next = cur.board;
+                swap(next[pos], next[npos]);
+
+                if (dist.find(next) == dist.end() || cur.g + 1 < dist[next]) {
+                    dist[next] = cur.g + 1;
+                    pq.push({next, cur.g + 1, manhattan_distance(next)});
+                }
+            }
+        }
+    }
+
+    return -1;  // 无法到达
+}
+
+int main() {
+    string start;
+    cout << "输入初始状态（9个字符，0表示空位）: ";
+    cin >> start;
+
+    int steps = eight_puzzle(start);
+    if (steps != -1) {
+        cout << "最少移动次数: " << steps << '\n';
+    } else {
+        cout << "无法到达目标状态\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import heapq
+
+# 目标状态
+TARGET = "123456780"
+
+def manhattan_distance(state):
+    """曼哈顿距离启发函数"""
+    dist = 0
+    for i in range(9):
+        if state[i] == '0':
+            continue
+        num = int(state[i])
+        cur_row, cur_col = i // 3, i % 3
+        target_row, target_col = (num - 1) // 3, (num - 1) % 3
+        dist += abs(cur_row - target_row) + abs(cur_col - target_col)
+    return dist
+
+def heuristic_misplaced(state):
+    """不在正确位置的数字个数"""
+    cnt = 0
+    for i in range(9):
+        if state[i] != '0' and state[i] != TARGET[i]:
+            cnt += 1
+    return cnt
+
+def eight_puzzle(start):
+    if start == TARGET:
+        return 0
+
+    # 优先队列：(f值, g值, 状态)
+    pq = [(manhattan_distance(start), 0, start)]
+    dist = {start: 0}
+
+    dx = [0, 0, 1, -1]
+    dy = [1, -1, 0, 0]
+
+    while pq:
+        f, g, state = heapq.heappop(pq)
+
+        if state == TARGET:
+            return g
+
+        if g > dist[state]:
+            continue
+
+        pos = state.find('0')
+        x, y = pos // 3, pos % 3
+
+        for i in range(4):
+            nx, ny = x + dx[i], y + dy[i]
+            npos = nx * 3 + ny
+
+            if 0 <= nx < 3 and 0 <= ny < 3:
+                next_state = list(state)
+                next_state[pos], next_state[npos] = next_state[npos], next_state[pos]
+                next_state = ''.join(next_state)
+
+                if next_state not in dist or g + 1 < dist[next_state]:
+                    dist[next_state] = g + 1
+                    h = manhattan_distance(next_state)
+                    heapq.heappush(pq, (g + 1 + h, g + 1, next_state))
+
+    return -1
+
+def main():
+    start = input("输入初始状态（9个字符，0表示空位）: ")
+    steps = eight_puzzle(start)
+    if steps != -1:
+        print(f"最少移动次数: {steps}")
+    else:
+        print("无法到达目标状态")
+
+if __name__ == "__main__":
+    main()
+```
+
+应用二：迷宫问题（启发式搜索）
+---------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+
+int n, m;
+char maze[MAXN][MAXN];
+int dist[MAXN][MAXN];
+int dx[4] = {0, 0, 1, -1};
+int dy[4] = {1, -1, 0, 0};
+
+struct Point {
+    int x, y;
+};
+
+// 曼哈顿距离启发函数
+int heuristic(Point u, Point end) {
+    return abs(u.x - end.x) + abs(u.y - end.y);
+}
+
+struct State {
+    Point pos;
+    int g;  // 实际代价
+    int h;  // 启发值
+    int f() const { return g + h; }
+
+    bool operator>(const State& other) const {
+        return f() > other.f();
+    }
+};
+
+bool is_valid(int x, int y) {
+    return x >= 0 && x < n && y >= 0 && y < m && maze[x][y] != '#';
+}
+
+int heuristic_maze(Point start, Point end) {
+    memset(dist, 0x3f, sizeof(dist));
+
+    priority_queue<State, vector<State>, greater<State>> pq;
+    dist[start.x][start.y] = 0;
+
+    pq.push({start, 0, heuristic(start, end)});
+
+    while (!pq.empty()) {
+        State cur = pq.top();
+        pq.pop();
+
+        if (cur.pos.x == end.x && cur.pos.y == end.y) {
+            return cur.g;
+        }
+
+        if (cur.g > dist[cur.pos.x][cur.pos.y]) continue;
+
+        for (int i = 0; i < 4; i++) {
+            int nx = cur.pos.x + dx[i];
+            int ny = cur.pos.y + dy[i];
+
+            if (is_valid(nx, ny) && cur.g + 1 < dist[nx][ny]) {
+                dist[nx][ny] = cur.g + 1;
+                pq.push({{nx, ny}, cur.g + 1, heuristic({nx, ny}, end)});
+            }
+        }
+    }
+
+    return -1;
+}
+
+int main() {
+    cin >> n >> m;
+
+    Point start, end;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            cin >> maze[i][j];
+            if (maze[i][j] == 'S') {
+                start = {i, j};
+            } else if (maze[i][j] == 'E') {
+                end = {i, j};
+            }
+        }
+    }
+
+    int shortest = heuristic_maze(start, end);
+    if (shortest != -1) {
+        cout << "最短路径长度: " << shortest << '\n';
+    } else {
+        cout << "无法到达终点\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import heapq
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    maze = []
+    start = end = None
+    for i in range(n):
+        row = list(input().strip())
+        maze.append(row)
+        for j, ch in enumerate(row):
+            if ch == 'S':
+                start = (i, j)
+            elif ch == 'E':
+                end = (i, j)
+
+    def heuristic(pos):
+        return abs(pos[0] - end[0]) + abs(pos[1] - end[1])
+
+    def is_valid(x, y):
+        return 0 <= x < n and 0 <= y < m and maze[x][y] != '#'
+
+    def heuristic_maze():
+        dist = [[float('inf')] * m for _ in range(n)]
+        pq = [(heuristic(start), 0, start)]
+        dist[start[0]][start[1]] = 0
+
+        dx = [0, 0, 1, -1]
+        dy = [1, -1, 0, 0]
+
+        while pq:
+            f, g, (x, y) = heapq.heappop(pq)
+
+            if (x, y) == end:
+                return g
+
+            if g > dist[x][y]:
+                continue
+
+            for i in range(4):
+                nx, ny = x + dx[i], y + dy[i]
+                if is_valid(nx, ny) and g + 1 < dist[nx][ny]:
+                    dist[nx][ny] = g + 1
+                    heapq.heappush(pq, (g + 1 + heuristic((nx, ny)), g + 1, (nx, ny)))
+
+        return -1
+
+    shortest = heuristic_maze()
+    if shortest != -1:
+        print(f"最短路径长度: {shortest}")
+    else:
+        print("无法到达终点")
+
+solve()
+```
+
+应用三：贪心最佳优先搜索
+-----------------------
+只考虑启发函数h(n)，不考虑实际代价g(n)。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];
+int h[MAXN];  // 启发函数值
+
+void greedy_best_first(int start, int end) {
+    vector<bool> visited(n + 1, false);
+    priority_queue<pair<int, int>,
+                   vector<pair<int, int>>,
+                   greater<pair<int, int>>> pq;
+
+    pq.push({h[start], start});
+
+    while (!pq.empty()) {
+        auto [hu, u] = pq.top();
+        pq.pop();
+
+        if (visited[u]) continue;
+        visited[u] = true;
+
+        cout << "访问节点: " << u << " (h=" << hu << ")\n";
+
+        if (u == end) {
+            cout << "到达终点\n";
+            return;
+        }
+
+        for (auto& [v, w] : adj[u]) {
+            if (!visited[v]) {
+                pq.push({h[v], v});
+            }
+        }
+    }
+
+    cout << "无法到达终点\n";
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    }
+
+    // 输入启发函数值
+    for (int i = 1; i <= n; i++) {
+        cin >> h[i];
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    greedy_best_first(start, end);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+import heapq
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        adj[v].append((u, w))
+
+    h = [0] * (n + 1)
+    for i in range(1, n + 1):
+        h[i] = int(input())
+
+    def greedy_best_first(start, end):
+        visited = [False] * (n + 1)
+        pq = [(h[start], start)]
+
+        while pq:
+            hu, u = heapq.heappop(pq)
+
+            if visited[u]:
+                continue
+            visited[u] = True
+
+            print(f"访问节点: {u} (h={hu})")
+
+            if u == end:
+                print("到达终点")
+                return
+
+            for v, w in adj[u]:
+                if not visited[v]:
+                    heapq.heappush(pq, (h[v], v))
+
+        print("无法到达终点")
+
+    start, end = map(int, input().split())
+    greedy_best_first(start, end)
+
+solve()
+```
+
+典型例题
+--------
+1. 八数码问题（经典问题）：最少移动次数
+2. 迷宫最短路径（POJ3984）：使用启发函数优化
+3. 15数码问题：扩展的八数码
+4. 华容道问题：经典滑块拼图
+5. 旅行商问题（TSP）：使用启发式优化
+
+注意事项
+--------
+1. 启发函数h(n)的设计是关键
+   - h(n) = 0：退化为Dijkstra算法
+   - h(n) < 实际代价：可能找不到最优解
+   - h(n) <= 实际代价：可采纳性，保证找到最优解（A*算法）
+   - h(n) = 实际代价：完美启发，直接找到最优解
+
+2. 启发函数的设计原则：
+   - 可采纳性：h(n)不超过从n到目标的最小代价
+   - 一致性（单调性）：h(n) <= c(n, n') + h(n')
+   - 信息量越大越好，但计算开销也要考虑
+
+3. 常用启发函数：
+   - 曼哈顿距离：适用于网格地图
+   - 欧几里得距离：适用于平面地图
+   - 不匹配位置数：适用于排列问题
+   - 最小生成树：适用于TSP问题
+
+4. 优点：
+   - 搜索效率高
+   - 可以快速找到解
+   - 适用于大规模搜索空间
+
+5. 缺点：
+   - 不保证找到最优解（除非满足可采纳性）
+   - 启发函数设计困难
+   - 可能陷入局部最优
+
+启发式搜索 vs 盲目搜索
+----------------------
+| 特性 | 盲目搜索 (BFS/DFS) | 启发式搜索 |
+|------|-------------------|-----------|
+| 搜索方向 | 系统性搜索 | 有方向地搜索 |
+| 启发信息 | 不使用 | 使用估价函数 |
+| 效率 | 较低 | 较高 |
+| 最优性 | BFS保证最优 | 取决于启发函数 |
+| 适用性 | 简单问题 | 复杂问题 |
+
+时间复杂度总结
+--------------
+- 最坏情况：与盲目搜索相同
+- 平均情况：大幅优于盲目搜索
+- 取决于启发函数的质量
+- 空间复杂度：O(b^d) 或更优
+
+启发式搜索是解决复杂搜索问题的重要工具，A*算法是其最成功的应用之一。

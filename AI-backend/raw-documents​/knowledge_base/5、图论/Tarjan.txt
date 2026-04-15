@@ -1,0 +1,420 @@
+Tarjan算法
+==========
+
+算法概述
+--------
+Tarjan算法由Robert Tarjan提出,用于在有向图中寻找强连通分量(SCC, Strongly Connected Component)。强连通分量是指图中极大的强连通子图,子图中任意两个节点可以互相到达。
+
+核心思想
+--------
+1. DFS遍历:深度优先搜索遍历图
+2. 时间戳:dfn[u]记录节点u被访问的时间
+3. 追溯值:low[u]记录u能追溯到最早的节点时间戳
+4. 栈:维护当前搜索路径上的节点
+5. SCC判定:dfn[u] == low[u]时,u是SCC的根
+
+算法流程
+--------
+1. 对每个未访问节点进行DFS
+2. 记录dfn和low值,将节点入栈
+3. 遍历邻接点v:
+   - 未访问:递归访问v,更新low[u] = min(low[u], low[v])
+   - 已访问且在栈中:low[u] = min(low[u], dfn[v])
+4. 回溯时判断:如果dfn[u] == low[u],则u到栈顶为一个SCC
+
+基础实现:求强连通分量
+---------------------
+时间复杂度:O(n+m)
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+int dfn[MAXN], low[MAXN];
+int tot;  // 时间戳
+stack<int> stk;
+bool in_stack[MAXN];
+int scc_cnt;  // SCC数量
+int scc_id[MAXN];  // 每个点所属的SCC
+vector<int> scc[MAXN];  // 每个SCC包含的点
+
+void tarjan(int u) {
+    dfn[u] = low[u] = ++tot;
+    stk.push(u);
+    in_stack[u] = true;
+
+    for (int v : adj[u]) {
+        if (!dfn[v]) {
+            tarjan(v);
+            low[u] = min(low[u], low[v]);
+        } else if (in_stack[v]) {
+            low[u] = min(low[u], dfn[v]);
+        }
+    }
+
+    // 如果u是SCC的根
+    if (dfn[u] == low[u]) {
+        scc_cnt++;
+        while (true) {
+            int v = stk.top();
+            stk.pop();
+            in_stack[v] = false;
+            scc_id[v] = scc_cnt;
+            scc[scc_cnt].push_back(v);
+            if (v == u) break;
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+    }
+
+    for (int i = 1; i <= n; i++) {
+        if (!dfn[i]) {
+            tarjan(i);
+        }
+    }
+
+    cout << "Number of SCCs: " << scc_cnt << "\n";
+
+    for (int i = 1; i <= scc_cnt; i++) {
+        cout << "SCC " << i << ": ";
+        for (int v : scc[i]) {
+            cout << v << " ";
+        }
+        cout << "\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+sys.setrecursionlimit(200005)
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+
+    dfn = [0] * (n + 1)
+    low = [0] * (n + 1)
+    tot = 0
+    stk = []
+    in_stack = [False] * (n + 1)
+    scc_cnt = 0
+    scc_id = [0] * (n + 1)
+    scc = []
+
+    def tarjan(u):
+        nonlocal tot, scc_cnt
+        dfn[u] = low[u] = tot + 1
+        tot += 1
+        stk.append(u)
+        in_stack[u] = True
+
+        for v in adj[u]:
+            if dfn[v] == 0:
+                tarjan(v)
+                low[u] = min(low[u], low[v])
+            elif in_stack[v]:
+                low[u] = min(low[u], dfn[v])
+
+        if dfn[u] == low[u]:
+            scc_cnt += 1
+            component = []
+            while True:
+                v = stk.pop()
+                in_stack[v] = False
+                scc_id[v] = scc_cnt
+                component.append(v)
+                if v == u:
+                    break
+            scc.append(component)
+
+    for i in range(1, n + 1):
+        if dfn[i] == 0:
+            tarjan(i)
+
+    print(f"Number of SCCs: {scc_cnt}")
+
+    for i in range(scc_cnt):
+        print(f"SCC {i + 1}:", *scc[i])
+
+solve()
+```
+
+缩点:将SCC缩成一个点
+-------------------
+时间复杂度:O(n+m)
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+int dfn[MAXN], low[MAXN];
+int tot;
+stack<int> stk;
+bool in_stack[MAXN];
+int scc_cnt;
+int scc_id[MAXN];
+int scc_size[MAXN];  // 每个SCC的大小
+vector<int> new_adj[MAXN];  // 缩点后的新图
+
+void tarjan(int u) {
+    dfn[u] = low[u] = ++tot;
+    stk.push(u);
+    in_stack[u] = true;
+
+    for (int v : adj[u]) {
+        if (!dfn[v]) {
+            tarjan(v);
+            low[u] = min(low[u], low[v]);
+        } else if (in_stack[v]) {
+            low[u] = min(low[u], dfn[v]);
+        }
+    }
+
+    if (dfn[u] == low[u]) {
+        scc_cnt++;
+        while (true) {
+            int v = stk.top();
+            stk.pop();
+            in_stack[v] = false;
+            scc_id[v] = scc_cnt;
+            scc_size[scc_cnt]++;
+            if (v == u) break;
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+    }
+
+    for (int i = 1; i <= n; i++) {
+        if (!dfn[i]) {
+            tarjan(i);
+        }
+    }
+
+    // 构建缩点后的新图
+    for (int u = 1; u <= n; u++) {
+        for (int v : adj[u]) {
+            if (scc_id[u] != scc_id[v]) {
+                new_adj[scc_id[u]].push_back(scc_id[v]);
+            }
+        }
+    }
+
+    cout << "Number of SCCs: " << scc_cnt << "\n";
+    cout << "Size of each SCC:\n";
+    for (int i = 1; i <= scc_cnt; i++) {
+        cout << "SCC " << i << ": " << scc_size[i] << "\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+sys.setrecursionlimit(200005)
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+
+    dfn = [0] * (n + 1)
+    low = [0] * (n + 1)
+    tot = 0
+    stk = []
+    in_stack = [False] * (n + 1)
+    scc_cnt = 0
+    scc_id = [0] * (n + 1)
+    scc_size = [0] * (n + 1)
+
+    def tarjan(u):
+        nonlocal tot, scc_cnt
+        dfn[u] = low[u] = tot + 1
+        tot += 1
+        stk.append(u)
+        in_stack[u] = True
+
+        for v in adj[u]:
+            if dfn[v] == 0:
+                tarjan(v)
+                low[u] = min(low[u], low[v])
+            elif in_stack[v]:
+                low[u] = min(low[u], dfn[v])
+
+        if dfn[u] == low[u]:
+            scc_cnt += 1
+            while True:
+                v = stk.pop()
+                in_stack[v] = False
+                scc_id[v] = scc_cnt
+                scc_size[scc_cnt] += 1
+                if v == u:
+                    break
+
+    for i in range(1, n + 1):
+        if dfn[i] == 0:
+            tarjan(i)
+
+    print(f"Number of SCCs: {scc_cnt}")
+    print("Size of each SCC:")
+    for i in range(1, scc_cnt + 1):
+        print(f"SCC {i}: {scc_size[i]}")
+
+solve()
+```
+
+应用:SCC缩点后求DAG最长路
+------------------------
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+int dfn[MAXN], low[MAXN];
+int tot;
+stack<int> stk;
+bool in_stack[MAXN];
+int scc_cnt;
+int scc_id[MAXN];
+int scc_weight[MAXN];  // SCC权值(点权和)
+int weight[MAXN];  // 原图点权
+vector<int> new_adj[MAXN];
+int dist[MAXN];  // DAG最长路
+
+void tarjan(int u) {
+    dfn[u] = low[u] = ++tot;
+    stk.push(u);
+    in_stack[u] = true;
+
+    for (int v : adj[u]) {
+        if (!dfn[v]) {
+            tarjan(v);
+            low[u] = min(low[u], low[v]);
+        } else if (in_stack[v]) {
+            low[u] = min(low[u], dfn[v]);
+        }
+    }
+
+    if (dfn[u] == low[u]) {
+        scc_cnt++;
+        while (true) {
+            int v = stk.top();
+            stk.pop();
+            in_stack[v] = false;
+            scc_id[v] = scc_cnt;
+            scc_weight[scc_cnt] += weight[v];
+            if (v == u) break;
+        }
+    }
+}
+
+void dfs(int u) {
+    if (dist[u]) return;
+    dist[u] = scc_weight[u];
+    for (int v : new_adj[u]) {
+        dfs(v);
+        dist[u] = max(dist[u], dist[v] + scc_weight[u]);
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        cin >> weight[i];
+    }
+
+    for (int i = 1; i <= m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+    }
+
+    for (int i = 1; i <= n; i++) {
+        if (!dfn[i]) {
+            tarjan(i);
+        }
+    }
+
+    // 构建新图
+    for (int u = 1; u <= n; u++) {
+        for (int v : adj[u]) {
+            if (scc_id[u] != scc_id[v]) {
+                new_adj[scc_id[u]].push_back(scc_id[v]);
+            }
+        }
+    }
+
+    int ans = 0;
+    for (int i = 1; i <= scc_cnt; i++) {
+        dfs(i);
+        ans = max(ans, dist[i]);
+    }
+
+    cout << "Longest path in DAG: " << ans << "\n";
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 强连通分量(洛谷P2341): Tarjan模板题
+2. 缩点(洛谷P3387): SCC缩点应用
+3. 受欢迎的牛(洛谷P2341): 求出度为0的SCC
+4. 学校网络(洛谷P2812): Tarjan应用
+5. 最大半连通子图(洛谷P2341): Tarjan+DP
+
+注意事项
+--------
+1. Tarjan算法的时间复杂度是O(n+m)
+2. 缩点后形成的是DAG(有向无环图)
+3. 注意递归深度,可能需要设置栈大小或迭代实现
+4. Python中需要设置递归深度限制
+5. Tarjan可以同时求SCC和割点、桥等问题

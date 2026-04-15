@@ -1,0 +1,6 @@
+Django>=5.1,<6.0
+python-dotenv>=1.0.0
+pymilvus>=2.4.0
+requests>=2.31.0
+gunicorn>=22.0.0
+gevent>=24.0.0

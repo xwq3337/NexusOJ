@@ -1,0 +1,718 @@
+Bellman-Ford算法
+================
+
+算法概述
+--------
+Bellman-Ford算法是一种求解单源最短路问题的动态规划算法,由Richard Bellman和Lester Ford Jr.提出。与Dijkstra算法不同,Bellman-Ford算法可以处理负权边,并能检测图中是否存在负权环。
+
+核心思想
+--------
+1. 动态规划:dp[i][v]表示从起点经过最多i条边到达v的最短距离
+2. 松弛操作:对所有边进行n-1轮松弛,每轮更新所有边的最短距离
+3. 负权环检测:第n轮还能松弛说明存在负权环
+4. 状态压缩:可以只用一维数组,从后往前更新
+
+算法原理
+--------
+设dist[v]表示从起点到v的最短距离。
+
+初始时:dist[start] = 0, dist[other] = ∞
+
+对每条边u->v,权值为w,如果dist[u] + w < dist[v],则更新dist[v] = dist[u] + w
+
+这个过程需要重复n-1次,因为最短路径最多包含n-1条边(不能有环)。
+
+如果第n次还能更新,说明存在负权环。
+
+基础实现
+--------
+时间复杂度:O(nm),空间复杂度:O(n+m)
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 10005;
+const int MAXM = 50005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+struct Edge {
+    int u, v, w;
+} edges[MAXM];
+int dist[MAXN];
+
+bool bellman_ford(int start) {
+    // 初始化
+    memset(dist, 0x3f, sizeof(dist));
+    dist[start] = 0;
+
+    // 进行n-1轮松弛
+    for (int i = 1; i < n; i++) {
+        bool updated = false;
+        for (int j = 1; j <= m; j++) {
+            int u = edges[j].u;
+            int v = edges[j].v;
+            int w = edges[j].w;
+            if (dist[u] < INF && dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                updated = true;
+            }
+        }
+        if (!updated) break;  // 提前退出
+    }
+
+    // 检查负权环
+    for (int j = 1; j <= m; j++) {
+        int u = edges[j].u;
+        int v = edges[j].v;
+        int w = edges[j].w;
+        if (dist[u] < INF && dist[u] + w < dist[v]) {
+            return true;  // 存在负权环
+        }
+    }
+    return false;  // 不存在负权环
+}
+
+int main() {
+    cin >> n >> m;
+
+    // 读入边
+    for (int i = 1; i <= m; i++) {
+        cin >> edges[i].u >> edges[i].v >> edges[i].w;
+    }
+
+    int start;
+    cin >> start;
+
+    if (bellman_ford(start)) {
+        cout << "Negative cycle detected!\n";
+    } else {
+        for (int i = 1; i <= n; i++) {
+            if (dist[i] >= INF / 2) {
+                cout << "INF\n";
+            } else {
+                cout << dist[i] << "\n";
+            }
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    edges = []
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        edges.append((u, v, w))
+
+    start = int(input())
+
+    INF = float('inf')
+    dist = [INF] * (n + 1)
+    dist[start] = 0
+
+    # 进行n-1轮松弛
+    for i in range(n - 1):
+        updated = False
+        for u, v, w in edges:
+            if dist[u] < INF and dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                updated = True
+        if not updated:
+            break
+
+    # 检查负权环
+    has_negative = False
+    for u, v, w in edges:
+        if dist[u] < INF and dist[u] + w < dist[v]:
+            has_negative = True
+            break
+
+    if has_negative:
+        print("Negative cycle detected!")
+    else:
+        for i in range(1, n + 1):
+            if dist[i] >= INF / 2:
+                print("INF")
+            else:
+                print(dist[i])
+
+solve()
+```
+
+路径还原
+--------
+记录前驱节点,还原最短路径。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 10005;
+const int MAXM = 50005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+struct Edge {
+    int u, v, w;
+} edges[MAXM];
+int dist[MAXN];
+int pre[MAXN];  // 前驱节点
+
+bool bellman_ford(int start) {
+    memset(dist, 0x3f, sizeof(dist));
+    memset(pre, -1, sizeof(pre));
+    dist[start] = 0;
+
+    for (int i = 1; i < n; i++) {
+        bool updated = false;
+        for (int j = 1; j <= m; j++) {
+            int u = edges[j].u;
+            int v = edges[j].v;
+            int w = edges[j].w;
+            if (dist[u] < INF && dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                pre[v] = u;
+                updated = true;
+            }
+        }
+        if (!updated) break;
+    }
+
+    // 检查负权环
+    for (int j = 1; j <= m; j++) {
+        int u = edges[j].u;
+        int v = edges[j].v;
+        int w = edges[j].w;
+        if (dist[u] < INF && dist[u] + w < dist[v]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// 打印路径
+void print_path(int end) {
+    if (pre[end] == -1 && dist[end] >= INF / 2) {
+        cout << "No path!\n";
+        return;
+    }
+
+    vector<int> path;
+    for (int v = end; v != -1; v = pre[v]) {
+        path.push_back(v);
+    }
+    reverse(path.begin(), path.end());
+
+    cout << "Path: ";
+    for (size_t i = 0; i < path.size(); i++) {
+        cout << path[i];
+        if (i < path.size() - 1) cout << " -> ";
+    }
+    cout << "\n";
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        cin >> edges[i].u >> edges[i].v >> edges[i].w;
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    if (bellman_ford(start)) {
+        cout << "Negative cycle detected!\n";
+    } else {
+        cout << "Distance: " << dist[end] << "\n";
+        print_path(end);
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    edges = []
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        edges.append((u, v, w))
+
+    start, end = map(int, input().split())
+
+    INF = float('inf')
+    dist = [INF] * (n + 1)
+    pre = [-1] * (n + 1)
+    dist[start] = 0
+
+    # 进行n-1轮松弛
+    for i in range(n - 1):
+        updated = False
+        for u, v, w in edges:
+            if dist[u] < INF and dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                pre[v] = u
+                updated = True
+        if not updated:
+            break
+
+    # 检查负权环
+    has_negative = False
+    for u, v, w in edges:
+        if dist[u] < INF and dist[u] + w < dist[v]:
+            has_negative = True
+            break
+
+    if has_negative:
+        print("Negative cycle detected!")
+    else:
+        print(f"Distance: {dist[end]}")
+        # 打印路径
+        if pre[end] == -1 and dist[end] >= INF / 2:
+            print("No path!")
+        else:
+            path = []
+            v = end
+            while v != -1:
+                path.append(v)
+                v = pre[v]
+            path.reverse()
+            print("Path:", " -> ".join(map(str, path)))
+
+solve()
+```
+
+队列优化版本(SPFA)
+----------------
+Bellman-Ford的队列优化版本,即SPFA算法。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int MAXM = 500005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+int head[MAXN];
+struct Edge {
+    int to, weight, next;
+} edges[MAXM];
+int tot;
+
+int dist[MAXN];
+bool in_queue[MAXN];
+int cnt[MAXN];  // 入队次数
+
+void add_edge(int u, int v, int w) {
+    edges[++tot].to = v;
+    edges[tot].weight = w;
+    edges[tot].next = head[u];
+    head[u] = tot;
+}
+
+bool spfa(int start) {
+    memset(dist, 0x3f, sizeof(dist));
+    memset(in_queue, false, sizeof(in_queue));
+    memset(cnt, 0, sizeof(cnt));
+    dist[start] = 0;
+
+    queue<int> q;
+    q.push(start);
+    in_queue[start] = true;
+    cnt[start] = 1;
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        in_queue[u] = false;
+
+        for (int i = head[u]; i; i = edges[i].next) {
+            int v = edges[i].to;
+            int w = edges[i].weight;
+            if (dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                if (!in_queue[v]) {
+                    q.push(v);
+                    in_queue[v] = true;
+                    cnt[v]++;
+                    if (cnt[v] > n) {
+                        return true;  // 存在负权环
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+int main() {
+    cin >> n >> m;
+
+    memset(head, 0, sizeof(head));
+    tot = 0;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        add_edge(u, v, w);
+    }
+
+    int start;
+    cin >> start;
+
+    if (spfa(start)) {
+        cout << "Negative cycle detected!\n";
+    } else {
+        for (int i = 1; i <= n; i++) {
+            if (dist[i] >= INF / 2) {
+                cout << "INF\n";
+            } else {
+                cout << dist[i] << "\n";
+            }
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    MAXM = m * 2 + 5
+
+    head = [0] * (n + 1)
+    edges = [(0, 0, 0) for _ in range(MAXM)]
+    tot = 0
+
+    def add_edge(u, v, w):
+        nonlocal tot
+        tot += 1
+        edges[tot] = (v, w, head[u])
+        head[u] = tot
+
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        add_edge(u, v, w)
+
+    start = int(input())
+
+    INF = float('inf')
+    dist = [INF] * (n + 1)
+    in_queue = [False] * (n + 1)
+    cnt = [0] * (n + 1)
+    dist[start] = 0
+
+    q = deque([start])
+    in_queue[start] = True
+    cnt[start] = 1
+
+    has_negative = False
+
+    while q and not has_negative:
+        u = q.popleft()
+        in_queue[u] = False
+
+        i = head[u]
+        while i:
+            v, w, _ = edges[i]
+            if dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                if not in_queue[v]:
+                    q.append(v)
+                    in_queue[v] = True
+                    cnt[v] += 1
+                    if cnt[v] > n:
+                        has_negative = True
+                        break
+            i = edges[i][2]
+
+    if has_negative:
+        print("Negative cycle detected!")
+    else:
+        for i in range(1, n + 1):
+            if dist[i] >= INF / 2:
+                print("INF")
+            else:
+                print(dist[i])
+
+solve()
+```
+
+差分约束系统
+------------
+Bellman-Ford算法常用于求解差分约束系统。
+
+差分约束系统是一组不等式:xa - xb ≤ c
+
+可以转化为图:从b到a有一条权值为c的边
+
+求出最长路/最短路后,就得到满足所有约束的解。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 5005;
+const int MAXM = 10005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+struct Edge {
+    int u, v, w;
+} edges[MAXM];
+int dist[MAXN];
+
+bool bellman_ford(int start) {
+    memset(dist, 0x3f, sizeof(dist));
+    dist[start] = 0;
+
+    for (int i = 1; i <= n; i++) {
+        bool updated = false;
+        for (int j = 1; j <= m; j++) {
+            int u = edges[j].u;
+            int v = edges[j].v;
+            int w = edges[j].w;
+            if (dist[u] < INF && dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                updated = true;
+            }
+        }
+        if (!updated) break;
+    }
+
+    // 检查负权环
+    for (int j = 1; j <= m; j++) {
+        int u = edges[j].u;
+        int v = edges[j].v;
+        int w = edges[j].w;
+        if (dist[u] < INF && dist[u] + w < dist[v]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int main() {
+    // 差分约束系统示例
+    // x1 - x2 ≤ 3
+    // x2 - x3 ≤ -2
+    // x3 - x1 ≤ 1
+
+    n = 3;
+    m = 3;
+
+    // 构建图
+    edges[1] = {2, 1, 3};   // x2 -> x1, w=3
+    edges[2] = {3, 2, -2};  // x3 -> x2, w=-2
+    edges[3] = {1, 3, 1};   // x1 -> x3, w=1
+
+    // 添加超级源点
+    m++;
+    edges[m] = {0, 1, 0};
+    edges[m+1] = {0, 2, 0};
+    edges[m+2] = {0, 3, 0};
+    m += 2;
+
+    if (bellman_ford(0)) {
+        cout << "No solution (negative cycle)\n";
+    } else {
+        cout << "Solution:\n";
+        for (int i = 1; i <= n; i++) {
+            cout << "x" << i << " = " << dist[i] << "\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve_difference():
+    # 差分约束系统示例
+    # x1 - x2 <= 3
+    # x2 - x3 <= -2
+    # x3 - x1 <= 1
+
+    n = 3
+    edges = [
+        (2, 1, 3),   # x2 -> x1, w=3
+        (3, 2, -2),  # x3 -> x2, w=-2
+        (1, 3, 1),   # x1 -> x3, w=1
+    ]
+
+    # 添加超级源点
+    for i in range(1, n + 1):
+        edges.append((0, i, 0))
+
+    INF = float('inf')
+    dist = [INF] * (n + 1)
+    dist[0] = 0
+
+    # Bellman-Ford
+    for i in range(n):
+        updated = False
+        for u, v, w in edges:
+            if dist[u] < INF and dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                updated = True
+        if not updated:
+            break
+
+    # 检查负权环
+    has_negative = False
+    for u, v, w in edges:
+        if dist[u] < INF and dist[u] + w < dist[v]:
+            has_negative = True
+            break
+
+    if has_negative:
+        print("No solution (negative cycle)")
+    else:
+        print("Solution:")
+        for i in range(1, n + 1):
+            print(f"x{i} = {dist[i]}")
+
+solve_difference()
+```
+
+找零钱问题(最少硬币数量)
+----------------------
+将Bellman-Ford用于求解最少硬币数量问题。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 10005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+int coins[MAXN];
+int dist[MAXN];
+
+int main() {
+    cout << "Enter number of coin types: ";
+    cin >> n;
+
+    cout << "Enter coin values:\n";
+    for (int i = 1; i <= n; i++) {
+        cin >> coins[i];
+    }
+
+    cout << "Enter target amount: ";
+    cin >> m;
+
+    // 初始化
+    memset(dist, 0x3f, sizeof(dist));
+    dist[0] = 0;
+
+    // 构建边:从i到i+coin,权值为1
+    vector<tuple<int, int, int>> edges;
+    for (int i = 0; i <= m; i++) {
+        for (int j = 1; j <= n; j++) {
+            if (i + coins[j] <= m) {
+                edges.push_back({i, i + coins[j], 1});
+            }
+        }
+    }
+
+    // Bellman-Ford
+    for (int k = 1; k <= m; k++) {
+        bool updated = false;
+        for (auto& [u, v, w] : edges) {
+            if (dist[u] < INF && dist[u] + w < dist[v]) {
+                dist[v] = dist[u] + w;
+                updated = true;
+            }
+        }
+        if (!updated) break;
+    }
+
+    if (dist[m] >= INF / 2) {
+        cout << "No solution!\n";
+    } else {
+        cout << "Minimum coins: " << dist[m] << "\n";
+    }
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 最短路(洛谷P3385): Bellman-Ford模板题
+2. 负权环检测(洛谷P3385): 判断图中是否存在负权环
+3. 差分约束(洛谷P5960): 差分约束系统求解
+4. 信使(洛谷P1629): 求所有点到起点的最短路
+5. 最短路计数(洛谷P1144): 统计最短路数量
+
+注意事项
+--------
+1. Bellman-Ford时间复杂度O(nm),适合小规模图
+2. 可以处理负权边,这是相比Dijkstra的优势
+3. 能够检测负权环,这是相比SPFA的优势
+4. 第n-1轮松弛后如果没有更新,可以提前结束
+5. 初始化时要注意INF值的设置,避免溢出
+6. 在实际应用中,通常使用SPFA代替原始Bellman-Ford
+
+算法对比
+--------
+Bellman-Ford:
+- 时间复杂度:O(nm)
+- 优点:可以处理负权边,能检测负权环
+- 缺点:效率较低
+
+SPFA:
+- 平均时间复杂度:O(m),最坏O(nm)
+- 优点:平均效率高,可以处理负权边
+- 缺点:不稳定,特殊数据会退化
+
+Dijkstra:
+- 时间复杂度:O((n+m)log n)
+- 优点:稳定高效
+- 缺点:不能处理负权边
+
+时间复杂度总结
+--------------
+- 时间复杂度:O(nm)
+- 空间复杂度:O(n+m)
+- 适用场景:
+  * 需要检测负权环
+  * 图中有负权边
+  * 差分约束系统
+
+Bellman-Ford算法虽然效率不高,但它是理解最短路算法和差分约束系统的重要基础。

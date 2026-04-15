@@ -1,0 +1,563 @@
+快速幂（Fast Exponentiation / Binary Exponentiation）
+================================================
+
+算法概述
+--------
+快速幂是一种高效计算幂的算法，用于快速求解 a^n mod m 的值。
+它利用了幂的二进制表示，将O(n)的时间复杂度优化到O(log n)。
+核心思想是将指数n分解为2的幂次之和，通过平方和乘法快速计算结果。
+
+核心思想
+--------
+1. 问题：计算 a^n % mod
+2. 原理：任何正整数n都可以表示为二进制形式
+   例如：n = 13 = 1101(二进制) = 2^3 + 2^2 + 2^0 = 8 + 4 + 1
+3. 算法：
+   - a^13 = a^8 × a^4 × a^1
+   - 我们可以边计算a的平方边累加结果
+4. 复杂度：时间O(log n)，空间O(1)
+
+基础模板：快速幂
+----------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 方法1：迭代版本（推荐）
+ll pow_mod(ll a, ll b, ll mod) {
+    ll res = 1;
+    a %= mod;  // 先取模，避免a过大
+    while (b > 0) {
+        if (b & 1) {           // 如果b的当前位是1
+            res = res * a % mod;
+        }
+        a = a * a % mod;       // a平方
+        b >>= 1;               // b右移一位
+    }
+    return res;
+}
+
+// 方法2：递归版本
+ll pow_mod_rec(ll a, ll b, ll mod) {
+    if (b == 0) return 1 % mod;
+    ll half = pow_mod_rec(a, b >> 1, mod);
+    ll res = half * half % mod;
+    if (b & 1) res = res * a % mod;
+    return res;
+}
+
+// 方法3：使用位运算优化
+ll pow_mod_bit(ll a, ll b, ll mod) {
+    ll res = 1;
+    a %= mod;
+    while (b) {
+        if (b & 1) res = __int128(res) * a % mod;  // 防止溢出
+        a = __int128(a) * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+int main() {
+    ll a, b, mod;
+    cin >> a >> b >> mod;
+
+    cout << pow_mod(a, b, mod) << '\n';
+    cout << pow_mod_rec(a, b, mod) << '\n';
+    cout << pow_mod_bit(a, b, mod) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def pow_mod(a: int, b: int, mod: int) -> int:
+    """快速幂：计算 a^b % mod"""
+    res = 1
+    a %= mod
+    while b > 0:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def pow_mod_rec(a: int, b: int, mod: int) -> int:
+    """递归版本"""
+    if b == 0:
+        return 1 % mod
+    half = pow_mod_rec(a, b >> 1, mod)
+    res = half * half % mod
+    if b & 1:
+        res = res * a % mod
+    return res
+
+# Python内置函数
+def pow_mod_builtin(a: int, b: int, mod: int) -> int:
+    """使用Python内置的pow函数"""
+    return pow(a, b, mod)
+
+def solve():
+    a, b, mod = map(int, input().split())
+    print(pow_mod(a, b, mod))
+    print(pow_mod_rec(a, b, mod))
+    print(pow_mod_builtin(a, b, mod))
+
+solve()
+```
+
+算法详解
+--------
+让我们通过例子理解快速幂的过程：
+
+计算：3^13 % 7
+
+13的二进制：1101
+
+初始：res = 1, a = 3, b = 13
+
+步骤1：b = 13 (1101)，最低位为1
+  res = 1 × 3 % 7 = 3
+  a = 3 × 3 % 7 = 2
+  b = 6
+
+步骤2：b = 6 (110)，最低位为0
+  res不变 = 3
+  a = 2 × 2 % 7 = 4
+  b = 3
+
+步骤3：b = 3 (11)，最低位为1
+  res = 3 × 4 % 7 = 5
+  a = 4 × 4 % 7 = 2
+  b = 1
+
+步骤4：b = 1 (1)，最低位为1
+  res = 5 × 2 % 7 = 3
+  a = 2 × 2 % 7 = 4
+  b = 0
+
+结束：返回 res = 3
+
+验证：3^13 = 1594323，1594323 % 7 = 3 ✓
+
+应用场景
+--------
+1. 大数幂运算：计算a^n，其中n很大（可达10^18）
+2. 模幂运算：密码学中的RSA算法
+3. 矩阵快速幂：斐波那契数列等递推问题
+4. 几何级数求和
+5. 逆元计算：a^(p-2) mod p（费马小定理）
+
+应用一：矩阵快速幂
+-------------------
+快速幂在矩阵上的应用，可以O(log n)时间计算矩阵的n次幂。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+const ll mod = 1e9 + 7;
+
+struct Matrix {
+    ll mat[2][2];
+
+    Matrix() {
+        memset(mat, 0, sizeof(mat));
+    }
+
+    Matrix(int a, int b, int c, int d) {
+        mat[0][0] = a; mat[0][1] = b;
+        mat[1][0] = c; mat[1][1] = d;
+    }
+
+    // 矩阵乘法
+    Matrix operator*(const Matrix& other) const {
+        Matrix res;
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                for (int k = 0; k < 2; k++) {
+                    res.mat[i][j] = (res.mat[i][j] + mat[i][k] * other.mat[k][j]) % mod;
+                }
+            }
+        }
+        return res;
+    }
+};
+
+// 矩阵快速幂
+Matrix matrix_pow(Matrix a, ll b) {
+    Matrix res(1, 0, 0, 1);  // 单位矩阵
+    while (b > 0) {
+        if (b & 1) res = res * a;
+        a = a * a;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 计算斐波那契数列第n项
+ll fibonacci(ll n) {
+    if (n <= 2) return 1;
+    Matrix base(1, 1, 1, 0);  // [[1, 1], [1, 0]]
+    Matrix result = matrix_pow(base, n - 2);
+    return (result.mat[0][0] + result.mat[0][1]) % mod;
+}
+
+int main() {
+    ll n;
+    cin >> n;
+    cout << fibonacci(n) << '\n';
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+
+class Matrix:
+    def __init__(self, a=0, b=0, c=0, d=0):
+        self.mat = [[a, b], [c, d]]
+
+    def __mul__(self, other):
+        res = Matrix()
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    res.mat[i][j] = (res.mat[i][j] +
+                                    self.mat[i][k] * other.mat[k][j]) % MOD
+        return res
+
+def matrix_pow(a, b):
+    """矩阵快速幂"""
+    res = Matrix(1, 0, 0, 1)  # 单位矩阵
+    while b > 0:
+        if b & 1:
+            res = res * a
+        a = a * a
+        b >>= 1
+    return res
+
+def fibonacci(n):
+    """计算斐波那契数列第n项"""
+    if n <= 2:
+        return 1
+    base = Matrix(1, 1, 1, 0)
+    result = matrix_pow(base, n - 2)
+    return (result.mat[0][0] + result.mat[0][1]) % MOD
+
+def solve():
+    n = int(input())
+    print(fibonacci(n))
+
+solve()
+```
+
+应用二：快速幂求逆元
+--------------------
+使用费马小定理：a^(p-2) ≡ a^(-1) (mod p)，其中p是质数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+ll mod;
+
+// 快速幂
+ll pow_mod(ll a, ll b) {
+    ll res = 1;
+    a %= mod;
+    while (b > 0) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 求逆元（费马小定理）
+ll inv(ll a) {
+    return pow_mod(a, mod - 2);
+}
+
+int main() {
+    ll a;
+    cin >> a >> mod;
+
+    cout << inv(a) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def pow_mod(a: int, b: int, mod: int) -> int:
+    """快速幂"""
+    res = 1
+    a %= mod
+    while b > 0:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def inv(a: int, mod: int) -> int:
+    """求逆元（费马小定理）"""
+    return pow_mod(a, mod - 2, mod)
+
+def solve():
+    a, mod = map(int, input().split())
+    print(inv(a, mod))
+
+solve()
+```
+
+应用三：几何级数求和
+------------------
+计算 S = a + a^2 + a^3 + ... + a^n
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+const ll mod = 1e9 + 7;
+
+// 快速幂
+ll pow_mod(ll a, ll b) {
+    ll res = 1;
+    while (b > 0) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 几何级数求和：a + a^2 + ... + a^n
+ll geometric_series(ll a, ll n) {
+    if (n == 0) return 0;
+    if (n == 1) return a % mod;
+    if (n % 2 == 0) {
+        ll half = geometric_series(a, n / 2);
+        return half * (1 + pow_mod(a, n / 2)) % mod;
+    } else {
+        return (geometric_series(a, n - 1) + pow_mod(a, n)) % mod;
+    }
+}
+
+// 迭代版本（推荐）
+ll geometric_series_iter(ll a, ll n) {
+    ll res = 0;
+    ll term = a % mod;
+    ll multiplier = 1;
+    while (n > 0) {
+        if (n & 1) {
+            res = (res * term + multiplier) % mod;
+            multiplier = multiplier * term % mod;
+        }
+        term = term * term % mod;
+        n >>= 1;
+    }
+    return res;
+}
+
+int main() {
+    ll a, n;
+    cin >> a >> n;
+
+    cout << geometric_series(a, n) << '\n';
+    cout << geometric_series_iter(a, n) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+
+def pow_mod(a: int, b: int) -> int:
+    """快速幂"""
+    res = 1
+    while b > 0:
+        if b & 1:
+            res = res * a % MOD
+        a = a * a % MOD
+        b >>= 1
+    return res
+
+def geometric_series(a: int, n: int) -> int:
+    """几何级数求和：a + a^2 + ... + a^n"""
+    if n == 0:
+        return 0
+    if n == 1:
+        return a % MOD
+    if n % 2 == 0:
+        half = geometric_series(a, n // 2)
+        return half * (1 + pow_mod(a, n // 2)) % MOD
+    else:
+        return (geometric_series(a, n - 1) + pow_mod(a, n)) % MOD
+
+def geometric_series_iter(a: int, n: int) -> int:
+    """迭代版本"""
+    res = 0
+    term = a % MOD
+    multiplier = 1
+    while n > 0:
+        if n & 1:
+            res = (res * term + multiplier) % MOD
+            multiplier = multiplier * term % MOD
+        term = term * term % MOD
+        n >>= 1
+    return res
+
+def solve():
+    a, n = map(int, input().split())
+    print(geometric_series(a, n))
+    print(geometric_series_iter(a, n))
+
+solve()
+```
+
+应用四：大整数快速幂（字符串输入）
+-----------------------------------
+处理超大的指数，指数以字符串形式给出。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+ll mod;
+
+// 快速幂
+ll pow_mod(ll a, ll b) {
+    ll res = 1;
+    a %= mod;
+    while (b > 0) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 处理字符串指数
+ll pow_mod_string(ll a, string b_str) {
+    ll res = 1;
+    a %= mod;
+    for (char c : b_str) {
+        int digit = c - '0';
+        res = pow_mod(res, 10);  // res = res^10
+        res = res * pow_mod(a, digit) % mod;  // res *= a^digit
+    }
+    return res;
+}
+
+int main() {
+    ll a;
+    string b_str;
+    cin >> a >> b_str >> mod;
+
+    cout << pow_mod_string(a, b_str) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def pow_mod(a: int, b: int, mod: int) -> int:
+    """快速幂"""
+    res = 1
+    a %= mod
+    while b > 0:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def pow_mod_string(a: int, b_str: str, mod: int) -> int:
+    """处理字符串指数"""
+    res = 1
+    a %= mod
+    for c in b_str:
+        digit = int(c)
+        res = pow_mod(res, 10, mod)
+        res = res * pow_mod(a, digit, mod) % mod
+    return res
+
+def solve():
+    a = int(input())
+    b_str = input().strip()
+    mod = int(input())
+    print(pow_mod_string(a, b_str, mod))
+
+solve()
+```
+
+典型例题
+--------
+1. 【模板】快速幂（洛谷P1226）：计算a^b mod p
+2. 矩阵快速幂（洛谷P3390）：计算矩阵的n次幂
+3. 斐波那契数列（洛谷P1962）：求第n项
+4. 越狱（洛谷P3756）：快速幂应用
+5. 序列求和（洛谷P1343）：等比数列求和
+
+注意事项
+--------
+1. 取模操作：
+   - 每次乘法后都要取模，防止溢出
+   - 初始时a要取模：a %= mod
+
+2. 数据类型：
+   - 使用long long防止中间结果溢出
+   - 两个long long相乘可能超过long long范围
+
+3. 特殊情况：
+   - b = 0：任何数的0次方等于1
+   - mod = 1：任何数对1取模等于0
+   - a = 0：0的0次方需要特殊处理
+
+4. 性能优化：
+   - 使用位运算代替除法和取模
+   - 避免不必要的取模操作
+   - 循环展开（不推荐，现代编译器会自动优化）
+
+5. 常见错误：
+   - 忘记取模导致溢出
+   - 初始值错误（res应该初始化为1）
+   - 符号问题：注意处理负数情况
+   - 边界条件：当mod = 1时应该返回0
+
+6. 进阶技巧：
+   - 当需要计算多个相同底数的幂时，可以预处理
+   - 中国剩余定理结合快速幂处理多模数
+   - 指数很大时可以用字符串输入
+
+时间复杂度总结
+--------------
+- 时间复杂度：O(log n)
+- 空间复杂度：O(1)
+- 相比朴素算法：从O(n)优化到O(log n)
+- 当n = 10^18时，朴素算法需要10^18次运算，快速幂只需要约60次
+
+快速幂是算法竞赛中最基础也最重要的算法之一，它不仅是计算幂的工具，
+更是二进制拆分思想的体现，这种思想在很多算法中都有应用。

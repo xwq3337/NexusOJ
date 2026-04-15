@@ -1,0 +1,981 @@
+二分法（Binary Search）
+====================
+
+算法概述
+--------
+二分法是一种在有序区间中查找的高效算法，每次将搜索区间缩小一半，时间复杂度为O(log n)。
+它的核心思想是：通过判断中间元素与目标的关系，确定目标位于左半区间还是右半区间，从而缩小搜索范围。
+
+核心思想
+--------
+1. 前提条件：区间具有单调性（有序）或可以通过某种check函数判断
+2. 每次取区间中点mid，判断mid与目标的关系
+3. 根据判断结果缩小区间范围
+4. 重复直到找到答案或区间为空
+5. 时间复杂度：O(log n)
+
+整数二分
+--------
+整数二分分为查找左边界和查找右边界两种情况。
+
+查找左边界（第一个满足条件的位置）：
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 查找第一个大于等于target的位置（左边界）
+int binary_search_left(vector<int>& a, int target) {
+    int left = 0, right = a.size() - 1;
+    int result = -1;  // 记录答案
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;  // 防止溢出
+        if (a[mid] >= target) {
+            result = mid;      // 记录可能的答案
+            right = mid - 1;   // 继续往左找
+        } else {
+            left = mid + 1;
+        }
+    }
+    return result;
+}
+
+// 或者使用另一种写法（不使用result变量）
+int binary_search_left_v2(vector<int>& a, int target) {
+    int left = 0, right = a.size();
+    while (left < right) {
+        int mid = left + (right - left) / 2;
+        if (a[mid] >= target) {
+            right = mid;
+        } else {
+            left = mid + 1;
+        }
+    }
+    if (left < a.size() && a[left] >= target) {
+        return left;
+    }
+    return -1;
+}
+
+int main() {
+    vector<int> a = {1, 3, 3, 3, 5, 7, 9};
+    int target = 3;
+
+    int pos = binary_search_left(a, target);
+    cout << "First position >= " << target << ": " << pos << endl;
+    cout << "Value at position: " << (pos >= 0 ? a[pos] : -1) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List
+
+# 查找第一个大于等于target的位置（左边界）
+def binary_search_left(a: List[int], target: int) -> int:
+    left, right = 0, len(a) - 1
+    result = -1  # 记录答案
+
+    while left <= right:
+        mid = left + (right - left) // 2
+        if a[mid] >= target:
+            result = mid  # 记录可能的答案
+            right = mid - 1  # 继续往左找
+        else:
+            left = mid + 1
+
+    return result
+
+# 或者使用另一种写法（不使用result变量）
+def binary_search_left_v2(a: List[int], target: int) -> int:
+    left, right = 0, len(a)
+    while left < right:
+        mid = left + (right - left) // 2
+        if a[mid] >= target:
+            right = mid
+        else:
+            left = mid + 1
+
+    if left < len(a) and a[left] >= target:
+        return left
+    return -1
+
+if __name__ == "__main__":
+    a = [1, 3, 3, 3, 5, 7, 9]
+    target = 3
+
+    pos = binary_search_left(a, target)
+    print(f"First position >= {target}: {pos}")
+    print(f"Value at position: {a[pos] if pos >= 0 else -1}")
+```
+
+查找右边界（最后一个满足条件的位置）：
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 查找最后一个小于等于target的位置（右边界）
+int binary_search_right(vector<int>& a, int target) {
+    int left = 0, right = a.size() - 1;
+    int result = -1;
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (a[mid] <= target) {
+            result = mid;      // 记录可能的答案
+            left = mid + 1;    // 继续往右找
+        } else {
+            right = mid - 1;
+        }
+    }
+    return result;
+}
+
+// 或者使用另一种写法
+int binary_search_right_v2(vector<int>& a, int target) {
+    int left = 0, right = a.size();
+    while (left < right) {
+        int mid = left + (right - left) / 2;
+        if (a[mid] <= target) {
+            left = mid + 1;
+        } else {
+            right = mid;
+        }
+    }
+    if (left > 0 && a[left - 1] <= target) {
+        return left - 1;
+    }
+    return -1;
+}
+
+int main() {
+    vector<int> a = {1, 3, 3, 3, 5, 7, 9};
+    int target = 3;
+
+    int pos = binary_search_right(a, target);
+    cout << "Last position <= " << target << ": " << pos << endl;
+    cout << "Value at position: " << (pos >= 0 ? a[pos] : -1) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List
+
+# 查找最后一个小于等于target的位置（右边界）
+def binary_search_right(a: List[int], target: int) -> int:
+    left, right = 0, len(a) - 1
+    result = -1
+
+    while left <= right:
+        mid = left + (right - left) // 2
+        if a[mid] <= target:
+            result = mid  # 记录可能的答案
+            left = mid + 1  # 继续往右找
+        else:
+            right = mid - 1
+
+    return result
+
+# 或者使用另一种写法
+def binary_search_right_v2(a: List[int], target: int) -> int:
+    left, right = 0, len(a)
+    while left < right:
+        mid = left + (right - left) // 2
+        if a[mid] <= target:
+            left = mid + 1
+        else:
+            right = mid
+
+    if left > 0 and a[left - 1] <= target:
+        return left - 1
+    return -1
+
+if __name__ == "__main__":
+    a = [1, 3, 3, 3, 5, 7, 9]
+    target = 3
+
+    pos = binary_search_right(a, target)
+    print(f"Last position <= {target}: {pos}")
+    print(f"Value at position: {a[pos] if pos >= 0 else -1}")
+```
+
+浮点数二分
+----------
+浮点数二分通常用于求解函数的零点或精确值问题。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const double EPS = 1e-8;  // 精度控制
+
+// 计算x的三次方
+double f(double x) {
+    return x * x * x;
+}
+
+// 浮点数二分求立方根
+double binary_search_double(double target) {
+    double left = -10000, right = 10000;
+
+    while (right - left > EPS) {
+        double mid = (left + right) / 2;
+        if (f(mid) >= target) {
+            right = mid;
+        } else {
+            left = mid;
+        }
+    }
+
+    return left;
+}
+
+// 另一种写法：固定迭代次数
+double binary_search_double_v2(double target) {
+    double left = -10000, right = 10000;
+
+    for (int i = 0; i < 100; i++) {
+        double mid = (left + right) / 2;
+        if (f(mid) >= target) {
+            right = mid;
+        } else {
+            left = mid;
+        }
+    }
+
+    return left;
+}
+
+int main() {
+    double target;
+    cin >> target;
+
+    double result = binary_search_double(target);
+    cout << "Cube root of " << target << " is: ";
+    cout << fixed << setprecision(8) << result << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+EPS = 1e-8
+
+def f(x: float) -> float:
+    """计算x的三次方"""
+    return x * x * x
+
+def binary_search_double(target: float) -> float:
+    """浮点数二分求立方根"""
+    left, right = -10000.0, 10000.0
+
+    while right - left > EPS:
+        mid = (left + right) / 2
+        if f(mid) >= target:
+            right = mid
+        else:
+            left = mid
+
+    return left
+
+def binary_search_double_v2(target: float) -> float:
+    """固定迭代次数的浮点数二分"""
+    left, right = -10000.0, 10000.0
+
+    for _ in range(100):
+        mid = (left + right) / 2
+        if f(mid) >= target:
+            right = mid
+        else:
+            left = mid
+
+    return left
+
+if __name__ == "__main__":
+    target = float(input())
+    result = binary_search_double(target)
+    print(f"Cube root of {target} is: {result:.8f}")
+```
+
+二分答案
+--------
+二分答案是二分法的重要应用，当答案具有单调性时，可以二分答案，然后用贪心或其他方法验证。
+
+关键：设计check函数，判断某个答案是否可行
+
+应用一：最小化最大值（经典Agnes cow）
+------------------------------------
+问题：将n个数分成m组，使各组之和的最大值最小
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+int a[MAXN];
+
+// 检查最大和为mid时，是否可以分成不超过m组
+bool check(int mid) {
+    int cnt = 1;      // 当前组数
+    int sum = 0;      // 当前组的和
+
+    for (int i = 0; i < n; i++) {
+        if (a[i] > mid) return false;  // 单个元素就超过mid
+        if (sum + a[i] <= mid) {
+            sum += a[i];
+        } else {
+            cnt++;
+            sum = a[i];
+        }
+        if (cnt > m) return false;
+    }
+    return true;
+}
+
+int binary_search_answer() {
+    int left = 0, right = 0;
+
+    // 确定二分范围
+    for (int i = 0; i < n; i++) {
+        left = max(left, a[i]);
+        right += a[i];
+    }
+
+    int result = right;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (check(mid)) {
+            result = mid;   // mid可行，尝试更小的
+            right = mid - 1;
+        } else {
+            left = mid + 1; // mid不可行，需要更大的
+        }
+    }
+    return result;
+}
+
+int main() {
+    cin >> n >> m;
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+    }
+
+    int ans = binary_search_answer();
+    cout << ans << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List
+
+def check(a: List[int], m: int, mid: int) -> bool:
+    """检查最大和为mid时，是否可以分成不超过m组"""
+    cnt = 1  # 当前组数
+    sum_val = 0  # 当前组的和
+
+    for x in a:
+        if x > mid:
+            return False
+        if sum_val + x <= mid:
+            sum_val += x
+        else:
+            cnt += 1
+            sum_val = x
+        if cnt > m:
+            return False
+    return True
+
+def binary_search_answer(a: List[int], m: int) -> int:
+    """二分查找最小化最大值"""
+    left = max(a)
+    right = sum(a)
+
+    result = right
+    while left <= right:
+        mid = left + (right - left) // 2
+        if check(a, m, mid):
+            result = mid
+            right = mid - 1
+        else:
+            left = mid + 1
+
+    return result
+
+if __name__ == "__main__":
+    n, m = map(int, input().split())
+    a = list(map(int, input().split()))
+
+    ans = binary_search_answer(a, m)
+    print(ans)
+```
+
+应用二：最大化最小值
+-------------------
+问题：在长度为L的直线上放置n个物体，相邻物体距离至少为d，求最大的d
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, L;
+int a[MAXN];
+
+// 检查最小距离为mid时，能否放置n个物体
+bool check(int mid) {
+    int cnt = 1;      // 已放置的物体数
+    int last = a[0];  // 上一个物体的位置
+
+    for (int i = 1; i < L; i++) {
+        if (i - last >= mid) {
+            cnt++;
+            last = i;
+        }
+        if (cnt >= n) return true;
+    }
+    return false;
+}
+
+int binary_search_answer() {
+    int left = 1, right = L;
+    int result = 0;
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (check(mid)) {
+            result = mid;   // mid可行，尝试更大的
+            left = mid + 1;
+        } else {
+            right = mid - 1; // mid不可行，需要更小的
+        }
+    }
+    return result;
+}
+
+int main() {
+    cin >> n >> L;
+
+    int ans = binary_search_answer();
+    cout << ans << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def check(n: int, L: int, mid: int) -> bool:
+    """检查最小距离为mid时，能否放置n个物体"""
+    cnt = 1  # 已放置的物体数
+    last = 0  # 上一个物体的位置（假设从位置0开始）
+
+    for i in range(1, L):
+        if i - last >= mid:
+            cnt += 1
+            last = i
+        if cnt >= n:
+            return True
+    return False
+
+def binary_search_answer(n: int, L: int) -> int:
+    """二分查找最大化最小值"""
+    left, right = 1, L
+    result = 0
+
+    while left <= right:
+        mid = left + (right - left) // 2
+        if check(n, L, mid):
+            result = mid
+            left = mid + 1
+        else:
+            right = mid - 1
+
+    return result
+
+if __name__ == "__main__":
+    n, L = map(int, input().split())
+    ans = binary_search_answer(n, L)
+    print(ans)
+```
+
+应用三：查找旋转排序数组中的元素
+----------------------------
+问题：数组在某个点旋转，查找目标元素
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int search(vector<int>& nums, int target) {
+    int left = 0, right = nums.size() - 1;
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+
+        if (nums[mid] == target) {
+            return mid;
+        }
+
+        // 判断哪一半是有序的
+        if (nums[left] <= nums[mid]) {
+            // 左半部分有序
+            if (nums[left] <= target && target < nums[mid]) {
+                right = mid - 1;
+            } else {
+                left = mid + 1;
+            }
+        } else {
+            // 右半部分有序
+            if (nums[mid] < target && target <= nums[right]) {
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
+        }
+    }
+
+    return -1;
+}
+
+int main() {
+    vector<int> nums = {4, 5, 6, 7, 0, 1, 2};
+    int target = 0;
+
+    int pos = search(nums, target);
+    cout << "Position of " << target << ": " << pos << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List
+
+def search(nums: List[int], target: int) -> int:
+    """在旋转排序数组中查找目标元素"""
+    left, right = 0, len(nums) - 1
+
+    while left <= right:
+        mid = left + (right - left) // 2
+
+        if nums[mid] == target:
+            return mid
+
+        # 判断哪一半是有序的
+        if nums[left] <= nums[mid]:
+            # 左半部分有序
+            if nums[left] <= target < nums[mid]:
+                right = mid - 1
+            else:
+                left = mid + 1
+        else:
+            # 右半部分有序
+            if nums[mid] < target <= nums[right]:
+                left = mid + 1
+            else:
+                right = mid - 1
+
+    return -1
+
+if __name__ == "__main__":
+    nums = [4, 5, 6, 7, 0, 1, 2]
+    target = 0
+    pos = search(nums, target)
+    print(f"Position of {target}: {pos}")
+```
+
+应用四：寻找峰值
+--------------
+问题：找到数组中的任意一个峰值元素（大于相邻元素）
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int findPeakElement(vector<int>& nums) {
+    int left = 0, right = nums.size() - 1;
+
+    while (left < right) {
+        int mid = left + (right - left) / 2;
+
+        if (nums[mid] > nums[mid + 1]) {
+            // 峰值在左边（包括mid）
+            right = mid;
+        } else {
+            // 峰值在右边
+            left = mid + 1;
+        }
+    }
+
+    return left;
+}
+
+int main() {
+    vector<int> nums = {1, 2, 3, 1};
+    int peak = findPeakElement(nums);
+    cout << "Peak element index: " << peak << endl;
+    cout << "Peak element value: " << nums[peak] << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List
+
+def find_peak_element(nums: List[int]) -> int:
+    """找到数组中的任意一个峰值元素"""
+    left, right = 0, len(nums) - 1
+
+    while left < right:
+        mid = left + (right - left) // 2
+
+        if nums[mid] > nums[mid + 1]:
+            # 峰值在左边（包括mid）
+            right = mid
+        else:
+            # 峰值在右边
+            left = mid + 1
+
+    return left
+
+if __name__ == "__main__":
+    nums = [1, 2, 3, 1]
+    peak = find_peak_element(nums)
+    print(f"Peak element index: {peak}")
+    print(f"Peak element value: {nums[peak]}")
+```
+
+应用五：开方函数
+--------------
+问题：实现一个开方函数，不使用内置函数
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 整数开方（向下取整）
+int mySqrt(int x) {
+    if (x == 0) return 0;
+
+    int left = 1, right = x;
+    int result = 0;
+
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+
+        // 防止溢出：用除法而不是乘法
+        if (mid <= x / mid) {
+            result = mid;
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+
+    return result;
+}
+
+// 浮点数开方
+double mySqrtDouble(double x) {
+    const double EPS = 1e-8;
+    if (x < 0) return -1;
+    if (x == 0) return 0;
+
+    double left = 0, right = max(1.0, x);
+
+    while (right - left > EPS) {
+        double mid = (left + right) / 2;
+        if (mid * mid >= x) {
+            right = mid;
+        } else {
+            left = mid;
+        }
+    }
+
+    return left;
+}
+
+int main() {
+    int x = 8;
+    cout << "sqrt(" << x << ") = " << mySqrt(x) << endl;
+    cout << "sqrt(2.0) = " << fixed << setprecision(8) << mySqrtDouble(2.0) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def my_sqrt(x: int) -> int:
+    """整数开方（向下取整）"""
+    if x == 0:
+        return 0
+
+    left, right = 1, x
+    result = 0
+
+    while left <= right:
+        mid = left + (right - left) // 2
+        if mid <= x // mid:
+            result = mid
+            left = mid + 1
+        else:
+            right = mid - 1
+
+    return result
+
+def my_sqrt_double(x: float) -> float:
+    """浮点数开方"""
+    EPS = 1e-8
+    if x < 0:
+        return -1
+    if x == 0:
+        return 0
+
+    left, right = 0.0, max(1.0, x)
+
+    while right - left > EPS:
+        mid = (left + right) / 2
+        if mid * mid >= x:
+            right = mid
+        else:
+            left = mid
+
+    return left
+
+if __name__ == "__main__":
+    x = 8
+    print(f"sqrt({x}) = {my_sqrt(x)}")
+    print(f"sqrt(2.0) = {my_sqrt_double(2.0):.8f}")
+```
+
+应用六：在有序矩阵中查找元素
+--------------------------
+问题：每行和每列都递增的矩阵，判断目标是否存在
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+bool searchMatrix(vector<vector<int>>& matrix, int target) {
+    if (matrix.empty() || matrix[0].empty()) return false;
+
+    int m = matrix.size();
+    int n = matrix[0].size();
+
+    // 从右上角开始
+    int row = 0, col = n - 1;
+
+    while (row < m && col >= 0) {
+        if (matrix[row][col] == target) {
+            return true;
+        } else if (matrix[row][col] > target) {
+            col--;  // 当前数太大，向左移
+        } else {
+            row++;  // 当前数太小，向下移
+        }
+    }
+
+    return false;
+}
+
+// 方法二：先二分行，再二分列
+bool searchMatrix_v2(vector<vector<int>>& matrix, int target) {
+    if (matrix.empty() || matrix[0].empty()) return false;
+
+    int m = matrix.size();
+    int n = matrix[0].size();
+
+    // 先找到目标可能在哪一行
+    int left = 0, right = m - 1;
+    int targetRow = 0;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (matrix[mid][0] <= target && target <= matrix[mid][n-1]) {
+            targetRow = mid;
+            break;
+        } else if (matrix[mid][n-1] < target) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+
+    // 在目标行中二分查找
+    left = 0, right = n - 1;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
+        if (matrix[targetRow][mid] == target) {
+            return true;
+        } else if (matrix[targetRow][mid] < target) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+
+    return false;
+}
+
+int main() {
+    vector<vector<int>> matrix = {
+        {1, 4, 7, 11, 15},
+        {2, 5, 8, 12, 19},
+        {3, 6, 9, 16, 22},
+        {10, 13, 14, 17, 24},
+        {18, 21, 23, 26, 30}
+    };
+    int target = 5;
+
+    bool found = searchMatrix(matrix, target);
+    cout << "Found " << target << ": " << (found ? "Yes" : "No") << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List
+
+def search_matrix(matrix: List[List[int]], target: int) -> bool:
+    """在有序矩阵中查找元素（从右上角开始）"""
+    if not matrix or not matrix[0]:
+        return False
+
+    m, n = len(matrix), len(matrix[0])
+    row, col = 0, n - 1  # 从右上角开始
+
+    while row < m and col >= 0:
+        if matrix[row][col] == target:
+            return True
+        elif matrix[row][col] > target:
+            col -= 1  # 当前数太大，向左移
+        else:
+            row += 1  # 当前数太小，向下移
+
+    return False
+
+def search_matrix_v2(matrix: List[List[int]], target: int) -> bool:
+    """先二分行，再二分列"""
+    if not matrix or not matrix[0]:
+        return False
+
+    m, n = len(matrix), len(matrix[0])
+
+    # 找到目标可能在哪一行
+    left, right = 0, m - 1
+    target_row = 0
+    while left <= right:
+        mid = left + (right - left) // 2
+        if matrix[mid][0] <= target <= matrix[mid][n-1]:
+            target_row = mid
+            break
+        elif matrix[mid][n-1] < target:
+            left = mid + 1
+        else:
+            right = mid - 1
+
+    # 在目标行中二分查找
+    left, right = 0, n - 1
+    while left <= right:
+        mid = left + (right - left) // 2
+        if matrix[target_row][mid] == target:
+            return True
+        elif matrix[target_row][mid] < target:
+            left = mid + 1
+        else:
+            right = mid - 1
+
+    return False
+
+if __name__ == "__main__":
+    matrix = [
+        [1, 4, 7, 11, 15],
+        [2, 5, 8, 12, 19],
+        [3, 6, 9, 16, 22],
+        [10, 13, 14, 17, 24],
+        [18, 21, 23, 26, 30]
+    ]
+    target = 5
+    found = search_matrix(matrix, target)
+    print(f"Found {target}: {'Yes' if found else 'No'}")
+```
+
+典型例题
+--------
+1. 数的范围（洛谷P2249）：在有序数组中查找某个值的第一次和最后一次出现位置
+2. 跳石头（洛谷P2678）：最大化最小值的经典问题
+3. 洛谷P1182：数列分段，最小化最大值
+4. 洛谷P1873：砍树，经典的二分答案问题
+5. LeetCode 33：搜索旋转排序数组
+6. LeetCode 69：x的平方根
+7. LeetCode 153：寻找旋转排序数组中的最小值
+8. LeetCode 154：寻找旋转排序数组中的最小值II（有重复元素）
+9. LeetCode 162：寻找峰值
+10. LeetCode 240：搜索二维矩阵II
+
+注意事项
+--------
+1. 防止整数溢出：
+   - 计算 mid 时使用：mid = left + (right - left) / 2 而不是 (left + right) / 2
+   - 判断时使用除法而不是乘法：mid <= x / mid 而不是 mid * mid <= x
+
+2. 边界处理：
+   - 左边界查找：right = mid - 1 或 right = mid
+   - 右边界查找：left = mid + 1 或 left = mid
+   - 注意区间的开闭情况
+
+3. 循环终止条件：
+   - left <= right：可以找到所有情况
+   - left < right：结束时 left == right
+   - 浮点数二分：right - left > EPS 或固定迭代次数
+
+4. 二分答案：
+   - 必须保证答案具有单调性
+   - check函数设计要正确，时间复杂度要够优
+   - 注意二分范围的确定
+
+5. 整数二分 vs 浮点数二分：
+   - 整数二分要注意死循环问题
+   - 浮点数二分要注意精度控制
+   - 浮点数建议使用固定迭代次数（通常100次足够）
+
+6. 特殊情况：
+   - 空数组或单元素数组
+   - 所有元素相同
+   - 目标值不存在
+   - 边界值的处理
+
+时间复杂度总结
+--------------
+- 标准二分查找：O(log n)
+- 二分答案：O(log n × check函数复杂度)
+- 浮点数二分：O(log(范围/精度)) 或 O(固定迭代次数)
+- 空间复杂度：O(1)
+
+二分法是算法竞赛中最常用的技巧之一，掌握好二分法对于解决查找、优化类问题至关重要。

@@ -1,0 +1,864 @@
+广度优先搜索（Breadth First Search, BFS）
+======================================
+
+算法概述
+--------
+广度优先搜索是一种用于遍历或搜索树或图的算法。该算法从图中的某一起始节点开始，首先访问其所有相邻节点，然后再依次访问这些相邻节点的相邻节点，以此类推。
+BFS是逐层进行的，即先访问距离起始节点最近的节点，然后访问距离稍远的节点。
+
+核心思想
+--------
+1. 从起始节点开始，按层次遍历图
+2. 使用队列（Queue）数据结构实现
+3. 先访问距离起始节点最近的节点
+4. 时间复杂度：O(V + E)，V是顶点数，E是边数
+5. 空间复杂度：O(V)
+6. 可以用于求无权图的最短路径
+
+基础模板：基本BFS遍历
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+bool visited[MAXN];
+
+void bfs(int start) {
+    queue<int> q;
+    q.push(start);
+    visited[start] = true;
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+
+        cout << u << " ";  // 访问节点
+
+        for (int v : adj[u]) {
+            if (!visited[v]) {
+                visited[v] = true;
+                q.push(v);
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);  // 无向图
+    }
+
+    bfs(1);
+    cout << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import deque, defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)  # 无向图
+
+    visited = [False] * (n + 1)
+
+    def bfs(start):
+        q = deque([start])
+        visited[start] = True
+
+        while q:
+            u = q.popleft()
+            print(u, end=' ')
+
+            for v in adj[u]:
+                if not visited[v]:
+                    visited[v] = True
+                    q.append(v)
+
+    bfs(1)
+    print()
+
+solve()
+```
+
+应用一：无权图的最短路径
+-----------------------
+BFS可以求无权图中从起点到终点的最短路径长度（边数）。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+int dist[MAXN];         // 距离数组的初始化
+int pre[MAXN];          // 记录前驱节点，用于输出路径
+
+void bfs_shortest_path(int start, int end) {
+    memset(dist, -1, sizeof(dist));
+    memset(pre, -1, sizeof(pre));
+
+    queue<int> q;
+    q.push(start);
+    dist[start] = 0;
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+
+        if (u == end) break;  // 找到终点
+
+        for (int v : adj[u]) {
+            if (dist[v] == -1) {  // 未访问过
+                dist[v] = dist[u] + 1;
+                pre[v] = u;
+                q.push(v);
+            }
+        }
+    }
+}
+
+// 输出路径
+void print_path(int end) {
+    if (dist[end] == -1) {
+        cout << "无法到达\n";
+        return;
+    }
+
+    vector<int> path;
+    int cur = end;
+    while (cur != -1) {
+        path.push_back(cur);
+        cur = pre[cur];
+    }
+
+    reverse(path.begin(), path.end());
+
+    cout << "最短路径长度: " << dist[end] << '\n';
+    cout << "路径: ";
+    for (int node : path) {
+        cout << node << " ";
+    }
+    cout << '\n';
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    bfs_shortest_path(start, end);
+    print_path(end);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import deque, defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    dist = [-1] * (n + 1)
+    pre = [-1] * (n + 1)
+
+    def bfs_shortest_path(start, end):
+        q = deque([start])
+        dist[start] = 0
+
+        while q:
+            u = q.popleft()
+            if u == end:
+                break
+
+            for v in adj[u]:
+                if dist[v] == -1:
+                    dist[v] = dist[u] + 1
+                    pre[v] = u
+                    q.append(v)
+
+    def print_path(end):
+        if dist[end] == -1:
+            print("无法到达")
+            return
+
+        path = []
+        cur = end
+        while cur != -1:
+            path.append(cur)
+            cur = pre[cur]
+
+        path.reverse()
+        print(f"最短路径长度: {dist[end]}")
+        print(f"路径: {' '.join(map(str, path))}")
+
+    start, end = map(int, input().split())
+    bfs_shortest_path(start, end)
+    print_path(end)
+
+solve()
+```
+
+应用二：迷宫最短路径
+-------------------
+给定一个迷宫，求从起点到终点的最短路径。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+
+int n, m;
+char maze[MAXN][MAXN];
+bool visited[MAXN][MAXN];
+int dist[MAXN][MAXN];
+int dx[4] = {0, 0, 1, -1};
+int dy[4] = {1, -1, 0, 0};
+
+struct Point {
+    int x, y;
+};
+
+bool is_valid(int x, int y) {
+    return x >= 0 && x < n && y >= 0 && y < m && maze[x][y] != '#';
+}
+
+void bfs_maze(Point start, Point end) {
+    queue<Point> q;
+    q.push(start);
+    visited[start.x][start.y] = true;
+    dist[start.x][start.y] = 0;
+
+    while (!q.empty()) {
+        Point u = q.front();
+        q.pop();
+
+        if (u.x == end.x && u.y == end.y) {
+            cout << "最短路径长度: " << dist[u.x][u.y] << '\n';
+            return;
+        }
+
+        for (int i = 0; i < 4; i++) {
+            int nx = u.x + dx[i];
+            int ny = u.y + dy[i];
+
+            if (is_valid(nx, ny) && !visited[nx][ny]) {
+                visited[nx][ny] = true;
+                dist[nx][ny] = dist[u.x][u.y] + 1;
+                q.push({nx, ny});
+            }
+        }
+    }
+
+    cout << "无法到达终点\n";
+}
+
+int main() {
+    cin >> n >> m;
+
+    Point start, end;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            cin >> maze[i][j];
+            if (maze[i][j] == 'S') {
+                start = {i, j};
+            } else if (maze[i][j] == 'E') {
+                end = {i, j};
+            }
+        }
+    }
+
+    bfs_maze(start, end);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    maze = []
+    start = end = None
+    for i in range(n):
+        row = list(input().strip())
+        maze.append(row)
+        for j, ch in enumerate(row):
+            if ch == 'S':
+                start = (i, j)
+            elif ch == 'E':
+                end = (i, j)
+
+    visited = [[False] * m for _ in range(n)]
+    dist = [[0] * m for _ in range(n)]
+    dx = [0, 0, 1, -1]
+    dy = [1, -1, 0, 0]
+
+    def is_valid(x, y):
+        return 0 <= x < n and 0 <= y < m and maze[x][y] != '#'
+
+    def bfs_maze(start, end):
+        q = deque([start])
+        visited[start[0]][start[1]] = True
+        dist[start[0]][start[1]] = 0
+
+        while q:
+            x, y = q.popleft()
+
+            if (x, y) == end:
+                print(f"最短路径长度: {dist[x][y]}")
+                return
+
+            for i in range(4):
+                nx, ny = x + dx[i], y + dy[i]
+                if is_valid(nx, ny) and not visited[nx][ny]:
+                    visited[nx][ny] = True
+                    dist[nx][ny] = dist[x][y] + 1
+                    q.append((nx, ny))
+
+        print("无法到达终点")
+
+    bfs_maze(start, end)
+
+solve()
+```
+
+应用三：层序遍历
+---------------
+BFS天然适合做层序遍历，可以输出每一层的节点。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+bool visited[MAXN];
+
+void bfs_level_order(int start) {
+    queue<int> q;
+    q.push(start);
+    visited[start] = true;
+
+    while (!q.empty()) {
+        int level_size = q.size();
+        vector<int> level;
+
+        for (int i = 0; i < level_size; i++) {
+            int u = q.front();
+            q.pop();
+            level.push_back(u);
+
+            for (int v : adj[u]) {
+                if (!visited[v]) {
+                    visited[v] = true;
+                    q.push(v);
+                }
+            }
+        }
+
+        // 输出当前层
+        cout << "Level: ";
+        for (int node : level) {
+            cout << node << " ";
+        }
+        cout << '\n';
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    bfs_level_order(1);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import deque, defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    visited = [False] * (n + 1)
+
+    def bfs_level_order(start):
+        q = deque([start])
+        visited[start] = True
+        level = 0
+
+        while q:
+            level_size = len(q)
+            current_level = []
+
+            for _ in range(level_size):
+                u = q.popleft()
+                current_level.append(u)
+
+                for v in adj[u]:
+                    if not visited[v]:
+                        visited[v] = True
+                        q.append(v)
+
+            print(f"Level {level}: {' '.join(map(str, current_level))}")
+            level += 1
+
+    bfs_level_order(1)
+
+solve()
+```
+
+应用四：多源BFS
+--------------
+从多个起点同时开始BFS。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+
+int n, m;
+int maze[MAXN][MAXN];
+int dist[MAXN][MAXN];
+int dx[4] = {0, 0, 1, -1};
+int dy[4] = {1, -1, 0, 0};
+
+struct Point {
+    int x, y;
+};
+
+void multi_source_bfs(vector<Point>& sources) {
+    memset(dist, -1, sizeof(dist));
+
+    queue<Point> q;
+    for (Point& src : sources) {
+        q.push(src);
+        dist[src.x][src.y] = 0;
+    }
+
+    while (!q.empty()) {
+        Point u = q.front();
+        q.pop();
+
+        for (int i = 0; i < 4; i++) {
+            int nx = u.x + dx[i];
+            int ny = u.y + dy[i];
+
+            if (nx >= 0 && nx < n && ny >= 0 && ny < m &&
+                dist[nx][ny] == -1 && maze[nx][ny] != -1) {
+                dist[nx][ny] = dist[u.x][u.y] + 1;
+                q.push({nx, ny});
+            }
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    vector<Point> sources;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            cin >> maze[i][j];
+            if (maze[i][j] == 1) {
+                sources.push_back({i, j});
+            }
+        }
+    }
+
+    multi_source_bfs(sources);
+
+    int max_dist = 0;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            if (maze[i][j] != -1) {
+                max_dist = max(max_dist, dist[i][j]);
+            }
+        }
+    }
+
+    cout << "最大距离: " << max_dist << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    maze = []
+    for _ in range(n):
+        row = list(map(int, input().split()))
+        maze.append(row)
+
+    dist = [[-1] * m for _ in range(n)]
+    sources = []
+
+    for i in range(n):
+        for j in range(m):
+            if maze[i][j] == 1:
+                sources.append((i, j))
+
+    def multi_source_bfs(sources):
+        q = deque(sources)
+        for x, y in sources:
+            dist[x][y] = 0
+
+        dx = [0, 0, 1, -1]
+        dy = [1, -1, 0, 0]
+
+        while q:
+            x, y = q.popleft()
+            for i in range(4):
+                nx, ny = x + dx[i], y + dy[i]
+                if 0 <= nx < n and 0 <= ny < m:
+                    if dist[nx][ny] == -1 and maze[nx][ny] != -1:
+                        dist[nx][ny] = dist[x][y] + 1
+                        q.append((nx, ny))
+
+    multi_source_bfs(sources)
+
+    max_dist = 0
+    for i in range(n):
+        for j in range(m):
+            if maze[i][j] != -1:
+                max_dist = max(max_dist, dist[i][j])
+
+    print(f"最大距离: {max_dist}")
+
+solve()
+```
+
+应用五：拓扑排序（Kahn算法）
+---------------------------
+使用BFS实现拓扑排序。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+int in_degree[MAXN];
+vector<int> topo_order;
+
+void topological_sort() {
+    queue<int> q;
+
+    // 将入度为0的节点加入队列
+    for (int i = 1; i <= n; i++) {
+        if (in_degree[i] == 0) {
+            q.push(i);
+        }
+    }
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        topo_order.push_back(u);
+
+        for (int v : adj[u]) {
+            in_degree[v]--;
+            if (in_degree[v] == 0) {
+                q.push(v);
+            }
+        }
+    }
+
+    // 如果拓扑排序后的节点数小于n，说明有环
+    if (topo_order.size() < n) {
+        cout << "图中存在环，无法进行拓扑排序\n";
+    } else {
+        for (int node : topo_order) {
+            cout << node << " ";
+        }
+        cout << '\n';
+    }
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        in_degree[v]++;
+    }
+
+    topological_sort();
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import deque, defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    in_degree = [0] * (n + 1)
+
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        in_degree[v] += 1
+
+    def topological_sort():
+        q = deque()
+        topo_order = []
+
+        # 将入度为0的节点加入队列
+        for i in range(1, n + 1):
+            if in_degree[i] == 0:
+                q.append(i)
+
+        while q:
+            u = q.popleft()
+            topo_order.append(u)
+
+            for v in adj[u]:
+                in_degree[v] -= 1
+                if in_degree[v] == 0:
+                    q.append(v)
+
+        # 如果拓扑排序后的节点数小于n，说明有环
+        if len(topo_order) < n:
+            print("图中存在环，无法进行拓扑排序")
+        else:
+            print(' '.join(map(str, topo_order)))
+
+    topological_sort()
+
+solve()
+```
+
+应用六：最小生成树（Borůvka算法变体）
+-------------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];
+bool visited[MAXN];
+int min_dist[MAXN];
+
+int prim_bfs(int start) {
+    memset(min_dist, 0x3f, sizeof(min_dist));
+    min_dist[start] = 0;
+
+    int total_weight = 0;
+
+    for (int i = 0; i < n; i++) {
+        // 找到未访问的最小距离节点
+        int u = -1;
+        for (int j = 1; j <= n; j++) {
+            if (!visited[j] && (u == -1 || min_dist[j] < min_dist[u])) {
+                u = j;
+            }
+        }
+
+        if (u == -1 || min_dist[u] == 0x3f3f3f3f) {
+            break;
+        }
+
+        visited[u] = true;
+        total_weight += min_dist[u];
+
+        for (auto& edge : adj[u]) {
+            int v = edge.first;
+            int w = edge.second;
+            if (!visited[v] && w < min_dist[v]) {
+                min_dist[v] = w;
+            }
+        }
+    }
+
+    return total_weight;
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    }
+
+    int mst_weight = prim_bfs(1);
+    cout << "最小生成树权重: " << mst_weight << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import defaultdict
+import heapq
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        adj[v].append((u, w))
+
+    visited = [False] * (n + 1)
+    min_dist = [float('inf')] * (n + 1)
+    min_dist[1] = 0
+
+    total_weight = 0
+    for _ in range(n):
+        # 找到未访问的最小距离节点
+        u = -1
+        for j in range(1, n + 1):
+            if not visited[j] and (u == -1 or min_dist[j] < min_dist[u]):
+                u = j
+
+        if u == -1 or min_dist[u] == float('inf'):
+            break
+
+        visited[u] = True
+        total_weight += min_dist[u]
+
+        for v, w in adj[u]:
+            if not visited[v] and w < min_dist[v]:
+                min_dist[v] = w
+
+    print(f"最小生成树权重: {total_weight}")
+
+solve()
+```
+
+典型例题
+--------
+1. 迷宫问题（POJ3984）：求迷宫的最短路径
+2. 骑士遍历问题（POJ1915）：骑士移动最少步数
+3. 八数码问题（HDU1043）：BFS求最短操作序列
+4. 拓扑排序模板（洛谷P3644）：课程顺序
+5. 多源BFS（洛谷P4563）：传染病问题
+6. 岛屿数量（LeetCode200）：网格中的连通区域
+7. 二叉树的层序遍历（LeetCode102）：按层输出节点
+
+注意事项
+--------
+1. BFS使用队列实现，注意使用front()和pop()函数
+2. Python中使用collections.deque作为队列，不要用list（deque的popleft()是O(1)）
+3. 求最短路径时需要记录距离数组和前驱节点
+4. 多源BFS需要先将所有源点加入队列
+5. 层序遍历时可以通过队列长度来判断当前层的节点数
+6. 拓扑排序只适用于DAG，需要检测是否有环
+7. BFS的空间复杂度可能较大，因为队列中可能存储大量节点
+8. 对于有权图的最短路径，应使用Dijkstra算法而不是BFS
+
+BFS与DFS的选择
+--------------
+- BFS：适合求最短路径、层序遍历、最小操作次数
+- DFS：适合路径搜索、连通性判断、拓扑排序
+- BFS的队列可能比DFS的递归栈占用更多内存
+- DFS实现更简单，但可能陷入很深的路径
+
+时间复杂度总结
+--------------
+- 时间复杂度：O(V + E)
+- 空间复杂度：O(V)
+- 对于最短路径问题：每个节点最多入队一次
+
+BFS是解决最短路径问题的基础算法，掌握好BFS对解决各类搜索问题至关重要。

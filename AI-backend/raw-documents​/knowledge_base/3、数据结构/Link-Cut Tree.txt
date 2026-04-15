@@ -1,0 +1,345 @@
+Link-Cut Tree（动态树）
+====================
+
+算法概述
+--------
+Link-Cut Tree（LCT）是一种维护森林的数据结构，支持动态的连边、删边、路径查询等操作。它是处理动态树问题的利器。
+
+核心特点：
+1. 支持动态连边和删边
+2. 支持路径查询和修改
+3. 基于Splay Tree实现
+4. 时间复杂度均摊O(log n)
+
+核心思想
+--------
+1. 用Preferred Path将树分解
+2. 用Splay维护每条路径
+3. Access操作：将节点到根的路径变为实边
+4. MakeRoot、FindRoot、Link、Cut等核心操作
+
+基础模板
+--------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+struct LCT {
+    int ch[MAXN][2];  // 左右子节点
+    int fa[MAXN];     // 父节点
+    int rev[MAXN];    // 翻转标记
+    int val[MAXN];    // 节点值
+    int sum[MAXN];    // 路径和
+    int stk[MAXN];
+
+    void init(int n) {
+        for (int i = 1; i <= n; i++) {
+            ch[i][0] = ch[i][1] = fa[i] = rev[i] = 0;
+            val[i] = sum[i] = 0;
+        }
+    }
+
+    bool isRoot(int x) {
+        return ch[fa[x]][0] != x && ch[fa[x]][1] != x;
+    }
+
+    void pushUp(int x) {
+        sum[x] = sum[ch[x][0]] + sum[ch[x][1]] + val[x];
+    }
+
+    void pushDown(int x) {
+        if (rev[x]) {
+            swap(ch[x][0], ch[x][1]);
+            if (ch[x][0]) rev[ch[x][0]] ^= 1;
+            if (ch[x][1]) rev[ch[x][1]] ^= 1;
+            rev[x] = 0;
+        }
+    }
+
+    void rotate(int x) {
+        int y = fa[x], z = fa[y];
+        int k = (ch[y][1] == x);
+
+        if (!isRoot(y)) ch[z][ch[z][1] == y] = x;
+        ch[y][k] = ch[x][k ^ 1];
+        fa[ch[x][k ^ 1]] = y;
+        ch[x][k ^ 1] = y;
+        fa[y] = x;
+        fa[x] = z;
+
+        pushUp(y);
+        pushUp(x);
+    }
+
+    void splay(int x) {
+        int top = 0;
+        stk[++top] = x;
+
+        for (int i = x; !isRoot(i); i = fa[i]) {
+            stk[++top] = fa[i];
+        }
+
+        while (top) {
+            pushDown(stk[top--]);
+        }
+
+        while (!isRoot(x)) {
+            int y = fa[x], z = fa[y];
+            if (!isRoot(y)) {
+                if ((ch[y][1] == x) ^ (ch[z][1] == y)) {
+                    rotate(x);
+                } else {
+                    rotate(y);
+                }
+            }
+            rotate(x);
+        }
+    }
+
+    void access(int x) {
+        for (int y = 0; x; y = x, x = fa[x]) {
+            splay(x);
+            ch[x][1] = y;
+            pushUp(x);
+        }
+    }
+
+    void makeRoot(int x) {
+        access(x);
+        splay(x);
+        rev[x] ^= 1;
+    }
+
+    int findRoot(int x) {
+        access(x);
+        splay(x);
+
+        while (ch[x][0]) {
+            pushDown(x);
+            x = ch[x][0];
+        }
+
+        splay(x);
+        return x;
+    }
+
+    void link(int x, int y) {
+        makeRoot(x);
+        if (findRoot(y) != x) {
+            fa[x] = y;
+        }
+    }
+
+    void cut(int x, int y) {
+        makeRoot(x);
+        if (findRoot(y) == x && fa[y] == x && !ch[y][0]) {
+            fa[y] = ch[x][1] = 0;
+            pushUp(x);
+        }
+    }
+
+    void split(int x, int y) {
+        makeRoot(x);
+        access(y);
+        splay(y);
+    }
+
+    int querySum(int x, int y) {
+        split(x, y);
+        return sum[y];
+    }
+
+    void update(int x, int y, int val) {
+        split(x, y);
+        // 对路径x-y进行修改
+    }
+} lct;
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    lct.init(n);
+
+    for (int i = 1; i <= n; i++) {
+        cin >> lct.val[i];
+    }
+
+    while (m--) {
+        string op;
+        cin >> op;
+
+        if (op == "link") {
+            int x, y;
+            cin >> x >> y;
+            lct.link(x, y);
+        } else if (op == "cut") {
+            int x, y;
+            cin >> x >> y;
+            lct.cut(x, y);
+        } else if (op == "query") {
+            int x, y;
+            cin >> x >> y;
+            cout << lct.querySum(x, y) << endl;
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class LCT:
+    def __init__(self, n):
+        self.n = n
+        self.ch = [[0, 0] for _ in range(n + 1)]
+        self.fa = [0] * (n + 1)
+        self.rev = [0] * (n + 1)
+        self.val = [0] * (n + 1)
+        self.sum = [0] * (n + 1)
+
+    def is_root(self, x):
+        return self.ch[self.fa[x]][0] != x and self.ch[self.fa[x]][1] != x
+
+    def push_up(self, x):
+        self.sum[x] = self.sum[self.ch[x][0]] + self.sum[self.ch[x][1]] + self.val[x]
+
+    def push_down(self, x):
+        if self.rev[x]:
+            self.ch[x][0], self.ch[x][1] = self.ch[x][1], self.ch[x][0]
+            if self.ch[x][0]:
+                self.rev[self.ch[x][0]] ^= 1
+            if self.ch[x][1]:
+                self.rev[self.ch[x][1]] ^= 1
+            self.rev[x] = 0
+
+    def rotate(self, x):
+        y = self.fa[x]
+        z = self.fa[y]
+        k = 1 if self.ch[y][1] == x else 0
+
+        if not self.is_root(y):
+            self.ch[z][1 if self.ch[z][1] == y else 0] = x
+
+        self.ch[y][k] = self.ch[x][k ^ 1]
+        self.fa[self.ch[x][k ^ 1]] = y
+        self.ch[x][k ^ 1] = y
+        self.fa[y] = x
+        self.fa[x] = z
+
+        self.push_up(y)
+        self.push_up(x)
+
+    def splay(self, x):
+        stk = []
+        stk.append(x)
+
+        i = x
+        while not self.is_root(i):
+            stk.append(self.fa[i])
+            i = self.fa[i]
+
+        while stk:
+            self.push_down(stk.pop())
+
+        while not self.is_root(x):
+            y = self.fa[x]
+            z = self.fa[y]
+            if not self.is_root(y):
+                if (self.ch[y][1] == x) ^ (self.ch[z][1] == y):
+                    self.rotate(x)
+                else:
+                    self.rotate(y)
+            self.rotate(x)
+
+    def access(self, x):
+        y = 0
+        while x:
+            self.splay(x)
+            self.ch[x][1] = y
+            self.push_up(x)
+            y = x
+            x = self.fa[x]
+
+    def make_root(self, x):
+        self.access(x)
+        self.splay(x)
+        self.rev[x] ^= 1
+
+    def find_root(self, x):
+        self.access(x)
+        self.splay(x)
+
+        while self.ch[x][0]:
+            self.push_down(x)
+            x = self.ch[x][0]
+
+        self.splay(x)
+        return x
+
+    def link(self, x, y):
+        self.make_root(x)
+        if self.find_root(y) != x:
+            self.fa[x] = y
+
+    def cut(self, x, y):
+        self.make_root(x)
+        if self.find_root(y) == x and self.fa[y] == x and self.ch[y][0] == 0:
+            self.fa[y] = 0
+            self.ch[x][1] = 0
+            self.push_up(x)
+
+    def split(self, x, y):
+        self.make_root(x)
+        self.access(y)
+        self.splay(y)
+
+    def query_sum(self, x, y):
+        self.split(x, y)
+        return self.sum[y]
+
+# 测试
+n, m = map(int, input().split())
+lct = LCT(n)
+
+vals = list(map(int, input().split()))
+for i, val in enumerate(vals, 1):
+    lct.val[i] = val
+    lct.sum[i] = val
+
+for _ in range(m):
+    parts = input().split()
+    op = parts[0]
+
+    if op == "link":
+        x, y = int(parts[1]), int(parts[2])
+        lct.link(x, y)
+    elif op == "cut":
+        x, y = int(parts[1]), int(parts[2])
+        lct.cut(x, y)
+    elif op == "query":
+        x, y = int(parts[1]), int(parts[2])
+        print(lct.query_sum(x, y))
+```
+
+典型应用
+--------
+1. 动态树问题
+2. 连通性维护
+3. 路径查询和修改
+
+注意事项
+--------
+1. 操作顺序很重要
+2. 注意虚实边转换
+3. pushDown要及时
+4. makeRoot改变树根
+
+时间复杂度：均摊O(log n)
+
+LCT是处理动态树问题的核心数据结构，掌握它对解决复杂的树问题很有帮助。

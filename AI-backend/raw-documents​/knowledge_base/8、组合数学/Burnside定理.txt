@@ -1,0 +1,579 @@
+Burnside引理（Burnside's Lemma）
+==============================
+
+算法概述
+--------
+Burnside引理（也称为Burnside定理或Cauchy-Frobenius引理）是群论中的重要定理，
+用于计算在群作用下的等价类个数，是Polya计数定理的基础。
+
+定理内容
+--------
+对于一个有限群G作用在有限集合X上，等价类的个数为：
+Number of Orbits = (1/|G|) * Σ |Fix(g)| for all g in G
+
+其中：
+- |G| 是群G的阶（元素个数）
+- Fix(g) 是在置换g下保持不变的X中的元素集合
+- |Fix(g)| 是Fix(g)的大小（不动点个数）
+
+基本思想
+--------
+等价类个数 = 所有置换的不动点数的平均值
+
+基础应用一：染色计数
+--------------------
+用m种颜色给n个对象染色，考虑某些对称性，求不同的染色方案数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 计算最大公约数
+int gcd(int a, int b) {
+    return b == 0 ? a : gcd(b, a % b);
+}
+
+// 快速幂
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a;
+        a = a * a;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 项链计数（仅旋转）
+long long necklace(int n, int m) {
+    long long ans = 0;
+    for (int i = 0; i < n; i++) {
+        // 旋转i格的循环数 = gcd(n, i)
+        int cycles = gcd(n, i);
+        // 不动点数 = m^cycles
+        ans += qpow(m, cycles);
+    }
+    return ans / n;
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+    cout << necklace(n, m) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import math
+
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res *= a
+        a *= a
+        b >>= 1
+    return res
+
+def necklace(n, m):
+    ans = 0
+    for i in range(n):
+        cycles = math.gcd(n, i)
+        ans += qpow(m, cycles)
+    return ans // n
+
+def main():
+    n, m = map(int, input().split())
+    print(necklace(n, m))
+
+if __name__ == "__main__":
+    main()
+```
+
+基础应用二：正方形顶点染色
+--------------------------
+用m种颜色给正方形的4个顶点染色，考虑所有对称性。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a;
+        a = a * a;
+        b >>= 1;
+    }
+    return res;
+}
+
+long long square_coloring(int m) {
+    long long ans = 0;
+
+    // 旋转0度：所有染色方案都不变
+    ans += qpow(m, 4);
+
+    // 旋转90度和270度：每个循环长度为4
+    ans += 2 * qpow(m, 1);
+
+    // 旋转180度：2个循环
+    ans += qpow(m, 2);
+
+    // 水平翻转和垂直翻转：2个循环
+    ans += 2 * qpow(m, 2);
+
+    // 对角线翻转：2个循环
+    ans += 2 * qpow(m, 2);
+
+    return ans / 8;
+}
+
+int main() {
+    int m;
+    cin >> m;
+    cout << square_coloring(m) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res *= a
+        a *= a
+        b >>= 1
+    return res
+
+def square_coloring(m):
+    ans = 0
+
+    # 旋转
+    ans += qpow(m, 4)      # 0度
+    ans += 2 * qpow(m, 1)  # 90度和270度
+    ans += qpow(m, 2)      # 180度
+
+    # 翻转
+    ans += 2 * qpow(m, 2)  # 水平和垂直
+    ans += 2 * qpow(m, 2)  # 对角线
+
+    return ans // 8
+
+def main():
+    m = int(input())
+    print(square_coloring(m))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用一：二进制串的旋转等价
+------------------------------
+长度为n的二进制串，在旋转下有多少种不同的串？
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int gcd(int a, int b) {
+    return b == 0 ? a : gcd(b, a % b);
+}
+
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a;
+        a = a * a;
+        b >>= 1;
+    }
+    return res;
+}
+
+long long binary_strings(int n) {
+    long long ans = 0;
+    for (int i = 0; i < n; i++) {
+        int cycles = gcd(n, i);
+        ans += qpow(2, cycles);
+    }
+    return ans / n;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    cout << binary_strings(n) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import math
+
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res *= a
+        a *= a
+        b >>= 1
+    return res
+
+def binary_strings(n):
+    ans = 0
+    for i in range(n):
+        cycles = math.gcd(n, i)
+        ans += qpow(2, cycles)
+    return ans // n
+
+def main():
+    n = int(input())
+    print(binary_strings(n))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用二：立方体染色
+----------------------
+用m种颜色给立方体的8个顶点染色，考虑所有旋转对称性。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a;
+        a = a * a;
+        b >>= 1;
+    }
+    return res;
+}
+
+long long cube_vertex_coloring(int m) {
+    long long ans = 0;
+
+    // 恒等旋转：1种，8个1循环
+    ans += qpow(m, 8);
+
+    // 面旋转（90度和270度）：6种，每个2个4循环
+    ans += 6 * qpow(m, 2);
+
+    // 面旋转（180度）：3种，每个4个2循环
+    ans += 3 * qpow(m, 4);
+
+    // 体对角线旋转：8种，每个4个2循环
+    ans += 8 * qpow(m, 4);
+
+    // 对角线旋转：6种，每个2个4循环
+    ans += 6 * qpow(m, 2);
+
+    return ans / 24;
+}
+
+int main() {
+    int m;
+    cin >> m;
+    cout << cube_vertex_coloring(m) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res *= a
+        a *= a
+        b >>= 1
+    return res
+
+def cube_vertex_coloring(m):
+    ans = 0
+
+    ans += qpow(m, 8)       # 恒等
+    ans += 6 * qpow(m, 2)   # 面旋转90/270度
+    ans += 3 * qpow(m, 4)   # 面旋转180度
+    ans += 8 * qpow(m, 4)   # 体对角线
+    ans += 6 * qpow(m, 2)   # 对角线旋转
+
+    return ans // 24
+
+def main():
+    m = int(input())
+    print(cube_vertex_coloring(m))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用三：周期序列计数
+----------------------
+求长度为n的、周期恰好为k的、字符集大小为m的序列个数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int gcd(int a, int b) {
+    return b == 0 ? a : gcd(b, a % b);
+}
+
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a;
+        a = a * a;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 周期整除d的序列数
+long long period_divides(int n, int d, int m) {
+    long long ans = 0;
+    for (int i = 0; i < d; i++) {
+        int cycles = gcd(d, i);
+        ans += qpow(m, cycles);
+    }
+    return ans / d;
+}
+
+// 周期恰好为k的序列数
+long long period_exactly(int n, int k, int m) {
+    long long ans = 0;
+
+    // 容斥原理
+    for (int d = 1; d * d <= k; d++) {
+        if (k % d == 0) {
+            if (d % 2 == 1) {
+                ans += period_divides(n, k / d, m);
+            } else {
+                ans -= period_divides(n, k / d, m);
+            }
+
+            int other = k / d;
+            if (other != d) {
+                if ((k / other) % 2 == 1) {
+                    ans += period_divides(n, d, m);
+                } else {
+                    ans -= period_divides(n, d, m);
+                }
+            }
+        }
+    }
+
+    return ans;
+}
+
+int main() {
+    int n, k, m;
+    cin >> n >> k >> m;
+    cout << period_exactly(n, k, m) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import math
+
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res *= a
+        a *= a
+        b >>= 1
+    return res
+
+def period_divides(n, d, m):
+    ans = 0
+    for i in range(d):
+        cycles = math.gcd(d, i)
+        ans += qpow(m, cycles)
+    return ans // d
+
+def period_exactly(n, k, m):
+    ans = 0
+
+    d = 1
+    while d * d <= k:
+        if k % d == 0:
+            if d % 2 == 1:
+                ans += period_divides(n, k // d, m)
+            else:
+                ans -= period_divides(n, k // d, m)
+
+            other = k // d
+            if other != d:
+                if (k // other) % 2 == 1:
+                    ans += period_divides(n, d, m)
+                else:
+                    ans -= period_divides(n, d, m)
+        d += 1
+
+    return ans
+
+def main():
+    n, k, m = map(int, input().split())
+    print(period_exactly(n, k, m))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用四：图的自同构群
+----------------------
+计算给定图的自同构群大小，用于计数不同标记的图。
+
+C++版本（框架）：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 10;
+
+int n;
+bool adj[MAXN][MAXN];
+int perm[MAXN];
+
+// 检查置换是否是自同构
+bool is_automorphism() {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (adj[i][j] != adj[perm[i]][perm[j]]) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// 计算自同构群大小
+int count_automorphisms(int idx = 0) {
+    if (idx == n) {
+        return is_automorphism() ? 1 : 0;
+    }
+
+    int count = 0;
+    for (int i = idx; i < n; i++) {
+        swap(perm[idx], perm[i]);
+        count += count_automorphisms(idx + 1);
+        swap(perm[idx], perm[i]);
+    }
+    return count;
+}
+
+int main() {
+    cin >> n;
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            cin >> adj[i][j];
+        }
+    }
+
+    for (int i = 0; i < n; i++) {
+        perm[i] = i;
+    }
+
+    cout << count_automorphisms() << '\n';
+
+    return 0;
+}
+```
+
+Python版本（框架）：
+```python
+def is_automorphism(adj, perm, n):
+    for i in range(n):
+        for j in range(n):
+            if adj[i][j] != adj[perm[i]][perm[j]]:
+                return False
+    return True
+
+def count_automorphisms(adj, perm, n, idx=0):
+    if idx == n:
+        return 1 if is_automorphism(adj, perm, n) else 0
+
+    count = 0
+    for i in range(idx, n):
+        perm[idx], perm[i] = perm[i], perm[idx]
+        count += count_automorphisms(adj, perm, n, idx + 1)
+        perm[idx], perm[i] = perm[i], perm[idx]
+    return count
+
+def main():
+    n = int(input())
+    adj = [list(map(int, input().split())) for _ in range(n)]
+    perm = list(range(n))
+    print(count_automorphisms(adj, perm, n))
+
+if __name__ == "__main__":
+    main()
+```
+
+重要概念总结
+------------
+1. 群作用：群G对集合X的作用
+2. 轨道：在群作用下的等价类
+3. 不动点：在置换g下保持不变的元素
+4. 稳定化子：使某元素不变的所有置换
+
+常见对称群
+----------
+1. 循环群C_n：n个旋转
+2. 二面体群D_n：n个旋转 + n个翻转
+3. 对称群S_n：所有n!个排列
+4. 交错群A_n：所有偶排列
+
+应用步骤
+--------
+1. 确定问题的对称群G
+2. 枚举群中的所有置换g
+3. 对每个置换，计算其不动点数|Fix(g)|
+4. 应用Burnside引理：等价类数 = (1/|G|) * Σ|Fix(g)|
+
+注意事项
+--------
+1. 正确识别问题的对称性
+2. 确保枚举所有置换，不重不漏
+3. 准确计算每个置换的不动点数
+4. 除法要在最后进行，避免精度问题
+5. 对于复杂对称性，可考虑使用Polya定理
+6. 注意群的大小和元素的正确性
+
+与Polya定理的关系
+-----------------
+Burnside引理是Polya定理的基础：
+- Burnside：处理一般的等价类计数
+- Polya：专门处理染色问题，给出了更具体的计算公式
+
+时间复杂度总结
+--------------
+- 一般情况：O(|G| * f(n))，其中f(n)是计算不动点的复杂度
+- 循环群：O(n * f(n))
+- 二面体群：O(n * f(n))
+- 对称群：O(n! * f(n))，适用于小n
+
+Burnside引理是组合计数中处理对称性问题的基础工具，为Polya定理等高级技巧奠定了理论基础。

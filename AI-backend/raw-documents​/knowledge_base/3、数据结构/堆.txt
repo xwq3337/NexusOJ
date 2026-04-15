@@ -1,0 +1,750 @@
+堆（Heap）
+====================
+
+算法概述
+--------
+堆是一种特殊的完全二叉树，分为大顶堆（每个节点的值都大于或等于其子节点的值）和小顶堆（每个节点的值都小于或等于其子节点的值）。
+
+核心特点：
+1. 完全二叉树结构
+2. 大顶堆：父节点 >= 子节点
+3. 小顶堆：父节点 <= 子节点
+4. 堆顶元素是最大值或最小值
+
+核心思想
+--------
+1. 用数组存储完全二叉树
+2. 对于节点i：左子节点2i+1，右子节点2i+2，父节点(i-1)/2
+3. 插入：在末尾添加，然后上浮
+4. 删除：删除堆顶，将末尾元素放到堆顶，然后下沉
+
+基础模板：手写堆
+--------------
+
+C++版本（小顶堆）：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class MinHeap {
+private:
+    vector<int> heap;
+
+    void heapifyUp(int idx) {
+        while (idx > 0) {
+            int parent = (idx - 1) / 2;
+            if (heap[parent] > heap[idx]) {
+                swap(heap[parent], heap[idx]);
+                idx = parent;
+            } else {
+                break;
+            }
+        }
+    }
+
+    void heapifyDown(int idx) {
+        int n = heap.size();
+
+        while (idx < n) {
+            int left = 2 * idx + 1;
+            int right = 2 * idx + 2;
+            int smallest = idx;
+
+            if (left < n && heap[left] < heap[smallest]) {
+                smallest = left;
+            }
+
+            if (right < n && heap[right] < heap[smallest]) {
+                smallest = right;
+            }
+
+            if (smallest != idx) {
+                swap(heap[idx], heap[smallest]);
+                idx = smallest;
+            } else {
+                break;
+            }
+        }
+    }
+
+public:
+    void push(int val) {
+        heap.push_back(val);
+        heapifyUp(heap.size() - 1);
+    }
+
+    void pop() {
+        if (heap.empty()) return;
+
+        heap[0] = heap.back();
+        heap.pop_back();
+        if (!heap.empty()) {
+            heapifyDown(0);
+        }
+    }
+
+    int top() {
+        if (heap.empty()) return -1;
+        return heap[0];
+    }
+
+    bool empty() {
+        return heap.empty();
+    }
+
+    int size() {
+        return heap.size();
+    }
+};
+
+int main() {
+    MinHeap heap;
+
+    heap.push(3);
+    heap.push(1);
+    heap.push(4);
+    heap.push(2);
+
+    cout << "堆大小: " << heap.size() << endl;  // 4
+
+    while (!heap.empty()) {
+        cout << heap.top() << " ";
+        heap.pop();
+    }
+    cout << endl;  // 1 2 3 4
+
+    return 0;
+}
+```
+
+Python版本（小顶堆）：
+```python
+class MinHeap:
+    def __init__(self):
+        self.heap = []
+
+    def push(self, val):
+        """插入元素"""
+        self.heap.append(val)
+        self._heapify_up(len(self.heap) - 1)
+
+    def pop(self):
+        """删除堆顶元素"""
+        if not self.heap:
+            return None
+
+        self.heap[0] = self.heap[-1]
+        self.heap.pop()
+
+        if self.heap:
+            self._heapify_down(0)
+
+    def top(self):
+        """获取堆顶元素"""
+        if not self.heap:
+            return None
+        return self.heap[0]
+
+    def empty(self):
+        """判断堆是否为空"""
+        return len(self.heap) == 0
+
+    def size(self):
+        """获取堆大小"""
+        return len(self.heap)
+
+    def _heapify_up(self, idx):
+        """上浮操作"""
+        while idx > 0:
+            parent = (idx - 1) // 2
+            if self.heap[parent] > self.heap[idx]:
+                self.heap[parent], self.heap[idx] = self.heap[idx], self.heap[parent]
+                idx = parent
+            else:
+                break
+
+    def _heapify_down(self, idx):
+        """下沉操作"""
+        n = len(self.heap)
+
+        while idx < n:
+            left = 2 * idx + 1
+            right = 2 * idx + 2
+            smallest = idx
+
+            if left < n and self.heap[left] < self.heap[smallest]:
+                smallest = left
+
+            if right < n and self.heap[right] < self.heap[smallest]:
+                smallest = right
+
+            if smallest != idx:
+                self.heap[idx], self.heap[smallest] = self.heap[smallest], self.heap[idx]
+                idx = smallest
+            else:
+                break
+
+# 测试
+heap = MinHeap()
+heap.push(3)
+heap.push(1)
+heap.push(4)
+heap.push(2)
+
+print(f"堆大小: {heap.size()}")  # 4
+
+while not heap.empty():
+    print(heap.top(), end=' ')
+    heap.pop()
+print()  # 1 2 3 4
+```
+
+应用一：堆排序
+------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 堆化（下沉）
+void heapify(vector<int>& arr, int n, int i) {
+    int largest = i;
+    int left = 2 * i + 1;
+    int right = 2 * i + 2;
+
+    if (left < n && arr[left] > arr[largest]) {
+        largest = left;
+    }
+
+    if (right < n && arr[right] > arr[largest]) {
+        largest = right;
+    }
+
+    if (largest != i) {
+        swap(arr[i], arr[largest]);
+        heapify(arr, n, largest);
+    }
+}
+
+// 堆排序
+void heapSort(vector<int>& arr) {
+    int n = arr.size();
+
+    // 建堆（从最后一个非叶子节点开始）
+    for (int i = n / 2 - 1; i >= 0; i--) {
+        heapify(arr, n, i);
+    }
+
+    // 逐个提取堆顶元素
+    for (int i = n - 1; i > 0; i--) {
+        swap(arr[0], arr[i]);
+        heapify(arr, i, 0);
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<int> arr(n);
+    for (int i = 0; i < n; i++) {
+        cin >> arr[i];
+    }
+
+    heapSort(arr);
+
+    cout << "排序后: ";
+    for (int x : arr) {
+        cout << x << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def heapify(arr, n, i):
+    """堆化（下沉操作）"""
+    largest = i
+    left = 2 * i + 1
+    right = 2 * i + 2
+
+    if left < n and arr[left] > arr[largest]:
+        largest = left
+
+    if right < n and arr[right] > arr[largest]:
+        largest = right
+
+    if largest != i:
+        arr[i], arr[largest] = arr[largest], arr[i]
+        heapify(arr, n, largest)
+
+def heap_sort(arr):
+    """堆排序"""
+    n = len(arr)
+
+    # 建堆（从最后一个非叶子节点开始）
+    for i in range(n // 2 - 1, -1, -1):
+        heapify(arr, n, i)
+
+    # 逐个提取堆顶元素
+    for i in range(n - 1, 0, -1):
+        arr[0], arr[i] = arr[i], arr[0]
+        heapify(arr, i, 0)
+
+# 测试
+n = int(input())
+arr = list(map(int, input().split()))
+
+heap_sort(arr)
+print("排序后:", *arr)
+```
+
+应用二：TopK问题
+--------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> topKLargest(vector<int>& nums, int k) {
+    // 使用小顶堆，保持堆大小为k
+    priority_queue<int, vector<int>, greater<int>> min_heap;
+
+    for (int num : nums) {
+        if (min_heap.size() < k) {
+            min_heap.push(num);
+        } else if (num > min_heap.top()) {
+            min_heap.pop();
+            min_heap.push(num);
+        }
+    }
+
+    vector<int> result;
+    while (!min_heap.empty()) {
+        result.push_back(min_heap.top());
+        min_heap.pop();
+    }
+
+    return result;
+}
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+
+    vector<int> nums(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nums[i];
+    }
+
+    vector<int> result = topKLargest(nums, k);
+
+    cout << "Top " << k << " 最大值: ";
+    for (int x : result) {
+        cout << x << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import heapq
+
+def top_k_largest(nums, k):
+    """找出前k个最大元素"""
+    # 使用小顶堆，保持堆大小为k
+    min_heap = []
+
+    for num in nums:
+        if len(min_heap) < k:
+            heapq.heappush(min_heap, num)
+        elif num > min_heap[0]:
+            heapq.heappop(min_heap)
+            heapq.heappush(min_heap, num)
+
+    return sorted(min_heap, reverse=True)
+
+# 测试
+n, k = map(int, input().split())
+nums = list(map(int, input().split()))
+
+result = top_k_largest(nums, k)
+print(f"Top {k} 最大值:", *result)
+```
+
+应用三：合并K个有序链表
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val;
+    ListNode *next;
+    ListNode(int x) : val(x), next(nullptr) {}
+};
+
+struct Compare {
+    bool operator()(ListNode* a, ListNode* b) {
+        return a->val > b->val;
+    }
+};
+
+ListNode* mergeKLists(vector<ListNode*>& lists) {
+    priority_queue<ListNode*, vector<ListNode*>, Compare> min_heap;
+
+    // 将所有链表的头节点加入堆
+    for (ListNode* head : lists) {
+        if (head != nullptr) {
+            min_heap.push(head);
+        }
+    }
+
+    ListNode *dummy = new ListNode(0);
+    ListNode *cur = dummy;
+
+    while (!min_heap.empty()) {
+        ListNode *node = min_heap.top();
+        min_heap.pop();
+
+        cur->next = node;
+        cur = cur->next;
+
+        if (node->next != nullptr) {
+            min_heap.push(node->next);
+        }
+    }
+
+    return dummy->next;
+}
+
+int main() {
+    int k;
+    cin >> k;
+
+    vector<ListNode*> lists(k);
+
+    // 创建k个有序链表
+    for (int i = 0; i < k; i++) {
+        int n;
+        cin >> n;
+
+        ListNode *dummy = new ListNode(0);
+        ListNode *cur = dummy;
+
+        for (int j = 0; j < n; j++) {
+            int val;
+            cin >> val;
+            cur->next = new ListNode(val);
+            cur = cur->next;
+        }
+
+        lists[i] = dummy->next;
+    }
+
+    ListNode *merged = mergeKLists(lists);
+
+    cout << "合并后: ";
+    while (merged != nullptr) {
+        cout << merged->val << " -> ";
+        merged = merged->next;
+    }
+    cout << "NULL" << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import heapq
+
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+    def __lt__(self, other):
+        return self.val < other.val
+
+def merge_k_lists(lists):
+    """合并K个有序链表"""
+    min_heap = []
+
+    # 将所有链表的头节点加入堆
+    for head in lists:
+        if head:
+            heapq.heappush(min_heap, head)
+
+    dummy = ListNode(0)
+    cur = dummy
+
+    while min_heap:
+        node = heapq.heappop(min_heap)
+        cur.next = node
+        cur = cur.next
+
+        if node.next:
+            heapq.heappush(min_heap, node.next)
+
+    return dummy.next
+
+# 测试
+k = int(input())
+lists = []
+
+for _ in range(k):
+    n = int(input())
+    values = list(map(int, input().split()))
+
+    dummy = ListNode(0)
+    cur = dummy
+
+    for val in values:
+        cur.next = ListNode(val)
+        cur = cur.next
+
+    lists.append(dummy.next)
+
+merged = merge_k_lists(lists)
+
+print("合并后: ", end='')
+while merged:
+    print(f"{merged.val} -> ", end='')
+    merged = merged.next
+print("NULL")
+```
+
+应用四：数据流中的中位数
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class MedianFinder {
+private:
+    priority_queue<int> max_heap;   // 左半部分，大顶堆
+    priority_queue<int, vector<int>, greater<int>> min_heap;  // 右半部分，小顶堆
+
+public:
+    MedianFinder() {}
+
+    void addNum(int num) {
+        if (max_heap.empty() || num <= max_heap.top()) {
+            max_heap.push(num);
+        } else {
+            min_heap.push(num);
+        }
+
+        // 平衡两个堆的大小
+        if (max_heap.size() > min_heap.size() + 1) {
+            min_heap.push(max_heap.top());
+            max_heap.pop();
+        } else if (min_heap.size() > max_heap.size()) {
+            max_heap.push(min_heap.top());
+            min_heap.pop();
+        }
+    }
+
+    double findMedian() {
+        if (max_heap.size() == min_heap.size()) {
+            return (max_heap.top() + min_heap.top()) / 2.0;
+        } else {
+            return max_heap.top();
+        }
+    }
+};
+
+int main() {
+    MedianFinder mf;
+
+    int n;
+    cin >> n;
+
+    for (int i = 0; i < n; i++) {
+        int x;
+        cin >> x;
+        mf.addNum(x);
+        cout << "中位数: " << mf.findMedian() << endl;
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import heapq
+
+class MedianFinder:
+    def __init__(self):
+        # 左半部分，大顶堆（用负数模拟）
+        self.max_heap = []
+        # 右半部分，小顶堆
+        self.min_heap = []
+
+    def add_num(self, num):
+        """添加数字"""
+        if not self.max_heap or num <= -self.max_heap[0]:
+            heapq.heappush(self.max_heap, -num)
+        else:
+            heapq.heappush(self.min_heap, num)
+
+        # 平衡两个堆的大小
+        if len(self.max_heap) > len(self.min_heap) + 1:
+            heapq.heappush(self.min_heap, -heapq.heappop(self.max_heap))
+        elif len(self.min_heap) > len(self.max_heap):
+            heapq.heappush(self.max_heap, -heapq.heappop(self.min_heap))
+
+    def find_median(self):
+        """找出中位数"""
+        if len(self.max_heap) == len(self.min_heap):
+            return (-self.max_heap[0] + self.min_heap[0]) / 2
+        else:
+            return -self.max_heap[0]
+
+# 测试
+mf = MedianFinder()
+n = int(input())
+
+for _ in range(n):
+    x = int(input())
+    mf.add_num(x)
+    print(f"中位数: {mf.find_median()}")
+```
+
+应用五：优先队列
+--------------
+
+C++版本（任务调度）：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Task {
+    int id;
+    int priority;
+
+    bool operator<(const Task& other) const {
+        return priority < other.priority;  // 大顶堆
+    }
+};
+
+vector<int> taskScheduling(vector<pair<int, int>>& tasks) {
+    priority_queue<Task> pq;
+
+    for (auto& task : tasks) {
+        pq.push({task.first, task.second});
+    }
+
+    vector<int> result;
+    while (!pq.empty()) {
+        Task task = pq.top();
+        pq.pop();
+        result.push_back(task.id);
+    }
+
+    return result;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<pair<int, int>> tasks(n);
+    for (int i = 0; i < n; i++) {
+        cin >> tasks[i].first >> tasks[i].second;
+    }
+
+    vector<int> result = taskScheduling(tasks);
+
+    cout << "执行顺序: ";
+    for (int id : result) {
+        cout << id << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import heapq
+
+class Task:
+    def __init__(self, task_id, priority):
+        self.task_id = task_id
+        self.priority = priority
+
+    def __lt__(self, other):
+        return self.priority > other.priority  # 大顶堆
+
+def task_scheduling(tasks):
+    """任务调度"""
+    pq = []
+
+    for task_id, priority in tasks:
+        heapq.heappush(pq, Task(task_id, priority))
+
+    result = []
+    while pq:
+        task = heapq.heappop(pq)
+        result.append(task.task_id)
+
+    return result
+
+# 测试
+n = int(input())
+tasks = []
+
+for _ in range(n):
+    task_id, priority = map(int, input().split())
+    tasks.append((task_id, priority))
+
+result = task_scheduling(tasks)
+print("执行顺序:", *result)
+```
+
+典型例题
+--------
+1. 数组中的第K个最大元素（LeetCode 215）：堆的基础应用
+2. 前K个高频元素（LeetCode 347）：堆+哈希表
+3. 合并K个升序链表（LeetCode 23）：堆+链表
+4. 数据流的中位数（LeetCode 295）：双堆问题
+5. 滑动窗口最大值（LeetCode 239）：单调队列/堆
+6. 最小的K个数（LeetCode 剑指 Offer 40）：堆排序应用
+7. IPO（LeetCode 502）：贪心+堆
+8. 寻找峰值（LeetCode 162）：堆相关
+
+注意事项
+--------
+1. 堆的实现可以用数组，父子节点关系要清楚
+2. 小顶堆找最大值，大顶堆找最小值（通过取反）
+3. Python的heapq默认是小顶堆
+4. C++的priority_queue默认是大顶堆
+5. TopK问题：求前K大用小顶堆，求前K小用大顶堆
+6. 堆排序时间复杂度O(n log n)，空间复杂度O(1)
+7. 堆的插入和删除都是O(log n)时间复杂度
+
+时间复杂度总结
+--------------
+- 插入操作：O(log n)
+- 删除操作：O(log n)
+- 查找堆顶：O(1)
+- 堆排序：O(n log n)
+- 空间复杂度：O(n)
+
+堆是一种高效的数据结构，在TopK问题、优先队列、调度算法中都有广泛应用。

@@ -1,0 +1,742 @@
+后缀数组（Suffix Array）
+=======================
+
+算法概述
+--------
+后缀数组是将字符串的所有后缀按字典序排序后的数组。它结合了后缀树的功能和数组的简洁性，是解决字符串问题的重要工具。通过后缀数组和LCP（最长公共前缀）数组，可以高效解决最长重复子串、最长公共子串、不同子串统计等问题。
+
+核心思想
+--------
+1. 将字符串的所有后缀排序
+2. 利用倍增思想优化排序过程
+3. 配合LCP数组获取相邻后缀的最长公共前缀
+4. 通过RMQ快速查询任意两个后缀的LCP
+
+算法原理
+--------
+1. 后缀数组的定义：
+   - SA数组：sa[i]表示排名为i的后缀的起始位置
+   - RK数组：rk[i]表示从位置i开始的后缀的排名
+   - SA和RK互为逆运算
+
+2. 倍增算法构建SA：
+   - 第一轮：按单个字符排序
+   - 第二轮：按前2个字符排序
+   - 第三轮：按前4个字符排序
+   - 第k轮：按前2^k个字符排序
+
+3. LCP数组：
+   - height[i] = LCP(sa[i-1], sa[i])
+   - 即相邻两个后缀的最长公共前缀长度
+   - 利用height数组可以O(1)查询任意两个后缀的LCP
+
+基础模板：倍增算法构建后缀数组
+----------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 200005;
+
+char s[MAXN];
+int sa[MAXN];      // 后缀数组
+int rk[MAXN];      // 排名数组
+int tmp_sa[MAXN];  // 临时后缀数组
+int tmp_rk[MAXN];  // 临时排名数组
+
+// 倍增算法构建后缀数组
+void build_sa(int n) {
+    // 第一轮：按单个字符排序
+    for (int i = 0; i < n; i++) {
+        sa[i] = i;
+        rk[i] = s[i];
+    }
+
+    // 倍增排序
+    for (int k = 1; k < n; k *= 2) {
+        // 按第二关键字排序
+        auto cmp = [k, n](int a, int b) {
+            if (rk[a] != rk[b]) {
+                return rk[a] < rk[b];
+            }
+            int ra = (a + k < n) ? rk[a + k] : -1;
+            int rb = (b + k < n) ? rk[b + k] : -1;
+            return ra < rb;
+        };
+
+        sort(sa, sa + n, cmp);
+
+        // 重新计算排名
+        tmp_rk[sa[0]] = 0;
+        for (int i = 1; i < n; i++) {
+            tmp_rk[sa[i]] = tmp_rk[sa[i - 1]];
+            if (cmp(sa[i - 1], sa[i])) {
+                tmp_rk[sa[i]]++;
+            }
+        }
+
+        memcpy(rk, tmp_rk, sizeof(rk));
+
+        // 如果所有排名都不同，可以提前退出
+        if (rk[sa[n - 1]] == n - 1) {
+            break;
+        }
+    }
+}
+
+int main() {
+    scanf("%s", s);
+    int n = strlen(s);
+
+    build_sa(n);
+
+    printf("Suffix Array:\n");
+    for (int i = 0; i < n; i++) {
+        printf("sa[%d] = %d, suffix: %s\n", i, sa[i], s + sa[i]);
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def build_suffix_array(s):
+    """构建后缀数组"""
+    n = len(s)
+
+    # 初始化：按单个字符排序
+    sa = list(range(n))
+    rk = [ord(c) for c in s]
+
+    k = 1
+    tmp_rk = [0] * n
+
+    while k < n:
+        # 排序
+        sa.sort(key=lambda x: (rk[x], rk[x + k] if x + k < n else -1))
+
+        # 重新计算排名
+        tmp_rk[sa[0]] = 0
+        for i in range(1, n):
+            tmp_rk[sa[i]] = tmp_rk[sa[i - 1]]
+            if (rk[sa[i]] != rk[sa[i - 1]] or
+                (rk[sa[i] + k] if sa[i] + k < n else -1) !=
+                (rk[sa[i - 1] + k] if sa[i - 1] + k < n else -1)):
+                tmp_rk[sa[i]] += 1
+
+        rk = tmp_rk[:]
+
+        if rk[sa[-1]] == n - 1:
+            break
+
+        k *= 2
+
+    return sa
+
+def solve():
+    s = input().strip()
+    sa = build_suffix_array(s)
+
+    print("Suffix Array:")
+    for i, pos in enumerate(sa):
+        print(f"sa[{i}] = {pos}, suffix: {s[pos:]}")
+
+solve()
+```
+
+构建LCP数组
+-----------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 200005;
+
+char s[MAXN];
+int sa[MAXN], rk[MAXN], height[MAXN];
+
+void build_sa(int n) {
+    for (int i = 0; i < n; i++) {
+        sa[i] = i;
+        rk[i] = s[i];
+    }
+
+    int tmp_rk[MAXN];
+    for (int k = 1; k < n; k *= 2) {
+        sort(sa, sa + n, [k, n](int a, int b) {
+            if (rk[a] != rk[b]) return rk[a] < rk[b];
+            int ra = (a + k < n) ? rk[a + k] : -1;
+            int rb = (b + k < n) ? rk[b + k] : -1;
+            return ra < rb;
+        });
+
+        tmp_rk[sa[0]] = 0;
+        for (int i = 1; i < n; i++) {
+            tmp_rk[sa[i]] = tmp_rk[sa[i - 1]];
+            if (rk[sa[i]] != rk[sa[i - 1]] ||
+                ((sa[i] + k < n ? rk[sa[i] + k] : -1) !=
+                 (sa[i - 1] + k < n ? rk[sa[i - 1] + k] : -1))) {
+                tmp_rk[sa[i]]++;
+            }
+        }
+
+        memcpy(rk, tmp_rk, sizeof(rk));
+        if (rk[sa[n - 1]] == n - 1) break;
+    }
+}
+
+// 构建LCP数组
+void build_height(int n) {
+    int h = 0;
+    for (int i = 0; i < n; i++) {
+        if (rk[i] == 0) {
+            h = 0;
+            height[0] = 0;
+            continue;
+        }
+
+        int j = sa[rk[i] - 1];
+        while (i + h < n && j + h < n && s[i + h] == s[j + h]) {
+            h++;
+        }
+
+        height[rk[i]] = h;
+        if (h > 0) h--;
+    }
+}
+
+int main() {
+    scanf("%s", s);
+    int n = strlen(s);
+
+    build_sa(n);
+    build_height(n);
+
+    printf("Suffix Array:\n");
+    for (int i = 0; i < n; i++) {
+        printf("sa[%d] = %d\n", i, sa[i]);
+    }
+
+    printf("\nLCP Array:\n");
+    for (int i = 0; i < n; i++) {
+        printf("height[%d] = %d\n", i, height[i]);
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def build_lcp_array(s, sa):
+    """构建LCP数组"""
+    n = len(s)
+
+    # 构建排名数组
+    rk = [0] * n
+    for i, pos in enumerate(sa):
+        rk[pos] = i
+
+    lcp = [0] * n
+    h = 0
+
+    for i in range(n):
+        if rk[i] == 0:
+            h = 0
+            continue
+
+        j = sa[rk[i] - 1]
+        while i + h < n and j + h < n and s[i + h] == s[j + h]:
+            h += 1
+
+        lcp[rk[i]] = h
+        if h > 0:
+            h -= 1
+
+    return lcp
+
+def solve():
+    s = input().strip()
+    sa = build_suffix_array(s)
+    lcp = build_lcp_array(s, sa)
+
+    print("Suffix Array:")
+    for i, pos in enumerate(sa):
+        print(f"sa[{i}] = {pos}")
+
+    print("\nLCP Array:")
+    for i, val in enumerate(lcp):
+        print(f"height[{i}] = {val}")
+
+solve()
+```
+
+应用一：最长重复子串
+------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 200005;
+
+char s[MAXN];
+int sa[MAXN], rk[MAXN], height[MAXN];
+
+void build_sa(int n) {
+    for (int i = 0; i < n; i++) {
+        sa[i] = i;
+        rk[i] = s[i];
+    }
+
+    int tmp_rk[MAXN];
+    for (int k = 1; k < n; k *= 2) {
+        sort(sa, sa + n, [k, n](int a, int b) {
+            if (rk[a] != rk[b]) return rk[a] < rk[b];
+            int ra = (a + k < n) ? rk[a + k] : -1;
+            int rb = (b + k < n) ? rk[b + k] : -1;
+            return ra < rb;
+        });
+
+        tmp_rk[sa[0]] = 0;
+        for (int i = 1; i < n; i++) {
+            tmp_rk[sa[i]] = tmp_rk[sa[i - 1]];
+            if (rk[sa[i]] != rk[sa[i - 1]] ||
+                ((sa[i] + k < n ? rk[sa[i] + k] : -1) !=
+                 (sa[i - 1] + k < n ? rk[sa[i - 1] + k] : -1))) {
+                tmp_rk[sa[i]]++;
+            }
+        }
+
+        memcpy(rk, tmp_rk, sizeof(rk));
+        if (rk[sa[n - 1]] == n - 1) break;
+    }
+}
+
+void build_height(int n) {
+    int h = 0;
+    for (int i = 0; i < n; i++) {
+        if (rk[i] == 0) {
+            h = 0;
+            height[0] = 0;
+            continue;
+        }
+
+        int j = sa[rk[i] - 1];
+        while (i + h < n && j + h < n && s[i + h] == s[j + h]) {
+            h++;
+        }
+
+        height[rk[i]] = h;
+        if (h > 0) h--;
+    }
+}
+
+// 查找最长重复子串
+string find_longest_repeated_substring(int n) {
+    int max_len = 0;
+    int pos = 0;
+
+    for (int i = 1; i < n; i++) {
+        if (height[i] > max_len) {
+            max_len = height[i];
+            pos = sa[i];
+        }
+    }
+
+    if (max_len == 0) {
+        return "";
+    }
+
+    return string(s + pos, s + pos + max_len);
+}
+
+int main() {
+    scanf("%s", s);
+    int n = strlen(s);
+
+    build_sa(n);
+    build_height(n);
+
+    string result = find_longest_repeated_substring(n);
+
+    if (result.empty()) {
+        printf("No repeated substring\n");
+    } else {
+        printf("Longest repeated substring: %s\n", result.c_str());
+        printf("Length: %d\n", (int)result.length());
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def find_longest_repeated_substring(s):
+    """查找最长重复子串"""
+    sa = build_suffix_array(s)
+    lcp = build_lcp_array(s, sa)
+
+    if not lcp:
+        return ""
+
+    max_len = max(lcp)
+    if max_len == 0:
+        return ""
+
+    idx = lcp.index(max_len)
+    pos = sa[idx]
+
+    return s[pos:pos + max_len]
+
+def solve():
+    s = input().strip()
+    result = find_longest_repeated_substring(s)
+
+    if result:
+        print(f"Longest repeated substring: {result}")
+        print(f"Length: {len(result)}")
+    else:
+        print("No repeated substring")
+
+solve()
+```
+
+应用二：最长公共子串
+------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 400005;
+
+char s[MAXN];
+char s1[MAXN], s2[MAXN];
+int sa[MAXN], rk[MAXN], height[MAXN];
+int belong[MAXN];  // 标记每个字符属于哪个字符串
+
+void build_sa(int n) {
+    for (int i = 0; i < n; i++) {
+        sa[i] = i;
+        rk[i] = s[i];
+    }
+
+    int tmp_rk[MAXN];
+    for (int k = 1; k < n; k *= 2) {
+        sort(sa, sa + n, [k, n](int a, int b) {
+            if (rk[a] != rk[b]) return rk[a] < rk[b];
+            int ra = (a + k < n) ? rk[a + k] : -1;
+            int rb = (b + k < n) ? rk[b + k] : -1;
+            return ra < rb;
+        });
+
+        tmp_rk[sa[0]] = 0;
+        for (int i = 1; i < n; i++) {
+            tmp_rk[sa[i]] = tmp_rk[sa[i - 1]];
+            if (rk[sa[i]] != rk[sa[i - 1]] ||
+                ((sa[i] + k < n ? rk[sa[i] + k] : -1) !=
+                 (sa[i - 1] + k < n ? rk[sa[i - 1] + k] : -1))) {
+                tmp_rk[sa[i]]++;
+            }
+        }
+
+        memcpy(rk, tmp_rk, sizeof(rk));
+        if (rk[sa[n - 1]] == n - 1) break;
+    }
+}
+
+void build_height(int n) {
+    int h = 0;
+    for (int i = 0; i < n; i++) {
+        if (rk[i] == 0) {
+            h = 0;
+            height[0] = 0;
+            continue;
+        }
+
+        int j = sa[rk[i] - 1];
+        while (i + h < n && j + h < n && s[i + h] == s[j + h]) {
+            h++;
+        }
+
+        height[rk[i]] = h;
+        if (h > 0) h--;
+    }
+}
+
+// 查找最长公共子串
+string find_longest_common_substring(int n, int len1) {
+    int max_len = 0;
+    int pos = 0;
+
+    for (int i = 1; i < n; i++) {
+        // 确保相邻后缀来自不同字符串
+        if (belong[sa[i]] != belong[sa[i-1]]) {
+            if (height[i] > max_len) {
+                max_len = height[i];
+                pos = sa[i];
+            }
+        }
+    }
+
+    if (max_len == 0) {
+        return "";
+    }
+
+    // 截取子串
+    int end = pos + max_len;
+    if (pos >= len1) {
+        return string(s + pos, s + end);
+    } else {
+        return string(s + pos, s + min(end, len1));
+    }
+}
+
+int main() {
+    scanf("%s%s", s1, s2);
+    int len1 = strlen(s1);
+    int len2 = strlen(s2);
+
+    // 连接两个字符串
+    strcpy(s, s1);
+    s[len1] = '#';
+    strcpy(s + len1 + 1, s2);
+    int n = len1 + len2 + 1;
+
+    // 标记每个字符属于哪个字符串
+    for (int i = 0; i < len1; i++) {
+        belong[i] = 1;
+    }
+    for (int i = len1 + 1; i < n; i++) {
+        belong[i] = 2;
+    }
+
+    build_sa(n);
+    build_height(n);
+
+    string result = find_longest_common_substring(n, len1);
+
+    if (result.empty()) {
+        printf("No common substring\n");
+    } else {
+        printf("Longest common substring: %s\n", result.c_str());
+        printf("Length: %d\n", (int)result.length());
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def find_longest_common_substring(s1, s2):
+    """查找最长公共子串"""
+    # 连接两个字符串
+    text = s1 + '#' + s2
+    len1 = len(s1)
+
+    # 构建后缀数组和LCP数组
+    sa = build_suffix_array(text)
+    lcp = build_lcp_array(text, sa)
+
+    max_len = 0
+    pos = 0
+
+    for i in range(1, len(text)):
+        # 检查相邻后缀是否来自不同字符串
+        in_s1 = sa[i] < len1
+        in_s2_prev = sa[i-1] > len1
+
+        if in_s1 != in_s2_prev:
+            if lcp[i] > max_len:
+                max_len = lcp[i]
+                pos = sa[i]
+
+    if max_len == 0:
+        return ""
+
+    return text[pos:pos + max_len]
+
+def solve():
+    s1 = input().strip()
+    s2 = input().strip()
+
+    result = find_longest_common_substring(s1, s2)
+
+    if result:
+        print(f"Longest common substring: {result}")
+        print(f"Length: {len(result)}")
+    else:
+        print("No common substring")
+
+solve()
+```
+
+应用三：统计不同子串数量
+----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 200005;
+
+char s[MAXN];
+int sa[MAXN], rk[MAXN], height[MAXN];
+
+void build_sa(int n) {
+    for (int i = 0; i < n; i++) {
+        sa[i] = i;
+        rk[i] = s[i];
+    }
+
+    int tmp_rk[MAXN];
+    for (int k = 1; k < n; k *= 2) {
+        sort(sa, sa + n, [k, n](int a, int b) {
+            if (rk[a] != rk[b]) return rk[a] < rk[b];
+            int ra = (a + k < n) ? rk[a + k] : -1;
+            int rb = (b + k < n) ? rk[b + k] : -1;
+            return ra < rb;
+        });
+
+        tmp_rk[sa[0]] = 0;
+        for (int i = 1; i < n; i++) {
+            tmp_rk[sa[i]] = tmp_rk[sa[i - 1]];
+            if (rk[sa[i]] != rk[sa[i - 1]] ||
+                ((sa[i] + k < n ? rk[sa[i] + k] : -1) !=
+                 (sa[i - 1] + k < n ? rk[sa[i - 1] + k] : -1))) {
+                tmp_rk[sa[i]]++;
+            }
+        }
+
+        memcpy(rk, tmp_rk, sizeof(rk));
+        if (rk[sa[n - 1]] == n - 1) break;
+    }
+}
+
+void build_height(int n) {
+    int h = 0;
+    for (int i = 0; i < n; i++) {
+        if (rk[i] == 0) {
+            h = 0;
+            height[0] = 0;
+            continue;
+        }
+
+        int j = sa[rk[i] - 1];
+        while (i + h < n && j + h < n && s[i + h] == s[j + h]) {
+            h++;
+        }
+
+        height[rk[i]] = h;
+        if (h > 0) h--;
+    }
+}
+
+// 统计不同子串数量
+long long count_distinct_substrings(int n) {
+    long long total = (long long)n * (n + 1) / 2;
+    long long repeated = 0;
+
+    for (int i = 0; i < n; i++) {
+        repeated += height[i];
+    }
+
+    return total - repeated;
+}
+
+int main() {
+    scanf("%s", s);
+    int n = strlen(s);
+
+    build_sa(n);
+    build_height(n);
+
+    long long result = count_distinct_substrings(n);
+
+    printf("Number of distinct substrings: %lld\n", result);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def count_distinct_substrings(s):
+    """统计不同子串数量"""
+    n = len(s)
+
+    # 总子串数
+    total = n * (n + 1) // 2
+
+    # 构建LCP数组
+    sa = build_suffix_array(s)
+    lcp = build_lcp_array(s, sa)
+
+    # 重复的子串数
+    repeated = sum(lcp)
+
+    return total - repeated
+
+def solve():
+    s = input().strip()
+    result = count_distinct_substrings(s)
+    print(f"Number of distinct substrings: {result}")
+
+solve()
+```
+
+典型例题
+--------
+1. 后缀数组模板（洛谷P3804）：构建后缀数组
+2. 最长重复子串（POJ 1743）：查找出现至少两次的最长子串
+3. 最长公共子串（POJ 2774）：两个字符串的最长公共子串
+4. 不同子串统计（SPOJ SUBST1）：统计不同子串数量
+5. 不可重叠最长重复子串（POJ 3261）：查找不重叠的最长重复子串
+
+注意事项
+--------
+1. 后缀数组构建：
+   - 倍增算法时间复杂度O(n log n)
+   - DC3算法时间复杂度O(n)，但实现复杂
+   - Python中直接排序可能较慢
+
+2. LCP数组构建：
+   - 利用height数组的性质
+   - h值单调递减，总时间O(n)
+   - 关键性质：height[rk[i]] >= height[rk[i-1]] - 1
+
+3. 空间复杂度：
+   - 需要O(n)的额外空间
+   - 包括SA、RK、HEIGHT数组
+
+4. 字符串连接：
+   - 连接多个字符串时使用特殊字符分隔
+   - 确保分隔字符的ASCII码小于所有普通字符
+   - 或使用多个不同的分隔符
+
+5. 边界处理：
+   - 注意字符串越界
+   - 倍增时检查i+k是否越界
+   - 第二关键字越界时设为-1
+
+时间复杂度总结
+--------------
+- 构建后缀数组（倍增）：O(n log n)
+- 构建LCP数组：O(n)
+- 最长重复子串查询：O(n)
+- 最长公共子串查询：O(n)
+- 不同子串统计：O(n)
+- 空间复杂度：O(n)
+
+后缀数组是字符串处理的核心工具，配合LCP数组可以高效解决各种字符串问题。

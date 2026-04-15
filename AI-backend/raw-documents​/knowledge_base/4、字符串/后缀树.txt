@@ -1,0 +1,644 @@
+后缀树（Suffix Tree）
+====================
+
+算法概述
+--------
+后缀树是一种压缩Trie树结构，用于存储一个字符串的所有后缀。它可以在O(n)时间内构建（使用Ukkonen算法），并且可以高效地解决许多字符串问题，如最长公共子串、最长重复子串、最长回文子串等。
+
+核心思想
+--------
+1. 将字符串的所有后缀插入到Trie树中
+2. 压缩路径：只有度数为1的中间节点才压缩
+3. 每个叶子节点对应一个后缀
+4. 每条边标记一个子串（用[l, r]表示）
+
+算法原理
+--------
+1. 后缀树的定义：
+   - 包含字符串S的所有后缀的压缩Trie
+   - 根节点到每个叶子节点的路径表示一个后缀
+   - 边用子串的起始和结束位置标记
+
+2. 重要性质：
+   - 节点数：O(n)，n为字符串长度
+   - 边数：O(n)
+   - 可以在线性时间内构建
+
+3. 后缀树与后缀数组的关系：
+   - 后缀树可以导出后缀数组
+   - 后缀树的DFS遍历顺序就是后缀数组的顺序
+   - LCP数组对应于后缀树中节点的深度
+
+基础结构定义
+------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 200005;
+const int ALPHABET = 26;
+
+struct SuffixTreeNode {
+    int next[ALPHABET];  // 子节点
+    int link;            // 后缀链接（后缀自动机中的概念）
+    int start;           // 边的起始位置
+    int end;             // 边的结束位置（指针或固定值）
+    int suffix_index;    // 后缀索引（仅叶子节点）
+};
+
+char text[MAXN];  // 输入字符串
+SuffixTreeNode tree[MAXN];
+int node_count = 0;  // 节点计数
+
+// 创建新节点
+int new_node(int start, int end) {
+    node_count++;
+    memset(tree[node_count].next, -1, sizeof(tree[node_count].next));
+    tree[node_count].link = 0;
+    tree[node_count].start = start;
+    tree[node_count].end = end;
+    tree[node_count].suffix_index = -1;
+    return node_count;
+}
+
+// 扩展后缀树（简化版，完整Ukkonen算法较复杂）
+void extend_suffix_tree(int pos) {
+    // 这里是简化版本
+    // 完整的Ukkonen算法实现较为复杂
+    // 实际应用中常用后缀数组或后缀自动机替代
+}
+
+int main() {
+    scanf("%s", text);
+    int n = strlen(text);
+
+    // 在字符串末尾添加特殊字符$
+    text[n] = '$';
+    text[n + 1] = '\0';
+    n++;
+
+    // 构建后缀树
+    // 这里只展示框架，完整实现较复杂
+
+    printf("Suffix tree structure (simplified)\n");
+    printf("For practical use, consider Suffix Array or SAM\n");
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class SuffixTreeNode:
+    def __init__(self):
+        self.children = {}  # 子节点字典
+        self.link = None    # 后缀链接
+        self.start = 0      # 边的起始位置
+        self.end = 0        # 边的结束位置
+        self.suffix_index = -1  # 后缀索引
+
+class SuffixTree:
+    def __init__(self, text):
+        self.text = text
+        self.root = SuffixTreeNode()
+        self.build()
+
+    def build(self):
+        """构建后缀树（简化版）"""
+        # 为每个后缀插入
+        for i in range(len(self.text)):
+            self._insert_suffix(i)
+
+    def _insert_suffix(self, start):
+        """插入从start开始的后缀"""
+        node = self.root
+        i = start
+
+        while i < len(self.text):
+            ch = self.text[i]
+            if ch not in node.children:
+                # 创建新叶子节点
+                new_node = SuffixTreeNode()
+                new_node.start = i
+                new_node.end = len(self.text)
+                new_node.suffix_index = start
+                node.children[ch] = new_node
+                break
+            else:
+                # 沿着已有边移动
+                child = node.children[ch]
+                edge_start = child.start
+                edge_end = child.end
+
+                j = edge_start
+                while i < len(self.text) and j < edge_end and self.text[i] == self.text[j]:
+                    i += 1
+                    j += 1
+
+                if j == edge_end:
+                    # 完全匹配这条边，继续
+                    node = child
+                else:
+                    # 需要分割边
+                    split_node = SuffixTreeNode()
+                    split_node.start = edge_start
+                    split_node.end = j
+
+                    # 更新原有节点
+                    child.start = j
+                    split_node.children[self.text[j]] = child
+
+                    # 创建新叶子节点
+                    leaf_node = SuffixTreeNode()
+                    leaf_node.start = i
+                    leaf_node.end = len(self.text)
+                    leaf_node.suffix_index = start
+                    split_node.children[self.text[i]] = leaf_node
+
+                    node.children[self.text[edge_start]] = split_node
+                    break
+
+    def print_tree(self, node=None, depth=0):
+        """打印后缀树结构"""
+        if node is None:
+            node = self.root
+
+        indent = "  " * depth
+        for ch, child in sorted(node.children.items()):
+            edge_str = self.text[child.start:child.end]
+            if child.suffix_index != -1:
+                print(f"{indent}{ch}: [{edge_str}] (suffix {child.suffix_index})")
+            else:
+                print(f"{indent}{ch}: [{edge_str}]")
+                self.print_tree(child, depth + 1)
+
+def solve():
+    text = input().strip()
+    st = SuffixTree(text)
+    print("Suffix Tree Structure:")
+    st.print_tree()
+
+solve()
+```
+
+应用一：查找最长重复子串
+----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 使用后缀数组实现（后缀树较复杂，实践中常用后缀数组）
+const int MAXN = 200005;
+
+char text[MAXN];
+int sa[MAXN];  // 后缀数组
+int rk[MAXN];  // 排名数组
+int height[MAXN];  // LCP数组
+
+// 后缀数组构建（简化版，使用倍增算法）
+void build_sa(int n) {
+    // 这里使用简单的排序（实际应用中用倍增或DC3）
+    for (int i = 0; i < n; i++) {
+        sa[i] = i;
+    }
+
+    sort(sa, sa + n, [n](int a, int b) {
+        return strcmp(text + a, text + b) < 0;
+    });
+
+    for (int i = 0; i < n; i++) {
+        rk[sa[i]] = i;
+    }
+}
+
+// 构建LCP数组
+void build_height(int n) {
+    int h = 0;
+    for (int i = 0; i < n; i++) {
+        if (rk[i] == 0) {
+            h = 0;
+            height[0] = 0;
+            continue;
+        }
+
+        int j = sa[rk[i] - 1];
+        while (i + h < n && j + h < n && text[i + h] == text[j + h]) {
+            h++;
+        }
+
+        height[rk[i]] = h;
+        if (h > 0) h--;
+    }
+}
+
+// 查找最长重复子串
+string find_longest_repeated_substring(int n) {
+    int max_len = 0;
+    int pos = 0;
+
+    for (int i = 1; i < n; i++) {
+        if (height[i] > max_len) {
+            max_len = height[i];
+            pos = sa[i];
+        }
+    }
+
+    if (max_len == 0) {
+        return "";
+    }
+
+    return string(text + pos, text + pos + max_len);
+}
+
+int main() {
+    scanf("%s", text);
+    int n = strlen(text);
+
+    build_sa(n);
+    build_height(n);
+
+    string result = find_longest_repeated_substring(n);
+
+    if (result.empty()) {
+        printf("No repeated substring\n");
+    } else {
+        printf("Longest repeated substring: %s\n", result.c_str());
+        printf("Length: %d\n", (int)result.length());
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def build_suffix_array(s):
+    """构建后缀数组"""
+    n = len(s)
+    sa = list(range(n))
+
+    # 简单排序（实际应用中应该用更高效的算法）
+    sa.sort(key=lambda i: s[i:])
+
+    return sa
+
+def build_lcp_array(s, sa):
+    """构建LCP数组"""
+    n = len(s)
+    rk = [0] * n
+    for i, pos in enumerate(sa):
+        rk[pos] = i
+
+    lcp = [0] * n
+    h = 0
+    for i in range(n):
+        if rk[i] == 0:
+            h = 0
+            continue
+
+        j = sa[rk[i] - 1]
+        while i + h < n and j + h < n and s[i + h] == s[j + h]:
+            h += 1
+
+        lcp[rk[i]] = h
+        if h > 0:
+            h -= 1
+
+    return lcp
+
+def find_longest_repeated_substring(s):
+    """查找最长重复子串"""
+    sa = build_suffix_array(s)
+    lcp = build_lcp_array(s, sa)
+
+    if not lcp:
+        return ""
+
+    max_len = max(lcp)
+    if max_len == 0:
+        return ""
+
+    idx = lcp.index(max_len)
+    pos = sa[idx]
+
+    return s[pos:pos + max_len]
+
+def solve():
+    s = input().strip()
+    result = find_longest_repeated_substring(s)
+
+    if result:
+        print(f"Longest repeated substring: {result}")
+        print(f"Length: {len(result)}")
+    else:
+        print("No repeated substring")
+
+solve()
+```
+
+应用二：查找最长公共子串
+----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 200005;
+
+char text[MAXN];
+char s1[MAXN], s2[MAXN];
+int sa[MAXN], rk[MAXN], height[MAXN];
+
+// 判断字符属于哪个字符串
+int belong[MAXN];
+
+void build_sa(int n) {
+    for (int i = 0; i < n; i++) {
+        sa[i] = i;
+    }
+
+    sort(sa, sa + n, [n](int a, int b) {
+        return strcmp(text + a, text + b) < 0;
+    });
+
+    for (int i = 0; i < n; i++) {
+        rk[sa[i]] = i;
+    }
+}
+
+void build_height(int n) {
+    int h = 0;
+    for (int i = 0; i < n; i++) {
+        if (rk[i] == 0) {
+            h = 0;
+            height[0] = 0;
+            continue;
+        }
+
+        int j = sa[rk[i] - 1];
+        while (i + h < n && j + h < n && text[i + h] == text[j + h]) {
+            h++;
+        }
+
+        height[rk[i]] = h;
+        if (h > 0) h--;
+    }
+}
+
+// 查找最长公共子串
+string find_longest_common_substring(int n, int len1) {
+    int max_len = 0;
+    int pos = 0;
+
+    for (int i = 1; i < n; i++) {
+        // 确保相邻后缀来自不同字符串
+        if (belong[sa[i]] != belong[sa[i-1]]) {
+            if (height[i] > max_len) {
+                max_len = height[i];
+                pos = sa[i];
+            }
+        }
+    }
+
+    if (max_len == 0) {
+        return "";
+    }
+
+    // 需要截取，因为可能在两个字符串的连接处
+    int end = pos + max_len;
+    if (pos >= len1) {
+        // 在第二个字符串中，找到在第一个字符串中的对应位置
+        return string(text + pos, text + end);
+    } else {
+        return string(text + pos, text + min(end, len1));
+    }
+}
+
+int main() {
+    scanf("%s%s", s1, s2);
+    int len1 = strlen(s1);
+    int len2 = strlen(s2);
+
+    // 连接两个字符串，中间用特殊字符分隔
+    strcpy(text, s1);
+    text[len1] = '#';
+    strcpy(text + len1 + 1, s2);
+    int n = len1 + len2 + 1;
+
+    // 标记每个字符属于哪个字符串
+    for (int i = 0; i < len1; i++) {
+        belong[i] = 1;
+    }
+    for (int i = len1 + 1; i < n; i++) {
+        belong[i] = 2;
+    }
+
+    build_sa(n);
+    build_height(n);
+
+    string result = find_longest_common_substring(n, len1);
+
+    if (result.empty()) {
+        printf("No common substring\n");
+    } else {
+        printf("Longest common substring: %s\n", result.c_str());
+        printf("Length: %d\n", (int)result.length());
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def find_longest_common_substring(s1, s2):
+    """查找最长公共子串"""
+    # 连接两个字符串
+    text = s1 + '#' + s2
+    len1 = len(s1)
+
+    # 构建后缀数组和LCP数组
+    sa = build_suffix_array(text)
+    lcp = build_lcp_array(text, sa)
+
+    max_len = 0
+    pos = 0
+
+    for i in range(1, len(text)):
+        # 检查相邻后缀是否来自不同字符串
+        in_s1 = sa[i] < len1
+        in_s2_prev = sa[i-1] > len1
+
+        if in_s1 != in_s2_prev:  # 来自不同字符串
+            if lcp[i] > max_len:
+                max_len = lcp[i]
+                pos = sa[i]
+
+    if max_len == 0:
+        return ""
+
+    return text[pos:pos + max_len]
+
+def solve():
+    s1 = input().strip()
+    s2 = input().strip()
+
+    result = find_longest_common_substring(s1, s2)
+
+    if result:
+        print(f"Longest common substring: {result}")
+        print(f"Length: {len(result)}")
+    else:
+        print("No common substring")
+
+solve()
+```
+
+应用三：统计不同子串数量
+----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 200005;
+
+char text[MAXN];
+int sa[MAXN], rk[MAXN], height[MAXN];
+
+void build_sa(int n) {
+    for (int i = 0; i < n; i++) {
+        sa[i] = i;
+    }
+
+    sort(sa, sa + n, [n](int a, int b) {
+        return strcmp(text + a, text + b) < 0;
+    });
+
+    for (int i = 0; i < n; i++) {
+        rk[sa[i]] = i;
+    }
+}
+
+void build_height(int n) {
+    int h = 0;
+    for (int i = 0; i < n; i++) {
+        if (rk[i] == 0) {
+            h = 0;
+            height[0] = 0;
+            continue;
+        }
+
+        int j = sa[rk[i] - 1];
+        while (i + h < n && j + h < n && text[i + h] == text[j + h]) {
+            h++;
+        }
+
+        height[rk[i]] = h;
+        if (h > 0) h--;
+    }
+}
+
+// 统计不同子串数量
+long long count_distinct_substrings(int n) {
+    // 总子串数 - 重复的子串数
+    long long total = (long long)n * (n + 1) / 2;
+
+    long long repeated = 0;
+    for (int i = 0; i < n; i++) {
+        repeated += height[i];
+    }
+
+    return total - repeated;
+}
+
+int main() {
+    scanf("%s", text);
+    int n = strlen(text);
+
+    build_sa(n);
+    build_height(n);
+
+    long long result = count_distinct_substrings(n);
+
+    printf("Number of distinct substrings: %lld\n", result);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def count_distinct_substrings(s):
+    """统计不同子串数量"""
+    n = len(s)
+
+    # 总子串数
+    total = n * (n + 1) // 2
+
+    # 构建LCP数组
+    sa = build_suffix_array(s)
+    lcp = build_lcp_array(s, sa)
+
+    # 重复的子串数
+    repeated = sum(lcp)
+
+    return total - repeated
+
+def solve():
+    s = input().strip()
+    result = count_distinct_substrings(s)
+    print(f"Number of distinct substrings: {result}")
+
+solve()
+```
+
+典型例题
+--------
+1. 最长重复子串（POJ 1743）：查找出现至少两次的最长子串
+2. 最长公共子串（POJ 2774）：两个字符串的最长公共子串
+3. 不同子串统计（SPOJ SUBST1）：统计字符串中不同子串的数量
+4. 不可重叠最长重复子串（POJ 3261）：查找不重叠的最长重复子串
+5. 出现k次的最长子串（POJ 3294）：查找出现至少k次的最长子串
+
+注意事项
+--------
+1. 后缀树构建复杂：
+   - 完整的Ukkonen算法实现复杂
+   - 实践中常用后缀数组或后缀自动机替代
+   - 后缀数组更容易实现和理解
+
+2. 空间复杂度：
+   - 后缀树的空间复杂度为O(n)
+   - 但常数因子较大
+   - 后缀数组的实现更简洁
+
+3. 后缀树的优势：
+   - 可以在线性时间内构建
+   - 支持更多的查询操作
+   - 理论上更优美
+
+4. 后缀树 vs 后缀数组：
+   - 后缀树：理论优势，实现复杂
+   - 后缀数组：实用性强，易于实现
+   - 两者可以相互转换
+
+5. 特殊字符处理：
+   - 连接多个字符串时需要特殊字符分隔
+   - 确保分隔字符不在原串中出现
+
+时间复杂度总结
+--------------
+- 后缀树构建（Ukkonen算法）：O(n)
+- 后缀数组构建（倍增算法）：O(n log n)
+- 后缀数组构建（DC3算法）：O(n)
+- LCP数组构建：O(n)
+- 查询操作：O(log n) 或 O(1)
+
+后缀树是字符串处理的强大工具，但由于实现复杂，实践中常用后缀数组或后缀自动机替代。理解其原理对掌握字符串算法很有帮助。

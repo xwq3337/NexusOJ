@@ -1,0 +1,573 @@
+图的存储
+========
+
+算法概述
+--------
+图是顶点和边的集合,如何高效地存储图结构是图算法的基础。常见的存储方式包括邻接矩阵、邻接表和链式前向星三种方式,各有优劣,需要根据具体场景选择。
+
+核心思想
+--------
+1. 邻接矩阵: 使用二维数组存储,适合稠密图,空间O(n²)
+2. 邻接表: 使用动态数组存储,适合稀疏图,空间O(n+m)
+3. 链式前向星: 使用静态数组模拟邻接表,空间O(n+m),效率高
+
+存储方式对比
+----------
+方式          空间复杂度   查询效率   修改效率   适用场景
+邻接矩阵      O(n²)        O(1)      O(n²)      稠密图、小图
+邻接表        O(n+m)       O(degree) O(1)      稀疏图、大图
+链式前向星    O(n+m)       O(degree) O(1)      稀疏图、需要遍历所有边
+
+存储方式一:邻接矩阵
+------------------
+邻接矩阵使用二维数组 g[u][v] 表示从u到v的边权。对于无权图可以用bool类型,有权图用int类型。
+
+优点:
+- 简单直观,易于理解和实现
+- 查询两点之间是否有边或边权时时间复杂度O(1)
+- 适合稠密图
+
+缺点:
+- 空间复杂度O(n²),对于稀疏图浪费空间
+- 遍历所有边需要O(n²)时间
+- 不适合n很大的情况(如n>10000)
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+int n, m;
+int g[MAXN][MAXN];  // 邻接矩阵
+
+int main() {
+    cin >> n >> m;
+
+    // 初始化
+    memset(g, 0x3f, sizeof(g));  // 无穷大表示无边
+    for (int i = 1; i <= n; i++) {
+        g[i][i] = 0;  // 自己到自己的距离为0
+    }
+
+    // 读入边
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        g[u][v] = w;        // 有向图
+        // g[v][u] = w;     // 无向图需要反向添加
+    }
+
+    // 查询u到v的边权
+    int u, v;
+    cin >> u >> v;
+    if (g[u][v] >= 0x3f3f3f3f / 2) {
+        cout << "No path" << endl;
+    } else {
+        cout << g[u][v] << endl;
+    }
+
+    // 遍历u的所有邻接点
+    cout << "Adjacent vertices of " << u << ": ";
+    for (int v = 1; v <= n; v++) {
+        if (g[u][v] > 0 && g[u][v] < 0x3f3f3f3f / 2) {
+            cout << v << " ";
+        }
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    # 初始化邻接矩阵
+    INF = float('inf')
+    g = [[INF] * (n + 1) for _ in range(n + 1)]
+    for i in range(n + 1):
+        g[i][i] = 0
+
+    # 读入边
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        g[u][v] = w
+        # g[v][u] = w  # 无向图需要反向添加
+
+    # 查询u到v的边权
+    u, v = map(int, input().split())
+    if g[u][v] >= INF / 2:
+        print("No path")
+    else:
+        print(g[u][v])
+
+    # 遍历u的所有邻接点
+    print(f"Adjacent vertices of {u}:", end=" ")
+    for v in range(1, n + 1):
+        if 0 < g[u][v] < INF / 2:
+            print(v, end=" ")
+    print()
+
+solve()
+```
+
+存储方式二:邻接表
+-----------------
+邻接表使用vector数组,每个节点维护一个动态数组存储所有邻接边。
+
+优点:
+- 空间效率高,适合稀疏图
+- 遍历某个点的所有邻接边效率高
+- 动态分配内存,灵活性高
+
+缺点:
+- 判断两点之间是否有边需要遍历
+- 不支持快速随机访问
+- C++中vector可能有常数开销
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+struct Edge {
+    int to;      // 目标节点
+    int weight;  // 边权
+
+    Edge(int t, int w) : to(t), weight(w) {}
+};
+
+int n, m;
+vector<Edge> adj[MAXN];  // 邻接表
+
+int main() {
+    cin >> n >> m;
+
+    // 读入边
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back(Edge(v, w));  // 有向图
+        // adj[v].push_back(Edge(u, w));  // 无向图
+    }
+
+    // 遍历节点u的所有邻接边
+    int u;
+    cin >> u;
+    cout << "Adjacent vertices of " << u << ":\n";
+    for (const Edge& e : adj[u]) {
+        cout << "  -> " << e.to << " (weight: " << e.weight << ")\n";
+    }
+
+    // 判断u到v是否有边
+    int v;
+    cin >> v;
+    bool has_edge = false;
+    for (const Edge& e : adj[u]) {
+        if (e.to == v) {
+            has_edge = true;
+            cout << "Edge exists with weight: " << e.weight << endl;
+            break;
+        }
+    }
+    if (!has_edge) {
+        cout << "No edge from " << u << " to " << v << endl;
+    }
+
+    // 遍历所有边
+    cout << "\nAll edges:\n";
+    for (int i = 1; i <= n; i++) {
+        for (const Edge& e : adj[i]) {
+            cout << i << " -> " << e.to
+                 << " (weight: " << e.weight << ")\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    # 邻接表
+    adj = [[] for _ in range(n + 1)]
+
+    # 读入边
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))  # (目标节点, 边权)
+        # adj[v].append((u, w))  # 无向图
+
+    # 遍历节点u的所有邻接边
+    u = int(input())
+    print(f"Adjacent vertices of {u}:")
+    for to, weight in adj[u]:
+        print(f"  -> {to} (weight: {weight})")
+
+    # 判断u到v是否有边
+    v = int(input())
+    has_edge = False
+    for to, weight in adj[u]:
+        if to == v:
+            has_edge = True
+            print(f"Edge exists with weight: {weight}")
+            break
+    if not has_edge:
+        print(f"No edge from {u} to {v}")
+
+    # 遍历所有边
+    print("\nAll edges:")
+    for i in range(1, n + 1):
+        for to, weight in adj[i]:
+            print(f"{i} -> {to} (weight: {weight})")
+
+solve()
+```
+
+存储方式三:链式前向星
+-------------------
+链式前向星是用静态数组实现的邻接表,使用head数组和next数组模拟链表结构。
+
+优点:
+- 空间效率高,静态分配内存
+- 遍历效率高,cache友好
+- 适合需要频繁遍历所有边的场景
+- 不需要指针,效率高于动态邻接表
+
+缺点:
+- 代码可读性较差
+- 不支持动态添加边(需要预分配)
+- 删除边操作复杂
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int MAXM = 200005;
+
+int n, m;
+int head[MAXN];      // head[i]: 节点i的第一条边的索引
+struct Edge {
+    int to;          // 目标节点
+    int weight;      // 边权
+    int next;        // 下一条边的索引
+} edges[MAXM];       // 边集
+int tot = 0;         // 边的总数
+
+// 添加边 u -> v, 权值为w
+void add_edge(int u, int v, int w) {
+    edges[++tot].to = v;
+    edges[tot].weight = w;
+    edges[tot].next = head[u];
+    head[u] = tot;
+}
+
+int main() {
+    cin >> n >> m;
+
+    // 初始化
+    memset(head, 0, sizeof(head));
+    tot = 0;
+
+    // 读入边
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        add_edge(u, v, w);
+        // add_edge(v, u, w);  // 无向图需要反向添加
+    }
+
+    // 遍历节点u的所有邻接边
+    int u;
+    cin >> u;
+    cout << "Adjacent vertices of " << u << ":\n";
+    for (int i = head[u]; i; i = edges[i].next) {
+        cout << "  -> " << edges[i].to
+             << " (weight: " << edges[i].weight << ")\n";
+    }
+
+    // 判断u到v是否有边
+    int v;
+    cin >> v;
+    bool has_edge = false;
+    for (int i = head[u]; i; i = edges[i].next) {
+        if (edges[i].to == v) {
+            has_edge = true;
+            cout << "Edge exists with weight: "
+                 << edges[i].weight << endl;
+            break;
+        }
+    }
+    if (!has_edge) {
+        cout << "No edge from " << u << " to " << v << endl;
+    }
+
+    // 遍历所有边
+    cout << "\nAll edges:\n";
+    for (int i = 1; i <= n; i++) {
+        for (int j = head[i]; j; j = edges[j].next) {
+            cout << i << " -> " << edges[j].to
+                 << " (weight: " << edges[j].weight << ")\n";
+        }
+    }
+
+    // 统计每个节点的度数
+    cout << "\nDegree of each vertex:\n";
+    for (int i = 1; i <= n; i++) {
+        int degree = 0;
+        for (int j = head[i]; j; j = edges[j].next) {
+            degree++;
+        }
+        cout << "deg(" << i << ") = " << degree << endl;
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    MAXM = m * 2 + 5  # 考虑无向图需要双向存储
+
+    head = [0] * (n + 1)
+    edges = [(0, 0, 0) for _ in range(MAXM)]  # (to, weight, next)
+    tot = 0
+
+    def add_edge(u, v, w):
+        nonlocal tot
+        tot += 1
+        edges[tot] = (v, w, head[u])
+        head[u] = tot
+
+    # 读入边
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        add_edge(u, v, w)
+        # add_edge(v, u, w)  # 无向图
+
+    # 遍历节点u的所有邻接边
+    u = int(input())
+    print(f"Adjacent vertices of {u}:")
+    i = head[u]
+    while i:
+        to, weight, _ = edges[i]
+        print(f"  -> {to} (weight: {weight})")
+        i = edges[i][2]
+
+    # 判断u到v是否有边
+    v = int(input())
+    has_edge = False
+    i = head[u]
+    while i:
+        to, weight, _ = edges[i]
+        if to == v:
+            has_edge = True
+            print(f"Edge exists with weight: {weight}")
+            break
+        i = edges[i][2]
+    if not has_edge:
+        print(f"No edge from {u} to {v}")
+
+    # 遍历所有边
+    print("\nAll edges:")
+    for i in range(1, n + 1):
+        j = head[i]
+        while j:
+            to, weight, _ = edges[j]
+            print(f"{i} -> {to} (weight: {weight})")
+            j = edges[j][2]
+
+    # 统计每个节点的度数
+    print("\nDegree of each vertex:")
+    for i in range(1, n + 1):
+        degree = 0
+        j = head[i]
+        while j:
+            degree += 1
+            j = edges[j][2]
+        print(f"deg({i}) = {degree}")
+
+solve()
+```
+
+应用示例:图的遍历
+----------------
+使用邻接表实现DFS和BFS遍历。
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+struct Edge {
+    int to;
+    int weight;
+
+    Edge(int t, int w) : to(t), weight(w) {}
+};
+
+vector<Edge> adj[MAXN];
+bool visited[MAXN];
+
+// 深度优先搜索
+void dfs(int u) {
+    visited[u] = true;
+    cout << u << " ";
+
+    for (const Edge& e : adj[u]) {
+        if (!visited[e.to]) {
+            dfs(e.to);
+        }
+    }
+}
+
+// 广度优先搜索
+void bfs(int start) {
+    memset(visited, false, sizeof(visited));
+    queue<int> q;
+    q.push(start);
+    visited[start] = true;
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        cout << u << " ";
+
+        for (const Edge& e : adj[u]) {
+            if (!visited[e.to]) {
+                visited[e.to] = true;
+                q.push(e.to);
+            }
+        }
+    }
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(Edge(v, 1));
+        adj[v].push_back(Edge(u, 1));
+    }
+
+    cout << "DFS: ";
+    dfs(1);
+    cout << endl;
+
+    cout << "BFS: ";
+    bfs(1);
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append((v, 1))
+        adj[v].append((u, 1))
+
+    visited = [False] * (n + 1)
+
+    # 深度优先搜索
+    def dfs(u):
+        visited[u] = True
+        print(u, end=" ")
+        for to, _ in adj[u]:
+            if not visited[to]:
+                dfs(to)
+
+    # 广度优先搜索
+    def bfs(start):
+        nonlocal visited
+        visited = [False] * (n + 1)
+        q = deque([start])
+        visited[start] = True
+
+        while q:
+            u = q.popleft()
+            print(u, end=" ")
+            for to, _ in adj[u]:
+                if not visited[to]:
+                    visited[to] = True
+                    q.append(to)
+
+    print("DFS:", end=" ")
+    dfs(1)
+    print()
+
+    print("BFS:", end=" ")
+    bfs(1)
+    print()
+
+solve()
+```
+
+选择建议
+--------
+1. 当n ≤ 1000且图较稠密时,使用邻接矩阵
+2. 当n > 1000且图较稀疏时,使用邻接表或链式前向星
+3. 需要频繁判断两点之间是否有边时,考虑邻接矩阵
+4. 需要遍历所有边时,链式前向星效率最高
+5. Python中推荐使用邻接表,代码简洁且效率不错
+
+典型例题
+--------
+1. 图的遍历(洛谷P5318): DFS和BFS遍历图
+2. 图的存储(洛谷P2744): 练习各种图的存储方式
+3. 最短路问题(洛谷P3371): 使用邻接表存储图
+4. 最小生成树(洛谷P3366): 使用链式前向星存储图
+
+注意事项
+--------
+1. 有向图和无向图的区别:无向图需要双向添加边
+2. 链式前向星的tot要从1开始或0开始要统一
+3. 邻接矩阵初始化时要注意INF值的设置,避免溢出
+4. 重边和自环的处理:根据题目要求决定是否处理
+5. 多组测试数据时注意清空邻接表或重置head数组
+
+时间复杂度总结
+--------------
+- 邻接矩阵:初始化O(n²),添加边O(1),查询边O(1),遍历邻接点O(n)
+- 邻接表:初始化O(n),添加边O(1),查询边O(degree),遍历邻接点O(degree)
+- 链式前向星:初始化O(n),添加边O(1),查询边O(degree),遍历邻接点O(degree)
+
+选择合适的存储方式是解决图问题的基础,需要根据题目特点灵活选择。

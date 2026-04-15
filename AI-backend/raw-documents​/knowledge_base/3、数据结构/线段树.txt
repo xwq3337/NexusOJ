@@ -1,0 +1,657 @@
+线段树（Segment Tree）
+====================
+
+算法概述
+--------
+线段树是一种二叉树形数据结构，用于高效处理区间查询和单点/区间修改。它将区间划分为若干子区间，每个节点代表一个区间。
+
+核心特点：
+1. 支持区间查询和区间修改
+2. 时间复杂度O(log n)
+3. 空间复杂度O(4n)
+4. 满二叉树结构，可用数组存储
+
+核心思想
+--------
+1. 根节点代表整个区间[1, n]
+2. 每个节点代表一个区间，将区间对半分给左右子节点
+3. 叶子节点代表单个元素
+4. 利用lazy标记实现区间修改
+
+基础模板：单点修改+区间查询
+------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int tree[MAXN * 4];  // 线段树数组
+int arr[MAXN];       // 原数组
+int n;
+
+// 建树
+void build(int node, int start, int end) {
+    if (start == end) {
+        tree[node] = arr[start];
+    } else {
+        int mid = (start + end) / 2;
+        build(node * 2, start, mid);
+        build(node * 2 + 1, mid + 1, end);
+        tree[node] = tree[node * 2] + tree[node * 2 + 1];
+    }
+}
+
+// 单点修改
+void update(int node, int start, int end, int idx, int val) {
+    if (start == end) {
+        tree[node] = val;
+    } else {
+        int mid = (start + end) / 2;
+        if (idx <= mid) {
+            update(node * 2, start, mid, idx, val);
+        } else {
+            update(node * 2 + 1, mid + 1, end, idx, val);
+        }
+        tree[node] = tree[node * 2] + tree[node * 2 + 1];
+    }
+}
+
+// 区间查询
+int query(int node, int start, int end, int l, int r) {
+    if (r < start || end < l) {
+        return 0;  // 不在查询范围内
+    }
+    if (l <= start && end <= r) {
+        return tree[node];  // 完全在查询范围内
+    }
+    int mid = (start + end) / 2;
+    return query(node * 2, start, mid, l, r) +
+           query(node * 2 + 1, mid + 1, end, l, r);
+}
+
+int main() {
+    cin >> n;
+
+    for (int i = 1; i <= n; i++) {
+        cin >> arr[i];
+    }
+
+    build(1, 1, n);
+
+    int q;
+    cin >> q;
+
+    while (q--) {
+        int op;
+        cin >> op;
+
+        if (op == 1) {  // 单点修改
+            int idx, val;
+            cin >> idx >> val;
+            update(1, 1, n, idx, val);
+        } else {  // 区间查询
+            int l, r;
+            cin >> l >> r;
+            cout << query(1, 1, n, l, r) << endl;
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class SegmentTree:
+    def __init__(self, arr):
+        self.n = len(arr)
+        self.tree = [0] * (4 * self.n)
+        self.arr = arr
+        self.build(1, 0, self.n - 1)
+
+    def build(self, node, start, end):
+        """建树"""
+        if start == end:
+            self.tree[node] = self.arr[start]
+        else:
+            mid = (start + end) // 2
+            self.build(node * 2, start, mid)
+            self.build(node * 2 + 1, mid + 1, end)
+            self.tree[node] = self.tree[node * 2] + self.tree[node * 2 + 1]
+
+    def update(self, node, start, end, idx, val):
+        """单点修改"""
+        if start == end:
+            self.tree[node] = val
+        else:
+            mid = (start + end) // 2
+            if idx <= mid:
+                self.update(node * 2, start, mid, idx, val)
+            else:
+                self.update(node * 2 + 1, mid + 1, end, idx, val)
+            self.tree[node] = self.tree[node * 2] + self.tree[node * 2 + 1]
+
+    def query(self, node, start, end, l, r):
+        """区间查询"""
+        if r < start or end < l:
+            return 0
+        if l <= start and end <= r:
+            return self.tree[node]
+        mid = (start + end) // 2
+        return (self.query(node * 2, start, mid, l, r) +
+                self.query(node * 2 + 1, mid + 1, end, l, r))
+
+# 测试
+n = int(input())
+arr = list(map(int, input().split()))
+
+st = SegmentTree(arr)
+
+q = int(input())
+for _ in range(q):
+    parts = input().split()
+    op = int(parts[0])
+
+    if op == 1:  # 单点修改
+        idx, val = int(parts[1]), int(parts[2])
+        st.update(1, 0, n - 1, idx - 1, val)
+    else:  # 区间查询
+        l, r = int(parts[1]), int(parts[2])
+        print(st.query(1, 0, n - 1, l - 1, r - 1))
+```
+
+应用一：区间修改+区间查询（Lazy标记）
+----------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+long long tree[MAXN * 4];
+long long lazy[MAXN * 4];
+int n;
+
+void pushDown(int node, int start, int end) {
+    if (lazy[node] != 0) {
+        int mid = (start + end) / 2;
+        int left_len = mid - start + 1;
+        int right_len = end - mid;
+
+        tree[node * 2] += lazy[node] * left_len;
+        lazy[node * 2] += lazy[node];
+
+        tree[node * 2 + 1] += lazy[node] * right_len;
+        lazy[node * 2 + 1] += lazy[node];
+
+        lazy[node] = 0;
+    }
+}
+
+void build(int node, int start, int end, vector<int>& arr) {
+    if (start == end) {
+        tree[node] = arr[start];
+    } else {
+        int mid = (start + end) / 2;
+        build(node * 2, start, mid, arr);
+        build(node * 2 + 1, mid + 1, end, arr);
+        tree[node] = tree[node * 2] + tree[node * 2 + 1];
+    }
+}
+
+void update(int node, int start, int end, int l, int r, int val) {
+    if (r < start || end < l) {
+        return;
+    }
+    if (l <= start && end <= r) {
+        tree[node] += (end - start + 1) * val;
+        lazy[node] += val;
+        return;
+    }
+
+    pushDown(node, start, end);
+
+    int mid = (start + end) / 2;
+    update(node * 2, start, mid, l, r, val);
+    update(node * 2 + 1, mid + 1, end, l, r, val);
+
+    tree[node] = tree[node * 2] + tree[node * 2 + 1];
+}
+
+long long query(int node, int start, int end, int l, int r) {
+    if (r < start || end < l) {
+        return 0;
+    }
+    if (l <= start && end <= r) {
+        return tree[node];
+    }
+
+    pushDown(node, start, end);
+
+    int mid = (start + end) / 2;
+    return query(node * 2, start, mid, l, r) +
+           query(node * 2 + 1, mid + 1, end, l, r);
+}
+
+int main() {
+    cin >> n;
+
+    vector<int> arr(n + 1);
+    for (int i = 1; i <= n; i++) {
+        cin >> arr[i];
+    }
+
+    build(1, 1, n, arr);
+
+    int q;
+    cin >> q;
+
+    while (q--) {
+        int op;
+        cin >> op;
+
+        if (op == 1) {  // 区间修改
+            int l, r, val;
+            cin >> l >> r >> val;
+            update(1, 1, n, l, r, val);
+        } else {  // 区间查询
+            int l, r;
+            cin >> l >> r;
+            cout << query(1, 1, n, l, r) << endl;
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class LazySegmentTree:
+    def __init__(self, arr):
+        self.n = len(arr)
+        self.tree = [0] * (4 * self.n)
+        self.lazy = [0] * (4 * self.n)
+        self.arr = arr
+        self.build(1, 0, self.n - 1)
+
+    def build(self, node, start, end):
+        """建树"""
+        if start == end:
+            self.tree[node] = self.arr[start]
+        else:
+            mid = (start + end) // 2
+            self.build(node * 2, start, mid)
+            self.build(node * 2 + 1, mid + 1, end)
+            self.tree[node] = self.tree[node * 2] + self.tree[node * 2 + 1]
+
+    def push_down(self, node, start, end):
+        """下推lazy标记"""
+        if self.lazy[node] != 0:
+            mid = (start + end) // 2
+            left_len = mid - start + 1
+            right_len = end - mid
+
+            self.tree[node * 2] += self.lazy[node] * left_len
+            self.lazy[node * 2] += self.lazy[node]
+
+            self.tree[node * 2 + 1] += self.lazy[node] * right_len
+            self.lazy[node * 2 + 1] += self.lazy[node]
+
+            self.lazy[node] = 0
+
+    def update(self, node, start, end, l, r, val):
+        """区间修改"""
+        if r < start or end < l:
+            return
+        if l <= start and end <= r:
+            self.tree[node] += (end - start + 1) * val
+            self.lazy[node] += val
+            return
+
+        self.push_down(node, start, end)
+
+        mid = (start + end) // 2
+        self.update(node * 2, start, mid, l, r, val)
+        self.update(node * 2 + 1, mid + 1, end, l, r, val)
+
+        self.tree[node] = self.tree[node * 2] + self.tree[node * 2 + 1]
+
+    def query(self, node, start, end, l, r):
+        """区间查询"""
+        if r < start or end < l:
+            return 0
+        if l <= start and end <= r:
+            return self.tree[node]
+
+        self.push_down(node, start, end)
+
+        mid = (start + end) // 2
+        return (self.query(node * 2, start, mid, l, r) +
+                self.query(node * 2 + 1, mid + 1, end, l, r))
+
+# 测试
+n = int(input())
+arr = list(map(int, input().split()))
+
+lst = LazySegmentTree(arr)
+
+q = int(input())
+for _ in range(q):
+    parts = input().split()
+    op = int(parts[0])
+
+    if op == 1:  # 区间修改
+        l, r, val = int(parts[1]), int(parts[2]), int(parts[3])
+        lst.update(1, 0, n - 1, l - 1, r - 1, val)
+    else:  # 区间查询
+        l, r = int(parts[1]), int(parts[2])
+        print(lst.query(1, 0, n - 1, l - 1, r - 1))
+```
+
+应用二：区间最大值
+--------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int tree[MAXN * 4];
+int arr[MAXN];
+int n;
+
+void build(int node, int start, int end) {
+    if (start == end) {
+        tree[node] = arr[start];
+    } else {
+        int mid = (start + end) / 2;
+        build(node * 2, start, mid);
+        build(node * 2 + 1, mid + 1, end);
+        tree[node] = max(tree[node * 2], tree[node * 2 + 1]);
+    }
+}
+
+void update(int node, int start, int end, int idx, int val) {
+    if (start == end) {
+        tree[node] = val;
+    } else {
+        int mid = (start + end) / 2;
+        if (idx <= mid) {
+            update(node * 2, start, mid, idx, val);
+        } else {
+            update(node * 2 + 1, mid + 1, end, idx, val);
+        }
+        tree[node] = max(tree[node * 2], tree[node * 2 + 1]);
+    }
+}
+
+int query(int node, int start, int end, int l, int r) {
+    if (r < start || end < l) {
+        return INT_MIN;
+    }
+    if (l <= start && end <= r) {
+        return tree[node];
+    }
+    int mid = (start + end) / 2;
+    return max(query(node * 2, start, mid, l, r),
+               query(node * 2 + 1, mid + 1, end, l, r));
+}
+
+int main() {
+    cin >> n;
+
+    for (int i = 1; i <= n; i++) {
+        cin >> arr[i];
+    }
+
+    build(1, 1, n);
+
+    int q;
+    cin >> q;
+
+    while (q--) {
+        int op;
+        cin >> op;
+
+        if (op == 1) {
+            int idx, val;
+            cin >> idx >> val;
+            update(1, 1, n, idx, val);
+        } else {
+            int l, r;
+            cin >> l >> r;
+            cout << query(1, 1, n, l, r) << endl;
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class MaxSegmentTree:
+    def __init__(self, arr):
+        self.n = len(arr)
+        self.tree = [float('-inf')] * (4 * self.n)
+        self.arr = arr
+        self.build(1, 0, self.n - 1)
+
+    def build(self, node, start, end):
+        """建树"""
+        if start == end:
+            self.tree[node] = self.arr[start]
+        else:
+            mid = (start + end) // 2
+            self.build(node * 2, start, mid)
+            self.build(node * 2 + 1, mid + 1, end)
+            self.tree[node] = max(self.tree[node * 2], self.tree[node * 2 + 1])
+
+    def update(self, node, start, end, idx, val):
+        """单点修改"""
+        if start == end:
+            self.tree[node] = val
+        else:
+            mid = (start + end) // 2
+            if idx <= mid:
+                self.update(node * 2, start, mid, idx, val)
+            else:
+                self.update(node * 2 + 1, mid + 1, end, idx, val)
+            self.tree[node] = max(self.tree[node * 2], self.tree[node * 2 + 1])
+
+    def query(self, node, start, end, l, r):
+        """区间查询最大值"""
+        if r < start or end < l:
+            return float('-inf')
+        if l <= start and end <= r:
+            return self.tree[node]
+        mid = (start + end) // 2
+        return max(self.query(node * 2, start, mid, l, r),
+                   self.query(node * 2 + 1, mid + 1, end, l, r))
+
+# 测试
+n = int(input())
+arr = list(map(int, input().split()))
+
+st = MaxSegmentTree(arr)
+
+q = int(input())
+for _ in range(q):
+    parts = input().split()
+    op = int(parts[0])
+
+    if op == 1:
+        idx, val = int(parts[1]), int(parts[2])
+        st.update(1, 0, n - 1, idx - 1, val)
+    else:
+        l, r = int(parts[1]), int(parts[2])
+        print(st.query(1, 0, n - 1, l - 1, r - 1))
+```
+
+应用三：区间乘法和加法（双Lazy标记）
+-------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MOD = 1e9 + 7;
+const int MAXN = 100005;
+
+long long tree[MAXN * 4];
+long long add[MAXN * 4];  // 加法lazy标记
+long long mul[MAXN * 4];  // 乘法lazy标记
+int n;
+
+void pushDown(int node, int start, int end) {
+    int mid = (start + end) / 2;
+    int left_len = mid - start + 1;
+    int right_len = end - mid;
+
+    // 先乘后加
+    tree[node * 2] = (tree[node * 2] * mul[node] + add[node] * left_len) % MOD;
+    mul[node * 2] = (mul[node * 2] * mul[node]) % MOD;
+    add[node * 2] = (add[node * 2] * mul[node] + add[node]) % MOD;
+
+    tree[node * 2 + 1] = (tree[node * 2 + 1] * mul[node] + add[node] * right_len) % MOD;
+    mul[node * 2 + 1] = (mul[node * 2 + 1] * mul[node]) % MOD;
+    add[node * 2 + 1] = (add[node * 2 + 1] * mul[node] + add[node]) % MOD;
+
+    mul[node] = 1;
+    add[node] = 0;
+}
+
+void build(int node, int start, int end, vector<int>& arr) {
+    if (start == end) {
+        tree[node] = arr[start] % MOD;
+    } else {
+        int mid = (start + end) / 2;
+        build(node * 2, start, mid, arr);
+        build(node * 2 + 1, mid + 1, end, arr);
+        tree[node] = (tree[node * 2] + tree[node * 2 + 1]) % MOD;
+    }
+}
+
+void updateMul(int node, int start, int end, int l, int r, int val) {
+    if (r < start || end < l) return;
+    if (l <= start && end <= r) {
+        tree[node] = (tree[node] * val) % MOD;
+        mul[node] = (mul[node] * val) % MOD;
+        add[node] = (add[node] * val) % MOD;
+        return;
+    }
+
+    pushDown(node, start, end);
+
+    int mid = (start + end) / 2;
+    updateMul(node * 2, start, mid, l, r, val);
+    updateMul(node * 2 + 1, mid + 1, end, l, r, val);
+
+    tree[node] = (tree[node * 2] + tree[node * 2 + 1]) % MOD;
+}
+
+void updateAdd(int node, int start, int end, int l, int r, int val) {
+    if (r < start || end < l) return;
+    if (l <= start && end <= r) {
+        tree[node] = (tree[node] + val * (end - start + 1)) % MOD;
+        add[node] = (add[node] + val) % MOD;
+        return;
+    }
+
+    pushDown(node, start, end);
+
+    int mid = (start + end) / 2;
+    updateAdd(node * 2, start, mid, l, r, val);
+    updateAdd(node * 2 + 1, mid + 1, end, l, r, val);
+
+    tree[node] = (tree[node * 2] + tree[node * 2 + 1]) % MOD;
+}
+
+long long query(int node, int start, int end, int l, int r) {
+    if (r < start || end < l) return 0;
+    if (l <= start && end <= r) return tree[node];
+
+    pushDown(node, start, end);
+
+    int mid = (start + end) / 2;
+    return (query(node * 2, start, mid, l, r) +
+            query(node * 2 + 1, mid + 1, end, l, r)) % MOD;
+}
+
+int main() {
+    // 初始化乘法标记为1，加法标记为0
+    fill(mul, mul + MAXN * 4, 1);
+    fill(add, add + MAXN * 4, 0);
+
+    cin >> n;
+
+    vector<int> arr(n + 1);
+    for (int i = 1; i <= n; i++) {
+        cin >> arr[i];
+    }
+
+    build(1, 1, n, arr);
+
+    int q;
+    cin >> q;
+
+    while (q--) {
+        int op;
+        cin >> op;
+
+        if (op == 1) {  // 区间乘
+            int l, r, val;
+            cin >> l >> r >> val;
+            updateMul(1, 1, n, l, r, val);
+        } else if (op == 2) {  // 区间加
+            int l, r, val;
+            cin >> l >> r >> val;
+            updateAdd(1, 1, n, l, r, val);
+        } else {  // 区间查询
+            int l, r;
+            cin >> l >> r;
+            cout << query(1, 1, n, l, r) << endl;
+        }
+    }
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 线段树模板（洛谷P3372）：区间修改区间查询
+2. 乘法逆元（洛谷P3373）：区间乘法和加法
+3. 敌兵布阵（HDU 1166）：单点修改区间查询
+4. Count Color（POJ 2777）：区间染色
+5. You Are the One（HDU 4283）：区间DP+线段树
+6. 可持久化线段树（主席树）：历史版本查询
+
+注意事项
+--------
+1. 数组大小通常开4倍
+2. lazy标记必须下推
+3. 区间修改用lazy标记优化
+4. 注意数据范围，可能需要long long
+5. 多种操作时要注意标记的优先级
+6. 递归深度注意栈溢出
+7. 下标从1开始比较好处理
+
+时间复杂度总结
+--------------
+- 建树：O(n)
+- 单点修改：O(log n)
+- 区间修改：O(log n)
+- 区间查询：O(log n)
+- 空间复杂度：O(4n)
+
+线段树是处理区间问题的强大工具，配合lazy标记可以实现各种复杂的区间操作。

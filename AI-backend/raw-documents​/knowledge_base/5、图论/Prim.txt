@@ -1,0 +1,376 @@
+Prim算法
+========
+
+算法概述
+--------
+Prim算法是求解最小生成树(MST)的经典算法之一,由Robert Prim提出。与Kruskal算法不同,Prim算法采用点贪心策略,从任意一个点开始,每次选择距离已生成树最近的点加入,直到所有点都被包含。
+
+核心思想
+--------
+1. 贪心策略:每次选择距离生成树最近的点
+2. 逐步扩展:从起点开始逐步扩展生成树
+3. 距离维护:用dist数组维护点到生成树的最短距离
+4. 优先级队列优化:使用堆加速选择最近的点
+
+算法流程
+--------
+1. 从任意点开始,将其加入生成树
+2. 初始化所有点到生成树的距离
+3. 重复以下步骤n-1次:
+   - 选择距离生成树最近的未访问点u
+   - 将u加入生成树
+   - 更新u的所有邻接点到生成树的距离
+
+基础版本:邻接矩阵实现
+--------------------
+时间复杂度:O(n²),适合稠密图
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 505;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+int g[MAXN][MAXN];  // 邻接矩阵
+int dist[MAXN];     // 到生成树的距离
+bool visited[MAXN]; // 是否在生成树中
+
+int prim() {
+    memset(dist, 0x3f, sizeof(dist));
+    memset(visited, false, sizeof(visited));
+
+    dist[1] = 0;  // 从节点1开始
+    int mst_weight = 0;
+
+    for (int i = 1; i <= n; i++) {
+        // 找到距离生成树最近的点
+        int u = -1;
+        int min_dist = INF;
+        for (int j = 1; j <= n; j++) {
+            if (!visited[j] && dist[j] < min_dist) {
+                u = j;
+                min_dist = dist[j];
+            }
+        }
+
+        if (u == -1) break;  // 图不连通
+        visited[u] = true;
+        mst_weight += dist[u];
+
+        // 更新邻接点的距离
+        for (int v = 1; v <= n; v++) {
+            if (!visited[v] && g[u][v] < INF) {
+                dist[v] = min(dist[v], g[u][v]);
+            }
+        }
+    }
+
+    return mst_weight;
+}
+
+int main() {
+    cin >> n >> m;
+
+    memset(g, 0x3f, sizeof(g));
+    for (int i = 1; i <= n; i++) {
+        g[i][i] = 0;
+    }
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        g[u][v] = min(g[u][v], w);
+        g[v][u] = min(g[v][u], w);  // 无向图
+    }
+
+    int ans = prim();
+
+    // 检查是否所有点都被访问
+    bool all_visited = true;
+    for (int i = 1; i <= n; i++) {
+        if (!visited[i]) {
+            all_visited = false;
+            break;
+        }
+    }
+
+    if (!all_visited) {
+        cout << "No MST exists!\n";
+    } else {
+        cout << "MST weight: " << ans << "\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    INF = float('inf')
+    g = [[INF] * (n + 1) for _ in range(n + 1)]
+
+    for i in range(n + 1):
+        g[i][i] = 0
+
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        g[u][v] = min(g[u][v], w)
+        g[v][u] = min(g[v][u], w)
+
+    dist = [INF] * (n + 1)
+    visited = [False] * (n + 1)
+    dist[1] = 0
+    mst_weight = 0
+
+    for _ in range(n):
+        u = -1
+        min_dist = INF
+        for j in range(1, n + 1):
+            if not visited[j] and dist[j] < min_dist:
+                u = j
+                min_dist = dist[j]
+
+        if u == -1:
+            break
+
+        visited[u] = True
+        mst_weight += dist[u]
+
+        for v in range(1, n + 1):
+            if not visited[v] and g[u][v] < INF:
+                dist[v] = min(dist[v], g[u][v])
+
+    if all(visited[1:]):
+        print(f"MST weight: {mst_weight}")
+    else:
+        print("No MST exists!")
+
+solve()
+```
+
+堆优化版本:邻接表+优先级队列
+--------------------------
+时间复杂度:O((n+m)log n),适合稀疏图
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];  // adj[u]: {v, w}
+int dist[MAXN];
+bool visited[MAXN];
+
+int prim() {
+    memset(dist, 0x3f, sizeof(dist));
+    memset(visited, false, sizeof(visited));
+
+    dist[1] = 0;
+    priority_queue<pair<int, int>,
+                   vector<pair<int, int>>,
+                   greater<pair<int, int>>> pq;
+    pq.push({0, 1});
+
+    int mst_weight = 0;
+    int edge_count = 0;
+
+    while (!pq.empty()) {
+        int u = pq.top().second;
+        int d = pq.top().first;
+        pq.pop();
+
+        if (visited[u]) continue;
+        visited[u] = true;
+        mst_weight += d;
+        edge_count++;
+
+        for (auto& e : adj[u]) {
+            int v = e.first;
+            int w = e.second;
+            if (!visited[v] && w < dist[v]) {
+                dist[v] = w;
+                pq.push({dist[v], v});
+            }
+        }
+    }
+
+    if (edge_count != n) return -1;
+    return mst_weight;
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    }
+
+    int ans = prim();
+
+    if (ans == -1) {
+        cout << "No MST exists!\n";
+    } else {
+        cout << "MST weight: " << ans << "\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+import heapq
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        adj[v].append((u, w))
+
+    INF = float('inf')
+    dist = [INF] * (n + 1)
+    visited = [False] * (n + 1)
+    dist[1] = 0
+
+    pq = [(0, 1)]
+    mst_weight = 0
+    edge_count = 0
+
+    while pq:
+        d, u = heapq.heappop(pq)
+
+        if visited[u]:
+            continue
+        visited[u] = True
+        mst_weight += d
+        edge_count += 1
+
+        for v, w in adj[u]:
+            if not visited[v] and w < dist[v]:
+                dist[v] = w
+                heapq.heappush(pq, (dist[v], v))
+
+    if edge_count != n:
+        print("No MST exists!")
+    else:
+        print(f"MST weight: {mst_weight}")
+
+solve()
+```
+
+记录MST的边
+----------
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];
+int dist[MAXN];
+bool visited[MAXN];
+int parent[MAXN];  // 记录每个点的父节点
+
+int prim() {
+    memset(dist, 0x3f, sizeof(dist));
+    memset(visited, false, sizeof(visited));
+    memset(parent, -1, sizeof(parent));
+
+    dist[1] = 0;
+    priority_queue<pair<int, int>,
+                   vector<pair<int, int>>,
+                   greater<pair<int, int>>> pq;
+    pq.push({0, 1});
+
+    int mst_weight = 0;
+    int edge_count = 0;
+
+    while (!pq.empty()) {
+        int u = pq.top().second;
+        int d = pq.top().first;
+        pq.pop();
+
+        if (visited[u]) continue;
+        visited[u] = true;
+        mst_weight += d;
+        edge_count++;
+
+        for (auto& e : adj[u]) {
+            int v = e.first;
+            int w = e.second;
+            if (!visited[v] && w < dist[v]) {
+                dist[v] = w;
+                parent[v] = u;
+                pq.push({dist[v], v});
+            }
+        }
+    }
+
+    if (edge_count != n) return -1;
+    return mst_weight;
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    }
+
+    int ans = prim();
+
+    if (ans == -1) {
+        cout << "No MST!\n";
+    } else {
+        cout << "MST weight: " << ans << "\n";
+        cout << "MST edges:\n";
+        for (int i = 2; i <= n; i++) {
+            cout << parent[i] << " - " << i << "\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 最小生成树(洛谷P3366): Prim模板题
+2. 繁忙的都市(洛谷P2330): Prim应用
+3. 走廊泼水节(洛谷P1265): Prim变体
+
+注意事项
+--------
+1. Prim适合稠密图,Kruskal适合稀疏图
+2. 堆优化版本时间复杂度O((n+m)log n)
+3. 邻接矩阵版本时间复杂度O(n²)
+4. 注意判断图是否连通
+5. 与Dijkstra算法相似,但dist含义不同

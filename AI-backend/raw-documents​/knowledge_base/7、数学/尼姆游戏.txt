@@ -1,0 +1,290 @@
+尼姆游戏（Nim Game）
+==================
+
+游戏规则
+--------
+有n堆石子，每堆有ai个石子。
+两个玩家轮流取石子，每次可以从某一堆中取任意多个石子（至少1个）。
+取走最后一个石子的人获胜。
+
+游戏分析
+--------
+这是公平组合游戏的经典例子。
+定义nim-sum为所有石子数的异或和：
+    S = a1 ⊕ a2 ⊕ ... ⊕ an
+
+胜负判定：
+- 如果S = 0，则当前局面为必败态（后手必胜）
+- 如果S ≠ 0，则当前局面为必胜态（先手必胜）
+
+必胜策略
+--------
+当nim-sum ≠ 0时：
+1. 找到最高位的1
+2. 选择一个该位也为1的石子堆
+3. 从该堆中取走适当数量的石子，使nim-sum变为0
+
+基础模板
+--------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 尼姆游戏判断
+bool nim_game(vector<ll>& a) {
+    ll nim_sum = 0;
+    for (ll x : a) {
+        nim_sum ^= x;
+    }
+    return nim_sum != 0;  // 返回true表示先手必胜
+}
+
+// 找到必胜策略
+pair<int, ll> find_winning_move(vector<ll>& a) {
+    ll nim_sum = 0;
+    for (ll x : a) {
+        nim_sum ^= x;
+    }
+
+    if (nim_sum == 0) {
+        return {-1, -1};  // 没有必胜策略
+    }
+
+    // 找到最高位的1
+    int highest_bit = 0;
+    while ((nim_sum >> highest_bit) > 1) {
+        highest_bit++;
+    }
+
+    // 找到该位为1的石子堆
+    for (int i = 0; i < a.size(); i++) {
+        if ((a[i] >> highest_bit) & 1) {
+            ll new_size = a[i] ^ nim_sum;
+            ll take = a[i] - new_size;
+            if (take > 0) {
+                return {i, take};
+            }
+        }
+    }
+
+    return {-1, -1};
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<ll> a(n);
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+    }
+
+    if (nim_game(a)) {
+        cout << "先手必胜" << '\n';
+        auto [pile, take] = find_winning_move(a);
+        if (pile != -1) {
+            cout << "从第" << pile + 1 << "堆取" << take << "个石子" << '\n';
+        }
+    } else {
+        cout << "后手必胜" << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import List, Tuple
+
+def nim_game(a: List[int]) -> bool:
+    """尼姆游戏判断"""
+    nim_sum = 0
+    for x in a:
+        nim_sum ^= x
+    return nim_sum != 0  # 返回True表示先手必胜
+
+def find_winning_move(a: List[int]) -> Tuple[int, int]:
+    """找到必胜策略"""
+    nim_sum = 0
+    for x in a:
+        nim_sum ^= x
+
+    if nim_sum == 0:
+        return -1, -1  # 没有必胜策略
+
+    # 找到最高位的1
+    highest_bit = nim_sum.bit_length() - 1
+
+    # 找到该位为1的石子堆
+    for i, x in enumerate(a):
+        if (x >> highest_bit) & 1:
+            new_size = x ^ nim_sum
+            take = x - new_size
+            if take > 0:
+                return i, take
+
+    return -1, -1
+
+def solve():
+    n = int(input())
+    a = list(map(int, input().split()))
+
+    if nim_game(a):
+        print("先手必胜")
+        pile, take = find_winning_move(a)
+        if pile != -1:
+            print(f"从第{pile + 1}堆取{take}个石子")
+    else:
+        print("后手必胜")
+
+solve()
+```
+
+应用一：变种尼姆游戏
+------------------
+每次最多取k个石子。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 变种尼姆游戏：每次最多取k个
+bool nim_game_limit(vector<ll>& a, ll k) {
+    ll nim_sum = 0;
+    for (ll x : a) {
+        nim_sum ^= (x % (k + 1));
+    }
+    return nim_sum != 0;
+}
+
+int main() {
+    int n;
+    ll k;
+    cin >> n >> k;
+
+    vector<ll> a(n);
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+    }
+
+    if (nim_game_limit(a, k)) {
+        cout << "先手必胜" << '\n';
+    } else {
+        cout << "后手必胜" << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def nim_game_limit(a: list, k: int) -> bool:
+    """变种尼姆游戏：每次最多取k个"""
+    nim_sum = 0
+    for x in a:
+        nim_sum ^= (x % (k + 1))
+    return nim_sum != 0
+
+def solve():
+    n, k = map(int, input().split())
+    a = list(map(int, input().split()))
+
+    if nim_game_limit(a, k):
+        print("先手必胜")
+    else:
+        print("后手必胜")
+
+solve()
+```
+
+应用二：取石子游戏
+----------------
+从n堆石子中取，每次从最多m堆中取石子。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 从最多m堆中取石子
+bool nim_game_m_piles(vector<ll>& a, int m) {
+    // 转换为二进制，统计每一位的1的个数
+    // 如果某一位的1的个数 % (m+1) != 0，则先手必胜
+
+    int max_bits = 0;
+    for (ll x : a) {
+        max_bits = max(max_bits, (int)(__lg(x) + 1));
+    }
+
+    for (int bit = 0; bit < max_bits; bit++) {
+        int cnt = 0;
+        for (ll x : a) {
+            if ((x >> bit) & 1) {
+                cnt++;
+            }
+        }
+        if (cnt % (m + 1) != 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    vector<ll> a(n);
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+    }
+
+    if (nim_game_m_piles(a, m)) {
+        cout << "先手必胜" << '\n';
+    } else {
+        cout << "后手必胜" << '\n';
+    }
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 【模板】尼姆游戏（洛谷P2197）：基本应用
+2. 取石子游戏（洛谷P1247）：变种问题
+3. Nim（POJ 2975）：经典问题
+
+注意事项
+--------
+1. 关键点：
+   - 计算nim-sum（异或和）
+   - nim-sum = 0时必败，≠ 0时必胜
+
+2. 必胜策略：
+   - 使nim-sum变为0
+   - 每次都保持nim-sum = 0
+
+3. 常见错误：
+   - 忘记异或运算
+   - 必胜策略计算错误
+
+时间复杂度总结
+--------------
+- 时间复杂度：O(n)
+- 空间复杂度：O(1)
+
+尼姆游戏是博弈论的基础，
+掌握它对理解更复杂的博弈问题很有帮助。

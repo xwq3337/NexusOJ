@@ -1,0 +1,752 @@
+栈（Stack）
+====================
+
+算法概述
+--------
+栈是一种线性数据结构,遵循后进先出(Last In First Out, LIFO)的原则。栈只允许在表尾(称为栈顶)进行插入和删除操作。
+
+核心特点：
+1. 只能在一端(栈顶)进行操作
+2. 后进先出(LIFO)
+3. 支持的基本操作：push(入栈)、pop(出栈)、top(查看栈顶)、empty(判空)
+
+核心思想
+--------
+1. 栈可以用数组或链表实现
+2. 数组实现：维护一个栈顶指针top，指向最后一个元素
+3. 链表实现：以表头为栈顶，插入和删除都在表头进行
+4. 时间复杂度：所有操作均为O(1)
+
+基础模板：栈的基本操作
+--------------------
+
+C++版本（数组实现）：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+class Stack {
+private:
+    int data[MAXN];  // 存储栈元素
+    int top_idx;     // 栈顶指针
+
+public:
+    Stack() : top_idx(-1) {}
+
+    // 入栈
+    void push(int x) {
+        data[++top_idx] = x;
+    }
+
+    // 出栈
+    void pop() {
+        if (top_idx >= 0) {
+            top_idx--;
+        }
+    }
+
+    // 获取栈顶元素
+    int top() {
+        return data[top_idx];
+    }
+
+    // 判断栈是否为空
+    bool empty() {
+        return top_idx == -1;
+    }
+
+    // 获取栈的大小
+    int size() {
+        return top_idx + 1;
+    }
+};
+
+int main() {
+    Stack st;
+
+    // 基本操作演示
+    st.push(1);
+    st.push(2);
+    st.push(3);
+
+    cout << "栈顶元素: " << st.top() << endl;  // 3
+    cout << "栈大小: " << st.size() << endl;   // 3
+
+    st.pop();
+    cout << "出栈后栈顶: " << st.top() << endl; // 2
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class Stack:
+    def __init__(self):
+        self.data = []
+
+    def push(self, x):
+        """入栈"""
+        self.data.append(x)
+
+    def pop(self):
+        """出栈"""
+        if not self.empty():
+            return self.data.pop()
+
+    def top(self):
+        """获取栈顶元素"""
+        if not self.empty():
+            return self.data[-1]
+
+    def empty(self):
+        """判断栈是否为空"""
+        return len(self.data) == 0
+
+    def size(self):
+        """获取栈大小"""
+        return len(self.data)
+
+# 基本操作演示
+st = Stack()
+st.push(1)
+st.push(2)
+st.push(3)
+
+print(f"栈顶元素: {st.top()}")  # 3
+print(f"栈大小: {st.size()}")   # 3
+
+st.pop()
+print(f"出栈后栈顶: {st.top()}") # 2
+```
+
+应用一：括号匹配
+----------------
+栈的经典应用之一，检查表达式中的括号是否匹配。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+bool isMatching(char open, char close) {
+    return (open == '(' && close == ')') ||
+           (open == '[' && close == ']') ||
+           (open == '{' && close == '}');
+}
+
+bool isValid(string s) {
+    stack<char> st;
+
+    for (char c : s) {
+        if (c == '(' || c == '[' || c == '{') {
+            st.push(c);  // 左括号入栈
+        } else if (c == ')' || c == ']' || c == '}') {
+            if (st.empty() || !isMatching(st.top(), c)) {
+                return false;  // 不匹配
+            }
+            st.pop();  // 匹配成功，出栈
+        }
+    }
+
+    return st.empty();  // 栈为空说明全部匹配
+}
+
+int main() {
+    string s;
+    cin >> s;
+
+    if (isValid(s)) {
+        cout << "括号匹配" << endl;
+    } else {
+        cout << "括号不匹配" << endl;
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def is_valid(s):
+    """检查括号是否匹配"""
+    stack = []
+    matching = {'(': ')', '[': ']', '{': '}'}
+
+    for c in s:
+        if c in '([{':
+            stack.append(c)  # 左括号入栈
+        elif c in ')]}':
+            if not stack or matching[stack[-1]] != c:
+                return False
+            stack.pop()
+
+    return len(stack) == 0
+
+# 测试
+s = input().strip()
+if is_valid(s):
+    print("括号匹配")
+else:
+    print("括号不匹配")
+```
+
+应用二：表达式求值
+------------------
+使用栈来计算中缀表达式的值（支持加减乘除和括号）。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int precedence(char op) {
+    if (op == '+' || op == '-') return 1;
+    if (op == '*' || op == '/') return 2;
+    return 0;
+}
+
+int applyOp(int a, int b, char op) {
+    switch(op) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '*': return a * b;
+        case '/': return a / b;
+    }
+    return 0;
+}
+
+int evaluate(string tokens) {
+    stack<int> values;
+    stack<char> ops;
+
+    for (int i = 0; i < tokens.length(); i++) {
+        if (tokens[i] == ' ') continue;
+
+        if (isdigit(tokens[i])) {
+            int val = 0;
+            while (i < tokens.length() && isdigit(tokens[i])) {
+                val = val * 10 + (tokens[i] - '0');
+                i++;
+            }
+            values.push(val);
+            i--;
+        } else if (tokens[i] == '(') {
+            ops.push(tokens[i]);
+        } else if (tokens[i] == ')') {
+            while (!ops.empty() && ops.top() != '(') {
+                int val2 = values.top(); values.pop();
+                int val1 = values.top(); values.pop();
+                char op = ops.top(); ops.pop();
+                values.push(applyOp(val1, val2, op));
+            }
+            ops.pop();  // 弹出 '('
+        } else {
+            while (!ops.empty() && ops.top() != '(' &&
+                   precedence(ops.top()) >= precedence(tokens[i])) {
+                int val2 = values.top(); values.pop();
+                int val1 = values.top(); values.pop();
+                char op = ops.top(); ops.pop();
+                values.push(applyOp(val1, val2, op));
+            }
+            ops.push(tokens[i]);
+        }
+    }
+
+    while (!ops.empty()) {
+        int val2 = values.top(); values.pop();
+        int val1 = values.top(); values.pop();
+        char op = ops.top(); ops.pop();
+        values.push(applyOp(val1, val2, op));
+    }
+
+    return values.top();
+}
+
+int main() {
+    string expr;
+    getline(cin, expr);
+    cout << evaluate(expr) << endl;
+    return 0;
+}
+```
+
+Python版本：
+```python
+def precedence(op):
+    """返回运算符优先级"""
+    if op in '+-':
+        return 1
+    if op in '*/':
+        return 2
+    return 0
+
+def apply_op(a, b, op):
+    """应用运算符"""
+    if op == '+': return a + b
+    if op == '-': return a - b
+    if op == '*': return a * b
+    if op == '/': return a // b
+    return 0
+
+def evaluate(tokens):
+    """计算表达式值"""
+    values = []
+    ops = []
+    i = 0
+
+    while i < len(tokens):
+        if tokens[i] == ' ':
+            i += 1
+            continue
+
+        if tokens[i].isdigit():
+            val = 0
+            while i < len(tokens) and tokens[i].isdigit():
+                val = val * 10 + int(tokens[i])
+                i += 1
+            values.append(val)
+            i -= 1
+        elif tokens[i] == '(':
+            ops.append(tokens[i])
+        elif tokens[i] == ')':
+            while ops and ops[-1] != '(':
+                val2 = values.pop()
+                val1 = values.pop()
+                op = ops.pop()
+                values.append(apply_op(val1, val2, op))
+            ops.pop()  # 弹出 '('
+        else:
+            while ops and ops[-1] != '(' and precedence(ops[-1]) >= precedence(tokens[i]):
+                val2 = values.pop()
+                val1 = values.pop()
+                op = ops.pop()
+                values.append(apply_op(val1, val2, op))
+            ops.append(tokens[i])
+        i += 1
+
+    while ops:
+        val2 = values.pop()
+        val1 = values.pop()
+        op = ops.pop()
+        values.append(apply_op(val1, val2, op))
+
+    return values[-1]
+
+# 测试
+expr = input().strip()
+print(evaluate(expr))
+```
+
+应用三：单调栈
+--------------
+单调栈是栈中元素保持单调性（递增或递减）的特殊栈。常用于解决"下一个更大元素"类问题。
+
+C++版本（求下一个更大元素）：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> nextGreaterElement(vector<int>& nums) {
+    int n = nums.size();
+    vector<int> result(n, -1);
+    stack<int> st;  // 存储下标
+
+    for (int i = 0; i < n; i++) {
+        while (!st.empty() && nums[st.top()] < nums[i]) {
+            result[st.top()] = nums[i];
+            st.pop();
+        }
+        st.push(i);
+    }
+
+    return result;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> nums(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nums[i];
+    }
+
+    vector<int> result = nextGreaterElement(nums);
+
+    for (int i = 0; i < n; i++) {
+        cout << result[i] << " \n"[i == n - 1];
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def next_greater_element(nums):
+    """求每个元素右边第一个更大的元素"""
+    n = len(nums)
+    result = [-1] * n
+    stack = []  # 存储下标
+
+    for i in range(n):
+        while stack and nums[stack[-1]] < nums[i]:
+            result[stack[-1]] = nums[i]
+            stack.pop()
+        stack.append(i)
+
+    return result
+
+# 测试
+n = int(input())
+nums = list(map(int, input().split()))
+result = next_greater_element(nums)
+print(' '.join(map(str, result)))
+```
+
+C++版本（求柱状图中最大矩形面积）：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int largestRectangleArea(vector<int>& heights) {
+    int n = heights.size();
+    stack<int> st;
+    int maxArea = 0;
+
+    for (int i = 0; i <= n; i++) {
+        int h = (i == n) ? 0 : heights[i];
+        while (!st.empty() && heights[st.top()] > h) {
+            int height = heights[st.top()];
+            st.pop();
+            int width = st.empty() ? i : i - st.top() - 1;
+            maxArea = max(maxArea, height * width);
+        }
+        st.push(i);
+    }
+
+    return maxArea;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    vector<int> heights(n);
+    for (int i = 0; i < n; i++) {
+        cin >> heights[i];
+    }
+
+    cout << largestRectangleArea(heights) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def largest_rectangle_area(heights):
+    """求柱状图中最大矩形面积"""
+    stack = []
+    max_area = 0
+    n = len(heights)
+
+    for i in range(n + 1):
+        h = 0 if i == n else heights[i]
+        while stack and heights[stack[-1]] > h:
+            height = heights[stack.pop()]
+            width = i if not stack else i - stack[-1] - 1
+            max_area = max(max_area, height * width)
+        stack.append(i)
+
+    return max_area
+
+# 测试
+n = int(input())
+heights = list(map(int, input().split()))
+print(largest_rectangle_area(heights))
+```
+
+应用四：最小栈
+--------------
+实现一个能在O(1)时间内获取栈中最小元素的栈。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class MinStack {
+private:
+    stack<int> data_stack;   // 数据栈
+    stack<int> min_stack;    // 最小值栈
+
+public:
+    void push(int x) {
+        data_stack.push(x);
+        if (min_stack.empty() || x <= min_stack.top()) {
+            min_stack.push(x);
+        }
+    }
+
+    void pop() {
+        if (data_stack.top() == min_stack.top()) {
+            min_stack.pop();
+        }
+        data_stack.pop();
+    }
+
+    int top() {
+        return data_stack.top();
+    }
+
+    int getMin() {
+        return min_stack.top();
+    }
+};
+
+int main() {
+    MinStack st;
+
+    st.push(-2);
+    st.push(0);
+    st.push(-3);
+
+    cout << "最小值: " << st.getMin() << endl;  // -3
+    st.pop();
+    cout << "栈顶: " << st.top() << endl;        // 0
+    cout << "最小值: " << st.getMin() << endl;  // -2
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class MinStack:
+    def __init__(self):
+        self.data_stack = []
+        self.min_stack = []
+
+    def push(self, x):
+        """入栈"""
+        self.data_stack.append(x)
+        if not self.min_stack or x <= self.min_stack[-1]:
+            self.min_stack.append(x)
+
+    def pop(self):
+        """出栈"""
+        if self.data_stack[-1] == self.min_stack[-1]:
+            self.min_stack.pop()
+        self.data_stack.pop()
+
+    def top(self):
+        """获取栈顶元素"""
+        return self.data_stack[-1]
+
+    def get_min(self):
+        """获取最小值"""
+        return self.min_stack[-1]
+
+# 测试
+st = MinStack()
+st.push(-2)
+st.push(0)
+st.push(-3)
+
+print(f"最小值: {st.get_min()}")  # -3
+st.pop()
+print(f"栈顶: {st.top()}")        # 0
+print(f"最小值: {st.get_min()}")  # -2
+```
+
+应用五：栈排序
+--------------
+使用栈对另一个栈进行排序，要求只能使用额外的栈空间。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+void sortStack(stack<int>& input) {
+    stack<int> tmpStack;
+
+    while (!input.empty()) {
+        int tmp = input.top();
+        input.pop();
+
+        while (!tmpStack.empty() && tmpStack.top() > tmp) {
+            input.push(tmpStack.top());
+            tmpStack.pop();
+        }
+
+        tmpStack.push(tmp);
+    }
+
+    // 将排序后的元素放回原栈
+    while (!tmpStack.empty()) {
+        input.push(tmpStack.top());
+        tmpStack.pop();
+    }
+}
+
+int main() {
+    stack<int> st;
+    int n;
+    cin >> n;
+
+    for (int i = 0; i < n; i++) {
+        int x;
+        cin >> x;
+        st.push(x);
+    }
+
+    sortStack(st);
+
+    while (!st.empty()) {
+        cout << st.top() << " ";
+        st.pop();
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def sort_stack(input_stack):
+    """使用栈对栈进行排序"""
+    tmp_stack = []
+
+    while input_stack:
+        tmp = input_stack.pop()
+
+        while tmp_stack and tmp_stack[-1] > tmp:
+            input_stack.append(tmp_stack.pop())
+
+        tmp_stack.append(tmp)
+
+    # 将排序后的元素放回原栈
+    while tmp_stack:
+        input_stack.append(tmp_stack.pop())
+
+# 测试
+n = int(input())
+st = []
+for _ in range(n):
+    x = int(input())
+    st.append(x)
+
+sort_stack(st)
+while st:
+    print(st.pop(), end=' ')
+print()
+```
+
+应用六：逆波兰表达式求值
+----------------------
+逆波兰表达式(后缀表达式)的求值是栈的经典应用。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int evalRPN(vector<string>& tokens) {
+    stack<int> st;
+
+    for (string token : tokens) {
+        if (token == "+" || token == "-" || token == "*" || token == "/") {
+            int b = st.top(); st.pop();
+            int a = st.top(); st.pop();
+            if (token == "+") st.push(a + b);
+            else if (token == "-") st.push(a - b);
+            else if (token == "*") st.push(a * b);
+            else if (token == "/") st.push(a / b);
+        } else {
+            st.push(stoi(token));
+        }
+    }
+
+    return st.top();
+}
+
+int main() {
+    string line;
+    getline(cin, line);
+
+    stringstream ss(line);
+    string token;
+    vector<string> tokens;
+
+    while (ss >> token) {
+        tokens.push_back(token);
+    }
+
+    cout << evalRPN(tokens) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def eval_rpn(tokens):
+    """计算逆波兰表达式的值"""
+    stack = []
+
+    for token in tokens:
+        if token in '+-*/':
+            b = stack.pop()
+            a = stack.pop()
+            if token == '+':
+                stack.append(a + b)
+            elif token == '-':
+                stack.append(a - b)
+            elif token == '*':
+                stack.append(a * b)
+            elif token == '/':
+                stack.append(int(a / b))
+        else:
+            stack.append(int(token))
+
+    return stack[-1]
+
+# 测试
+tokens = input().split()
+print(eval_rpn(tokens))
+```
+
+典型例题
+--------
+1. 括号匹配（LeetCode 20）：判断括号字符串是否有效
+2. 最小栈（LeetCode 155）：实现支持getMin的栈
+3. 逆波兰表达式求值（LeetCode 150）：计算后缀表达式
+4. 柱状图中最大矩形（LeetCode 84）：单调栈应用
+5. 下一个更大元素I（LeetCode 496）：单调栈基础
+6. 有效的括号字符串（LeetCode 678）：包含*的括号匹配
+7. 每日温度（LeetCode 739）：单调栈应用
+8. 移除重复字母（LeetCode 316）：单调栈+贪心
+
+注意事项
+--------
+1. 栈溢出：使用数组实现时要注意栈的最大容量
+2. 空栈操作：在pop或top之前要检查栈是否为空
+3. 单调栈应用：
+   - 求"下一个更大/更小元素"用递增栈
+   - 求"上一个更大/更小元素"用递减栈
+4. 表达式求值时注意运算符优先级和括号处理
+5. 使用STL的stack时，注意其底层容器默认是deque
+6. 递归与栈的关系：递归本质上是使用系统栈
+
+时间复杂度总结
+--------------
+- push操作：O(1)
+- pop操作：O(1)
+- top操作：O(1)
+- 空间复杂度：O(n)，n为栈中元素个数
+
+栈是一种简单但强大的数据结构，在表达式求值、括号匹配、单调性问题等场景中都有广泛应用。

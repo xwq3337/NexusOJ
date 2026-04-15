@@ -1,0 +1,687 @@
+模拟退火算法（Simulated Annealing）
+=================================
+
+算法概述
+--------
+模拟退火是一种通用概率算法，用于在给定大搜索空间内寻找问题的近似最优解。
+灵感来源于固体退火原理：加热固体后再缓慢冷却，使其达到低能态（有序状态）。
+
+核心思想
+--------
+1. 初始化：设定初始温度、终止温度、降温系数
+2. 扰动：在当前解附近产生新解
+3. 接受：以一定概率接受较差解，避免陷入局部最优
+4. 降温：温度逐渐降低，接受差解的概率逐渐减小
+
+基础应用：函数优化
+------------------
+求函数f(x)在区间[a, b]上的最小值。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const double PI = acos(-1.0);
+
+// 目标函数
+double f(double x) {
+    return x * x + 10 * sin(x);
+}
+
+// 模拟退火
+double simulated_annealing(double left, double right) {
+    // 初始温度
+    double T = 1000;
+    // 降温系数
+    double cooling_rate = 0.99;
+    // 终止温度
+    double min_T = 1e-8;
+
+    // 当前解
+    double current_x = (left + right) / 2.0;
+    double current_value = f(current_x);
+
+    // 最优解
+    double best_x = current_x;
+    double best_value = current_value;
+
+    while (T > min_T) {
+        // 在当前解附近产生新解
+        double new_x = current_x + (rand() * 2.0 - RAND_MAX) / RAND_MAX * T;
+        new_x = max(left, min(right, new_x));
+
+        double new_value = f(new_x);
+        double delta = new_value - current_value;
+
+        // 接受准则
+        if (delta < 0 || exp(-delta / T) * RAND_MAX > rand()) {
+            current_x = new_x;
+            current_value = new_value;
+
+            if (current_value < best_value) {
+                best_x = current_x;
+                best_value = current_value;
+            }
+        }
+
+        // 降温
+        T *= cooling_rate;
+    }
+
+    return best_x;
+}
+
+int main() {
+    srand(time(0));
+
+    double left, right;
+    cin >> left >> right;
+
+    double result = simulated_annealing(left, right);
+    cout << "Minimum at x = " << result << '\n';
+    cout << "Minimum value = " << f(result) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import random
+import math
+
+def f(x):
+    return x * x + 10 * math.sin(x)
+
+def simulated_annealing(left, right):
+    # 初始温度
+    T = 1000
+    # 降温系数
+    cooling_rate = 0.99
+    # 终止温度
+    min_T = 1e-8
+
+    # 当前解
+    current_x = (left + right) / 2
+    current_value = f(current_x)
+
+    # 最优解
+    best_x = current_x
+    best_value = current_value
+
+    while T > min_T:
+        # 在当前解附近产生新解
+        new_x = current_x + (random.random() * 2 - 1) * T
+        new_x = max(left, min(right, new_x))
+
+        new_value = f(new_x)
+        delta = new_value - current_value
+
+        # 接受准则
+        if delta < 0 or math.exp(-delta / T) > random.random():
+            current_x = new_x
+            current_value = new_value
+
+            if current_value < best_value:
+                best_x = current_x
+                best_value = current_value
+
+        # 降温
+        T *= cooling_rate
+
+    return best_x
+
+def main():
+    left, right = map(float, input().split())
+    result = simulated_annealing(left, right)
+    print(f"Minimum at x = {result}")
+    print(f"Minimum value = {f(result)}")
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用一：TSP问题（旅行商问题）
+----------------------------------
+给定n个城市和城市间的距离，求访问所有城市并回到起点的最短路径。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 105;
+int n;
+double x[MAXN], y[MAXN];
+double dist[MAXN][MAXN];
+
+// 计算路径长度
+double calculate_length(vector<int>& path) {
+    double length = 0;
+    for (int i = 0; i < n; i++) {
+        int from = path[i];
+        int to = path[(i + 1) % n];
+        length += dist[from][to];
+    }
+    return length;
+}
+
+// 模拟退火求解TSP
+vector<int> tsp_sa() {
+    // 初始路径
+    vector<int> current_path(n);
+    for (int i = 0; i < n; i++) {
+        current_path[i] = i;
+    }
+    random_shuffle(current_path.begin(), current_path.end());
+
+    double current_length = calculate_length(current_path);
+
+    vector<int> best_path = current_path;
+    double best_length = current_length;
+
+    double T = 1000;
+    double cooling_rate = 0.99;
+    double min_T = 1e-8;
+
+    while (T > min_T) {
+        // 产生新路径：随机交换两个城市
+        vector<int> new_path = current_path;
+        int a = rand() % n;
+        int b = rand() % n;
+        swap(new_path[a], new_path[b]);
+
+        double new_length = calculate_length(new_path);
+        double delta = new_length - current_length;
+
+        if (delta < 0 || exp(-delta / T) * RAND_MAX > rand()) {
+            current_path = new_path;
+            current_length = new_length;
+
+            if (current_length < best_length) {
+                best_path = current_path;
+                best_length = current_length;
+            }
+        }
+
+        T *= cooling_rate;
+    }
+
+    return best_path;
+}
+
+int main() {
+    srand(time(0));
+
+    cin >> n;
+    for (int i = 0; i < n; i++) {
+        cin >> x[i] >> y[i];
+    }
+
+    // 计算距离矩阵
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            dist[i][j] = sqrt((x[i] - x[j]) * (x[i] - x[j]) +
+                             (y[i] - y[j]) * (y[i] - y[j]));
+        }
+    }
+
+    vector<int> path = tsp_sa();
+
+    cout << "Shortest path:\n";
+    for (int city : path) {
+        cout << city << " ";
+    }
+    cout << '\n';
+    cout << "Length: " << calculate_length(path) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import random
+import math
+
+def calculate_length(path, dist):
+    length = 0
+    n = len(path)
+    for i in range(n):
+        fr = path[i]
+        to = path[(i + 1) % n]
+        length += dist[fr][to]
+    return length
+
+def tsp_sa(dist, n):
+    # 初始路径
+    current_path = list(range(n))
+    random.shuffle(current_path)
+
+    current_length = calculate_length(current_path, dist)
+
+    best_path = current_path[:]
+    best_length = current_length
+
+    T = 1000
+    cooling_rate = 0.99
+    min_T = 1e-8
+
+    while T > min_T:
+        # 产生新路径
+        new_path = current_path[:]
+        a, b = random.sample(range(n), 2)
+        new_path[a], new_path[b] = new_path[b], new_path[a]
+
+        new_length = calculate_length(new_path, dist)
+        delta = new_length - current_length
+
+        if delta < 0 or math.exp(-delta / T) > random.random():
+            current_path = new_path
+            current_length = new_length
+
+            if current_length < best_length:
+                best_path = current_path[:]
+                best_length = current_length
+
+        T *= cooling_rate
+
+    return best_path
+
+def main():
+    n = int(input())
+    cities = [tuple(map(float, input().split())) for _ in range(n)]
+
+    # 计算距离矩阵
+    dist = [[0] * n for _ in range(n)]
+    for i in range(n):
+        for j in range(n):
+            dist[i][j] = math.sqrt((cities[i][0] - cities[j][0]) ** 2 +
+                                   (cities[i][1] - cities[j][1]) ** 2)
+
+    path = tsp_sa(dist, n)
+
+    print("Shortest path:")
+    print(path)
+    print(f"Length: {calculate_length(path, dist)}")
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用二：函数极值（多维）
+----------------------------
+求多维函数的极值点。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 目标函数
+double f(double x, double y) {
+    return x * x + y * y + 10 * sin(x) * cos(y);
+}
+
+pair<double, double> simulated_annealing_2d() {
+    double T = 1000;
+    double cooling_rate = 0.99;
+    double min_T = 1e-8;
+
+    // 搜索范围
+    double left = -10, right = 10;
+
+    // 当前解
+    double current_x = (left + right) / 2;
+    double current_y = (left + right) / 2;
+    double current_value = f(current_x, current_y);
+
+    // 最优解
+    double best_x = current_x;
+    double best_y = current_y;
+    double best_value = current_value;
+
+    while (T > min_T) {
+        // 在当前解附近产生新解
+        double new_x = current_x + (rand() * 2.0 - RAND_MAX) / RAND_MAX * T;
+        double new_y = current_y + (rand() * 2.0 - RAND_MAX) / RAND_MAX * T;
+
+        new_x = max(left, min(right, new_x));
+        new_y = max(left, min(right, new_y));
+
+        double new_value = f(new_x, new_y);
+        double delta = new_value - current_value;
+
+        if (delta < 0 || exp(-delta / T) * RAND_MAX > rand()) {
+            current_x = new_x;
+            current_y = new_y;
+            current_value = new_value;
+
+            if (current_value < best_value) {
+                best_x = current_x;
+                best_y = current_y;
+                best_value = current_value;
+            }
+        }
+
+        T *= cooling_rate;
+    }
+
+    return {best_x, best_y};
+}
+
+int main() {
+    srand(time(0));
+
+    auto result = simulated_annealing_2d();
+    cout << "Minimum at (" << result.first << ", " << result.second << ")\n";
+    cout << "Minimum value = " << f(result.first, result.second) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import random
+import math
+
+def f(x, y):
+    return x * x + y * y + 10 * math.sin(x) * math.cos(y)
+
+def simulated_annealing_2d():
+    T = 1000
+    cooling_rate = 0.99
+    min_T = 1e-8
+
+    # 搜索范围
+    left, right = -10, 10
+
+    # 当前解
+    current_x = (left + right) / 2
+    current_y = (left + right) / 2
+    current_value = f(current_x, current_y)
+
+    # 最优解
+    best_x = current_x
+    best_y = current_y
+    best_value = current_value
+
+    while T > min_T:
+        # 在当前解附近产生新解
+        new_x = current_x + (random.random() * 2 - 1) * T
+        new_y = current_y + (random.random() * 2 - 1) * T
+
+        new_x = max(left, min(right, new_x))
+        new_y = max(left, min(right, new_y))
+
+        new_value = f(new_x, new_y)
+        delta = new_value - current_value
+
+        if delta < 0 or math.exp(-delta / T) > random.random():
+            current_x = new_x
+            current_y = new_y
+            current_value = new_value
+
+            if current_value < best_value:
+                best_x = current_x
+                best_y = current_y
+                best_value = current_value
+
+        T *= cooling_rate
+
+    return best_x, best_y
+
+def main():
+    x, y = simulated_annealing_2d()
+    print(f"Minimum at ({x}, {y})")
+    print(f"Minimum value = {f(x, y)}")
+
+if __name__ == "__main__":
+    main()
+```
+
+典型应用三：最小生成树（带权）
+----------------------------
+在完全图中寻找最小生成树。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 55;
+int n;
+double x[MAXN], y[MAXN];
+
+struct Edge {
+    int u, v;
+    double w;
+};
+
+// 计算MST权重
+double calculate_mst(vector<Edge>& edges) {
+    // Kruskal算法
+    sort(edges.begin(), edges.end(),
+         [](Edge a, Edge b) { return a.w < b.w; });
+
+    vector<int> parent(n);
+    for (int i = 0; i < n; i++) {
+        parent[i] = i;
+    }
+
+    function<int(int)> find = [&](int x) {
+        return parent[x] == x ? x : parent[x] = find(parent[x]);
+    };
+
+    double total = 0;
+    int count = 0;
+
+    for (auto& e : edges) {
+        int pu = find(e.u);
+        int pv = find(e.v);
+        if (pu != pv) {
+            parent[pu] = pv;
+            total += e.w;
+            count++;
+            if (count == n - 1) break;
+        }
+    }
+
+    return total;
+}
+
+// 模拟退火优化边权
+double optimize_edges() {
+    vector<Edge> edges(n * (n - 1) / 2);
+    int idx = 0;
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            edges[idx].u = i;
+            edges[idx].v = j;
+            edges[idx].w = sqrt((x[i] - x[j]) * (x[i] - x[j]) +
+                               (y[i] - y[j]) * (y[i] - y[j]));
+            idx++;
+        }
+    }
+
+    double T = 100;
+    double cooling_rate = 0.99;
+    double min_T = 1e-6;
+
+    double current_value = calculate_mst(edges);
+    double best_value = current_value;
+
+    while (T > min_T) {
+        // 随机调整点的位置
+        int node = rand() % n;
+        double old_x = x[node], old_y = y[node];
+
+        x[node] += (rand() * 2.0 - RAND_MAX) / RAND_MAX * T;
+        y[node] += (rand() * 2.0 - RAND_MAX) / RAND_MAX * T;
+
+        // 重新计算边权和MST
+        idx = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                edges[idx].u = i;
+                edges[idx].v = j;
+                edges[idx].w = sqrt((x[i] - x[j]) * (x[i] - x[j]) +
+                                   (y[i] - y[j]) * (y[i] - y[j]));
+                idx++;
+            }
+        }
+
+        double new_value = calculate_mst(edges);
+        double delta = new_value - current_value;
+
+        if (delta < 0 || exp(-delta / T) * RAND_MAX > rand()) {
+            current_value = new_value;
+            if (current_value < best_value) {
+                best_value = current_value;
+            }
+        } else {
+            // 恢复
+            x[node] = old_x;
+            y[node] = old_y;
+        }
+
+        T *= cooling_rate;
+    }
+
+    return best_value;
+}
+
+int main() {
+    srand(time(0));
+
+    cin >> n;
+    for (int i = 0; i < n; i++) {
+        cin >> x[i] >> y[i];
+    }
+
+    double result = optimize_edges();
+    cout << "Minimum MST weight: " << result << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import random
+import math
+
+def calculate_mst(n, x, y):
+    edges = []
+    for i in range(n):
+        for j in range(i + 1, n):
+            w = math.sqrt((x[i] - x[j]) ** 2 + (y[i] - y[j]) ** 2)
+            edges.append((i, j, w))
+
+    edges.sort(key=lambda e: e[2])
+
+    parent = list(range(n))
+
+    def find(x):
+        if parent[x] != x:
+            parent[x] = find(parent[x])
+        return parent[x]
+
+    total = 0
+    count = 0
+
+    for u, v, w in edges:
+        pu, pv = find(u), find(v)
+        if pu != pv:
+            parent[pu] = pv
+            total += w
+            count += 1
+            if count == n - 1:
+                break
+
+    return total
+
+def optimize_edges(n, x, y):
+    T = 100
+    cooling_rate = 0.99
+    min_T = 1e-6
+
+    current_value = calculate_mst(n, x, y)
+    best_value = current_value
+
+    while T > min_T:
+        node = random.randint(0, n - 1)
+        old_x, old_y = x[node], y[node]
+
+        x[node] += (random.random() * 2 - 1) * T
+        y[node] += (random.random() * 2 - 1) * T
+
+        new_value = calculate_mst(n, x, y)
+        delta = new_value - current_value
+
+        if delta < 0 or math.exp(-delta / T) > random.random():
+            current_value = new_value
+            if current_value < best_value:
+                best_value = current_value
+        else:
+            x[node] = old_x
+            y[node] = old_y
+
+        T *= cooling_rate
+
+    return best_value
+
+def main():
+    random.seed(0)
+
+    n = int(input())
+    cities = [tuple(map(float, input().split())) for _ in range(n)]
+    x = [city[0] for city in cities]
+    y = [city[1] for city in cities]
+
+    result = optimize_edges(n, x, y)
+    print(f"Minimum MST weight: {result}")
+
+if __name__ == "__main__":
+    main()
+```
+
+重要参数说明
+------------
+1. 初始温度T：一般设为100-1000
+2. 降温系数cooling_rate：一般设为0.95-0.99
+3. 终止温度min_T：一般设为1e-6到1e-8
+4. 扰动幅度：与温度T相关
+
+算法优势
+--------
+1. 能跳出局部最优
+2. 实现简单，适用范围广
+3. 对初始解不敏感
+4. 易于并行化
+
+注意事项
+--------
+1. 参数设置需要根据具体问题调整
+2. 可能需要多次运行取最优结果
+3. 不是精确算法，只能得到近似解
+4. 对某些问题可能收敛较慢
+5. 随机性较强，结果可能不稳定
+
+优化技巧
+--------
+1. 使用更复杂的降温策略
+2. 结合局部搜索算法
+3. 多次运行取最优
+4. 调整扰动策略
+5. 使用记忆功能避免重复计算
+
+时间复杂度总结
+--------------
+- 时间复杂度：取决于迭代次数和目标函数复杂度
+- 通常：O(iterations * f_cost)，其中f_cost是单次目标函数计算成本
+- 空间复杂度：O(n)，主要存储当前解和最优解
+
+模拟退火是一种强大的启发式算法，特别适合复杂的组合优化问题，在工程实践中应用广泛。

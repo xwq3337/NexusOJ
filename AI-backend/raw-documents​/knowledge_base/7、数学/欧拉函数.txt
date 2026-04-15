@@ -1,0 +1,387 @@
+欧拉函数（Euler Totient Function）
+==================================
+
+基本概念
+--------
+欧拉函数φ(n)表示小于等于n且与n互质的正整数个数。
+
+例如：
+- φ(1) = 1（1与1互质）
+- φ(6) = 2（1和5与6互质）
+- φ(7) = 6（1,2,3,4,5,6都与7互质，7是质数）
+
+欧拉函数的性质
+--------------
+1. 如果n是质数，则φ(n) = n - 1
+2. 如果p是质数，则φ(p^k) = p^k - p^(k-1)
+3. 欧拉函数是积性函数：若gcd(a, b) = 1，则φ(ab) = φ(a) × φ(b)
+4. 对于n = p1^k1 × p2^k2 × ... × pk^kk，有：
+   φ(n) = n × (1 - 1/p1) × (1 - 1/p2) × ... × (1 - 1/pk)
+
+方法一：单值求解
+--------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 求欧拉函数φ(n)
+ll phi(ll n) {
+    ll res = n;
+
+    for (ll i = 2; i * i <= n; i++) {
+        if (n % i == 0) {
+            // i是n的质因数
+            while (n % i == 0) {
+                n /= i;
+            }
+            res = res / i * (i - 1);
+        }
+    }
+
+    if (n > 1) {
+        // n本身是质数
+        res = res / n * (n - 1);
+    }
+
+    return res;
+}
+
+int main() {
+    ll n;
+    cin >> n;
+
+    cout << "φ(" << n << ") = " << phi(n) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def phi(n: int) -> int:
+    """求欧拉函数φ(n)"""
+    res = n
+
+    i = 2
+    while i * i <= n:
+        if n % i == 0:
+            # i是n的质因数
+            while n % i == 0:
+                n //= i
+            res = res // i * (i - 1)
+        i += 1
+
+    if n > 1:
+        # n本身是质数
+        res = res // n * (n - 1)
+
+    return res
+
+def solve():
+    n = int(input())
+    print(f"φ({n}) = {phi(n)}")
+
+solve()
+```
+
+方法二：筛法预处理（欧拉筛）
+-------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 10000005;
+int phi[MAXN];
+vector<int> primes;
+
+// 欧拉筛求欧拉函数
+void euler_phi(int n) {
+    phi[1] = 1;
+
+    for (int i = 2; i <= n; i++) {
+        if (!phi[i]) {
+            phi[i] = i - 1;
+            primes.push_back(i);
+        }
+
+        for (int p : primes) {
+            if ((long long)i * p > n) break;
+
+            if (i % p == 0) {
+                phi[i * p] = phi[i] * p;
+                break;
+            } else {
+                phi[i * p] = phi[i] * (p - 1);
+            }
+        }
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    euler_phi(n);
+
+    for (int i = 1; i <= n; i++) {
+        cout << "φ(" << i << ") = " << phi[i] << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def euler_phi(n: int):
+    """欧拉筛求欧拉函数"""
+    phi = [0] * (n + 1)
+    phi[1] = 1
+    primes = []
+
+    for i in range(2, n + 1):
+        if phi[i] == 0:
+            phi[i] = i - 1
+            primes.append(i)
+
+        for p in primes:
+            if i * p > n:
+                break
+            if i % p == 0:
+                phi[i * p] = phi[i] * p
+                break
+            else:
+                phi[i * p] = phi[i] * (p - 1)
+
+    return phi, primes
+
+def solve():
+    n = int(input())
+    phi, primes = euler_phi(n)
+
+    for i in range(1, n + 1):
+        print(f"φ({i}) = {phi[i]}")
+
+solve()
+```
+
+方法三：区间筛法（求区间欧拉函数）
+-------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 区间筛求欧拉函数
+vector<ll> segment_phi(ll l, ll r) {
+    vector<bool> is_prime(r - l + 1, true);
+    vector<ll> phi(r - l + 1);
+
+    for (ll i = l; i <= r; i++) {
+        phi[i - l] = i;
+    }
+
+    for (ll p = 2; p * p <= r; p++) {
+        // 找到第一个≥l且是p的倍数的数
+        ll start = max(p * p, (l + p - 1) / p * p);
+        for (ll i = start; i <= r; i += p) {
+            is_prime[i - l] = false;
+            phi[i - l] = phi[i - l] / p * (p - 1);
+        }
+    }
+
+    // 质数本身
+    for (ll i = l; i <= r; i++) {
+        if (is_prime[i - l] && i > 1) {
+            phi[i - l] = i - 1;
+        }
+    }
+
+    return phi;
+}
+
+int main() {
+    ll l, r;
+    cin >> l >> r;
+
+    vector<ll> phi = segment_phi(l, r);
+
+    for (ll i = l; i <= r; i++) {
+        cout << "φ(" << i << ") = " << phi[i - l] << '\n';
+    }
+
+    return 0;
+}
+```
+
+应用一：欧拉定理
+--------------
+欧拉定理：若gcd(a, n) = 1，则a^φ(n) ≡ 1 (mod n)
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 求欧拉函数
+ll phi(ll n) {
+    ll res = n;
+    for (ll i = 2; i * i <= n; i++) {
+        if (n % i == 0) {
+            while (n % i == 0) n /= i;
+            res = res / i * (i - 1);
+        }
+    }
+    if (n > 1) res = res / n * (n - 1);
+    return res;
+}
+
+// 快速幂
+ll pow_mod(ll a, ll b, ll mod) {
+    ll res = 1;
+    a %= mod;
+    while (b > 0) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 欧拉定理验证
+bool verify_euler(ll a, ll n) {
+    if (__gcd(a, n) != 1) return false;
+    ll phi_n = phi(n);
+    return pow_mod(a, phi_n, n) == 1;
+}
+
+int main() {
+    ll a, n;
+    cin >> a >> n;
+
+    if (verify_euler(a, n)) {
+        cout << "欧拉定理成立！" << '\n';
+    } else {
+        cout << "欧拉定理不成立或条件不满足" << '\n';
+    }
+
+    return 0;
+}
+```
+
+应用二：降幂
+----------
+当指数很大时，可以利用欧拉定理降幂。
+
+如果b ≥ φ(m)，则a^b mod m = a^(b mod φ(m) + φ(m)) mod m
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+ll phi(ll n) {
+    ll res = n;
+    for (ll i = 2; i * i <= n; i++) {
+        if (n % i == 0) {
+            while (n % i == 0) n /= i;
+            res = res / i * (i - 1);
+        }
+    }
+    if (n > 1) res = res / n * (n - 1);
+    return res;
+}
+
+ll pow_mod(ll a, ll b, ll mod) {
+    ll res = 1;
+    a %= mod;
+    while (b > 0) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 使用欧拉定理降幂
+ll power_reduce(ll a, string b_str, ll m) {
+    if (__gcd(a, m) == 1) {
+        ll phi_m = phi(m);
+        ll b_mod = 0;
+        for (char c : b_str) {
+            b_mod = (b_mod * 10 + (c - '0')) % phi_m;
+        }
+        return pow_mod(a, b_mod, m);
+    } else {
+        ll phi_m = phi(m);
+        ll b_mod = 0;
+        bool flag = false;
+        for (char c : b_str) {
+            b_mod = (b_mod * 10 + (c - '0')) % phi_m;
+            if (b_mod > 0) flag = true;
+        }
+        if (flag) {
+            return pow_mod(a, b_mod + phi_m, m);
+        } else {
+            return pow_mod(a, b_mod, m);
+        }
+    }
+}
+
+int main() {
+    ll a, m;
+    string b_str;
+    cin >> a >> b_str >> m;
+
+    cout << power_reduce(a, b_str, m) << '\n';
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 【模板】欧拉函数（洛谷P2398）：基本计算
+2. 【模板】欧拉筛（洛谷P3383）：筛法求欧拉函数
+3. 聪明的燕姿（洛谷P1462）：欧拉函数应用
+4. 余数求和（洛谷P2261）：欧拉函数求和
+
+注意事项
+--------
+1. 特殊情况：
+   - φ(1) = 1
+   - 对于质数p，φ(p) = p - 1
+
+2. 计算技巧：
+   - 使用公式φ(n) = n × Π(1 - 1/p)
+   - 质因数分解后计算
+
+3. 优化技巧：
+   - 筛法预处理
+   - 只计算到√n
+
+4. 常见错误：
+   - 忘记处理n = 1
+   - 质因数分解不完整
+
+时间复杂度总结
+--------------
+- 单值求解：O(√n)
+- 筛法预处理：O(n)
+- 区间筛法：O((r-l+1) log log r)
+
+欧拉函数是数论中的重要函数，
+它与质数、同余、群论等都有密切联系。

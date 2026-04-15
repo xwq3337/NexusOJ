@@ -245,7 +245,7 @@
         <div class="lg:col-span-9">
           <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
             <!-- Left: Problem Data -->
-            <div class="xl:col-span-7 space-y-6">
+            <div class="xl:col-span-8 space-y-6">
               <!-- Stats Cards -->
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Solved -->
@@ -405,7 +405,7 @@
             </div>
 
             <!-- Right: Placeholder -->
-            <div class="xl:col-span-5">
+            <div class="xl:col-span-4">
               <div class="xl:sticky xl:top-24">
                 <div class="rounded-xl p-5 cyber-glow-card min-h-40 flex items-center justify-center" :style="{
                   backgroundColor: 'var(--surface-primary)',

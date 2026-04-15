@@ -1,0 +1,826 @@
+IDA*算法（Iterative Deepening A*）
+================================
+
+算法概述
+--------
+IDA*（Iterative Deepening A*）是迭代加深搜索（IDS）和A*算法的结合体。
+它像IDS一样逐步增加深度限制，同时像A*一样使用启发函数来剪枝。
+IDA*算法只需要O(d)的空间复杂度（d是解的深度），同时能保证找到最优解，
+特别适用于状态空间巨大且内存受限的问题。
+
+核心思想
+--------
+1. 使用估价函数f(n) = g(n) + h(n)
+   - g(n): 从起点到当前状态的实际代价
+   - h(n): 从当前状态到目标的启发估计代价
+   - f(n): 预估的总代价
+
+2. 从初始阈值开始（通常是f(start)）
+3. 进行深度优先搜索，只扩展f(n) <= threshold的节点
+4. 如果找到目标，返回最优解
+5. 如果没有找到，增加阈值为下一轮搜索中遇到的最小f值
+6. 重复步骤3-5直到找到解或阈值超过限制
+
+7. 时间复杂度：O(b^d)，但实际远优于IDS
+8. 空间复杂度：O(d)，这是IDA*最大的优势
+
+基础模板：IDA*算法实现
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 状态结构体示例（需要根据具体问题修改）
+struct State {
+    // 状态数据
+    int g;  // 实际代价
+    int h;  // 启发值
+    int f() const { return g + h; }
+};
+
+int threshold;
+int next_threshold;
+State target;
+
+// 深度优先搜索，带阈值剪枝
+bool dfs_ida_star(State& current, int depth) {
+    int f_value = current.f();
+
+    // 剪枝：如果f值超过阈值
+    if (f_value > threshold) {
+        next_threshold = min(next_threshold, f_value);
+        return false;
+    }
+
+    // 检查是否到达目标
+    if (is_target(current)) {
+        return true;
+    }
+
+    // 生成后继状态
+    vector<State> successors = get_successors(current);
+
+    for (State& next : successors) {
+        next.g = current.g + 1;  // 或其他实际代价
+
+        if (dfs_ida_star(next, depth + 1)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// IDA*主算法
+void ida_star(State& start, State& end) {
+    target = end;
+
+    // 初始阈值为起点的f值
+    threshold = start.f();
+
+    while (threshold < INT_MAX) {
+        next_threshold = INT_MAX;
+
+        if (dfs_ida_star(start, 0)) {
+            cout << "找到最优解！代价: " << threshold << '\n';
+            return;
+        }
+
+        threshold = next_threshold;  // 更新阈值
+    }
+
+    cout << "未找到解\n";
+}
+
+int main() {
+    State start, end;
+
+    // 初始化状态
+    start.g = 0;
+    start.h = heuristic(start);
+    // ... 其他初始化
+
+    ida_star(start, end);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class State:
+    def __init__(self, g=0, h=0):
+        self.g = g  # 实际代价
+        self.h = h  # 启发值
+
+    def f(self):
+        return self.g + self.h
+
+def is_target(state, target):
+    """检查是否到达目标"""
+    # 根据具体问题实现
+    return state == target
+
+def get_successors(state):
+    """生成后继状态"""
+    # 根据具体问题实现
+    return []
+
+def heuristic(state):
+    """启发函数"""
+    # 根据具体问题实现
+    return 0
+
+def dfs_ida_star(current, target, threshold, depth=0):
+    """深度优先搜索，带阈值剪枝"""
+    f_value = current.f()
+
+    # 剪枝：如果f值超过阈值
+    if f_value > threshold:
+        return False, f_value
+
+    # 检查是否到达目标
+    if is_target(current, target):
+        return True, f_value
+
+    min_next_threshold = float('inf')
+
+    # 生成后继状态
+    successors = get_successors(current)
+
+    for next_state in successors:
+        next_state.g = current.g + 1  # 或其他实际代价
+        next_state.h = heuristic(next_state)
+
+        found, next_threshold = dfs_ida_star(
+            next_state, target, threshold, depth + 1
+        )
+
+        if found:
+            return True, next_threshold
+
+        min_next_threshold = min(min_next_threshold, next_threshold)
+
+    return False, min_next_threshold
+
+def ida_star(start, target):
+    """IDA*主算法"""
+    threshold = start.f()
+
+    while threshold < float('inf'):
+        found, next_threshold = dfs_ida_star(start, target, threshold)
+
+        if found:
+            print(f"找到最优解！代价: {threshold}")
+            return True
+
+        threshold = next_threshold
+
+    print("未找到解")
+    return False
+
+def main():
+    start = State()
+    target = State()
+
+    # 初始化状态
+    start.g = 0
+    start.h = heuristic(start)
+
+    ida_star(start, target)
+
+if __name__ == "__main__":
+    main()
+```
+
+应用一：八数码问题（IDA*）
+------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const string TARGET = "123456780";
+string best_path;
+
+// 曼哈顿距离启发函数
+int manhattan_distance(const string& state) {
+    int dist = 0;
+    for (int i = 0; i < 9; i++) {
+        if (state[i] == '0') continue;
+
+        int num = state[i] - '0';
+        int cur_row = i / 3, cur_col = i % 3;
+        int target_row = (num - 1) / 3, target_col = (num - 1) % 3;
+
+        dist += abs(cur_row - target_row) + abs(cur_col - target_col);
+    }
+    return dist;
+}
+
+struct State {
+    string board;
+    int g;  // 实际步数
+    int h;  // 启发值
+    int f() const { return g + h; }
+};
+
+int threshold;
+int next_threshold;
+int nodes_expanded;
+
+bool dfs_ida_star_puzzle(State current, string path, int last_pos) {
+    int f_value = current.f();
+
+    if (f_value > threshold) {
+        next_threshold = min(next_threshold, f_value);
+        return false;
+    }
+
+    nodes_expanded++;
+
+    if (current.board == TARGET) {
+        best_path = path;
+        return true;
+    }
+
+    int pos = current.board.find('0');
+    int x = pos / 3, y = pos % 3;
+
+    // 四个方向：上、下、左、右
+    int dx[4] = {-1, 1, 0, 0};
+    int dy[4] = {0, 0, -1, 1};
+    char moves[4] = {'U', 'D', 'L', 'R'};
+
+    for (int i = 0; i < 4; i++) {
+        int nx = x + dx[i];
+        int ny = y + dy[i];
+        int npos = nx * 3 + ny;
+
+        if (nx >= 0 && nx < 3 && ny >= 0 && ny < 3 && npos != last_pos) {
+            State next = current;
+            swap(next.board[pos], next.board[npos]);
+            next.g = current.g + 1;
+            next.h = manhattan_distance(next.board);
+
+            if (dfs_ida_star_puzzle(next, path + moves[i], pos)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+void ida_star_eight_puzzle(string start) {
+    State initial;
+    initial.board = start;
+    initial.g = 0;
+    initial.h = manhattan_distance(start);
+
+    threshold = initial.f();
+
+    while (threshold <= 31) {  // 八数码最多31步
+        next_threshold = INT_MAX;
+        nodes_expanded = 0;
+
+        cout << "Threshold: " << threshold << '\n';
+
+        if (dfs_ida_star_puzzle(initial, "", -1)) {
+            cout << "找到最优解！\n";
+            cout << "步数: " << best_path.length() << '\n';
+            cout << "路径: " << best_path << '\n';
+            cout << "扩展节点数: " << nodes_expanded << '\n';
+            return;
+        }
+
+        threshold = next_threshold;
+    }
+
+    cout << "未找到解或超过最大深度\n";
+}
+
+int main() {
+    string start;
+    cout << "输入初始状态: ";
+    cin >> start;
+
+    ida_star_eight_puzzle(start);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+TARGET = "123456780"
+
+def manhattan_distance(state):
+    """曼哈顿距离启发函数"""
+    dist = 0
+    for i in range(9):
+        if state[i] == '0':
+            continue
+        num = int(state[i])
+        cur_row, cur_col = i // 3, i % 3
+        target_row, target_col = (num - 1) // 3, (num - 1) % 3
+        dist += abs(cur_row - target_row) + abs(cur_col - target_col)
+    return dist
+
+class PuzzleState:
+    def __init__(self, board, g=0):
+        self.board = board
+        self.g = g
+        self.h = manhattan_distance(board)
+
+    def f(self):
+        return self.g + self.h
+
+def dfs_ida_star_puzzle(current, threshold, last_pos=-1, path=""):
+    """深度优先搜索，带阈值剪枝"""
+    f_value = current.f()
+
+    if f_value > threshold:
+        return False, f_value, path
+
+    if current.board == TARGET:
+        return True, f_value, path
+
+    min_next_threshold = float('inf')
+
+    pos = current.board.find('0')
+    x, y = pos // 3, pos % 3
+
+    # 四个方向：上、下、左、右
+    dx = [-1, 1, 0, 0]
+    dy = [0, 0, -1, 1]
+    moves = ['U', 'D', 'L', 'R']
+
+    for i in range(4):
+        nx, ny = x + dx[i], y + dy[i]
+        npos = nx * 3 + ny
+
+        if 0 <= nx < 3 and 0 <= ny < 3 and npos != last_pos:
+            next_board = list(current.board)
+            next_board[pos], next_board[npos] = next_board[npos], next_board[pos]
+            next_board = ''.join(next_board)
+
+            next_state = PuzzleState(next_board, current.g + 1)
+
+            found, next_threshold, next_path = dfs_ida_star_puzzle(
+                next_state, threshold, pos, path + moves[i]
+            )
+
+            if found:
+                return True, next_threshold, next_path
+
+            min_next_threshold = min(min_next_threshold, next_threshold)
+
+    return False, min_next_threshold, path
+
+def ida_star_eight_puzzle(start):
+    """IDA*求解八数码问题"""
+    initial = PuzzleState(start, 0)
+    threshold = initial.f()
+
+    while threshold <= 31:  # 八数码最多31步
+        print(f"Threshold: {threshold}")
+
+        found, next_threshold, path = dfs_ida_star_puzzle(initial, threshold)
+
+        if found:
+            print("找到最优解！")
+            print(f"步数: {len(path)}")
+            print(f"路径: {path}")
+            return True
+
+        threshold = next_threshold
+
+    print("未找到解或超过最大深度")
+    return False
+
+def main():
+    start = input("输入初始状态: ")
+    ida_star_eight_puzzle(start)
+
+if __name__ == "__main__":
+    main()
+```
+
+应用二：15数码问题（IDA*优化）
+---------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const string TARGET = "1234567891011121314150";
+
+// 线性冲突 + 曼哈顿距离
+int linear_conflict(const string& state) {
+    int base = 0;
+
+    // 曼哈顿距离
+    for (int i = 0; i < 16; i++) {
+        if (state[i] == '0') continue;
+
+        int num;
+        if (state[i] == '1') num = 1;
+        else if (state[i] == '2') num = 2;
+        else if (state[i] == '3') num = 3;
+        else if (state[i] == '4') num = 4;
+        else if (state[i] == '5') num = 5;
+        else if (state[i] == '6') num = 6;
+        else if (state[i] == '7') num = 7;
+        else if (state[i] == '8') num = 8;
+        else if (state[i] == '9') num = 9;
+        else if (i >= 9 && state.substr(i, 2) == "10") { num = 10; i++; }
+        else if (i >= 9 && state.substr(i, 2) == "11") { num = 11; i++; }
+        else if (i >= 9 && state.substr(i, 2) == "12") { num = 12; i++; }
+        else if (i >= 9 && state.substr(i, 2) == "13") { num = 13; i++; }
+        else if (i >= 9 && state.substr(i, 2) == "14") { num = 14; i++; }
+        else if (i >= 9 && state.substr(i, 2) == "15") { num = 15; i++; }
+
+        int cur_row = (i - 1) / 4, cur_col = (i - 1) % 4;
+        int target_row = (num - 1) / 4, target_col = (num - 1) % 4;
+        base += abs(cur_row - target_row) + abs(cur_col - target_col);
+    }
+
+    // 线性冲突检测
+    // (简化版，实际实现需要更复杂的处理)
+
+    return base;
+}
+
+// 15数码的IDA*实现类似八数码
+// 状态空间更大，需要更高效的启发函数和实现
+
+int main() {
+    // 15数码问题的实现与八数码类似
+    // 但需要处理更大的状态空间和更复杂的启发函数
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def linear_conflict(state):
+    """线性冲突 + 曼哈顿距离启发函数"""
+    # 将状态转换为数字列表
+    tiles = []
+    i = 0
+    while i < len(state):
+        if state[i] == '0':
+            tiles.append(0)
+            i += 1
+        elif i + 1 < len(state) and state[i:i+2].isdigit():
+            num = int(state[i:i+2])
+            tiles.append(num)
+            i += 2
+        else:
+            tiles.append(int(state[i]))
+            i += 1
+
+    base = 0
+    # 曼哈顿距离
+    for i, tile in enumerate(tiles):
+        if tile == 0:
+            continue
+        cur_row, cur_col = i // 4, i % 4
+        target_row, target_col = (tile - 1) // 4, (tile - 1) % 4
+        base += abs(cur_row - target_row) + abs(cur_col - target_col)
+
+    # 线性冲突检测
+    for row in range(4):
+        row_tiles = []
+        for col in range(4):
+            tile = tiles[row * 4 + col]
+            if tile != 0:
+                target_row = (tile - 1) // 4
+                if target_row == row:
+                    row_tiles.append((tile - 1) % 4, col)
+
+        for i in range(len(row_tiles)):
+            for j in range(i + 1, len(row_tiles)):
+                if row_tiles[i][0] > row_tiles[j][0] and row_tiles[i][1] < row_tiles[j][1]:
+                    base += 2
+
+    return base
+
+class PuzzleState15:
+    def __init__(self, board, g=0):
+        self.board = board
+        self.g = g
+        self.h = linear_conflict(board)
+
+    def f(self):
+        return self.g + self.h
+
+def dfs_ida_star_15(current, threshold, last_pos=-1, path=""):
+    """15数码的IDA*搜索"""
+    f_value = current.f()
+
+    if f_value > threshold:
+        return False, f_value, path
+
+    if current.board == "1234567891011121314150":
+        return True, f_value, path
+
+    min_next_threshold = float('inf')
+    pos = current.board.find('0')
+    x, y = pos // 4, pos % 4
+
+    dx = [-1, 1, 0, 0]
+    dy = [0, 0, -1, 1]
+    moves = ['U', 'D', 'L', 'R']
+
+    for i in range(4):
+        nx, ny = x + dx[i], y + dy[i]
+        npos = nx * 4 + ny
+
+        if 0 <= nx < 4 and 0 <= ny < 4 and npos != last_pos:
+            next_board = list(current.board)
+            next_board[pos], next_board[npos] = next_board[npos], next_board[pos]
+            next_board = ''.join(next_board)
+
+            next_state = PuzzleState15(next_board, current.g + 1)
+
+            found, next_threshold, next_path = dfs_ida_star_15(
+                next_state, threshold, pos, path + moves[i]
+            )
+
+            if found:
+                return True, next_threshold, next_path
+
+            min_next_threshold = min(min_next_threshold, next_threshold)
+
+    return False, min_next_threshold, path
+
+def ida_star_15_puzzle(start):
+    """IDA*求解15数码问题"""
+    initial = PuzzleState15(start, 0)
+    threshold = initial.f()
+
+    while threshold <= 80:  # 15数码最多80步
+        print(f"Threshold: {threshold}")
+
+        found, next_threshold, path = dfs_ida_star_15(initial, threshold)
+
+        if found:
+            print("找到最优解！")
+            print(f"步数: {len(path)}")
+            print(f"路径: {path}")
+            return True
+
+        threshold = next_threshold
+
+    print("未找到解或超过最大深度")
+    return False
+```
+
+应用三：路径规划问题（IDA*）
+--------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+
+int n, m;
+char grid[MAXN][MAXN];
+struct Point {
+    int x, y;
+};
+Point start, end;
+
+// 欧几里得距离启发函数
+int euclidean_distance(Point u, Point v) {
+    return (int)sqrt((u.x - v.x) * (u.x - v.x) +
+                     (u.y - v.y) * (u.y - v.y));
+}
+
+// 曼哈顿距离启发函数
+int manhattan_distance(Point u, Point v) {
+    return abs(u.x - v.x) + abs(u.y - v.y);
+}
+
+int threshold;
+int next_threshold;
+vector<Point> best_path;
+
+bool dfs_ida_star_path(Point u, Point parent, int g, vector<Point>& path) {
+    int h = manhattan_distance(u, end);
+    int f = g + h;
+
+    if (f > threshold) {
+        next_threshold = min(next_threshold, f);
+        return false;
+    }
+
+    path.push_back(u);
+
+    if (u.x == end.x && u.y == end.y) {
+        best_path = path;
+        return true;
+    }
+
+    int dx[4] = {0, 0, 1, -1};
+    int dy[4] = {1, -1, 0, 0};
+
+    for (int i = 0; i < 4; i++) {
+        Point v = {u.x + dx[i], u.y + dy[i]};
+
+        if (v.x >= 0 && v.x < n && v.y >= 0 && v.y < m &&
+            grid[v.x][v.y] != '#' &&
+            (v.x != parent.x || v.y != parent.y)) {
+
+            if (dfs_ida_star_path(v, u, g + 1, path)) {
+                return true;
+            }
+        }
+    }
+
+    path.pop_back();
+    return false;
+}
+
+void ida_star_pathfinding() {
+    int h_start = manhattan_distance(start, end);
+    threshold = h_start;
+
+    while (threshold < n * m) {
+        next_threshold = INT_MAX;
+        vector<Point> path;
+
+        if (dfs_ida_star_path(start, {-1, -1}, 0, path)) {
+            cout << "找到最优路径！长度: " << best_path.size() - 1 << '\n';
+            cout << "路径: ";
+            for (Point& p : best_path) {
+                cout << "(" << p.x << "," << p.y << ") ";
+            }
+            cout << '\n';
+            return;
+        }
+
+        threshold = next_threshold;
+    }
+
+    cout << "未找到路径\n";
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            cin >> grid[i][j];
+            if (grid[i][j] == 'S') {
+                start = {i, j};
+            } else if (grid[i][j] == 'E') {
+                end = {i, j};
+            }
+        }
+    }
+
+    ida_star_pathfinding();
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import math
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    grid = []
+    start = end = None
+    for i in range(n):
+        row = list(input().strip())
+        grid.append(row)
+        for j, ch in enumerate(row):
+            if ch == 'S':
+                start = (i, j)
+            elif ch == 'E':
+                end = (i, j)
+
+    def manhattan_distance(p1, p2):
+        return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+
+    def dfs_ida_star_path(u, parent, g, threshold, path):
+        f = g + manhattan_distance(u, end)
+
+        if f > threshold:
+            return False, f, path
+
+        path = path + [u]
+
+        if u == end:
+            return True, f, path
+
+        min_next_threshold = float('inf')
+        dx = [0, 0, 1, -1]
+        dy = [1, -1, 0, 0]
+
+        for i in range(4):
+            v = (u[0] + dx[i], u[1] + dy[i])
+
+            if (0 <= v[0] < n and 0 <= v[1] < m and
+                grid[v[0]][v[1]] != '#' and v != parent):
+
+                found, next_threshold, next_path = dfs_ida_star_path(
+                    v, u, g + 1, threshold, path
+                )
+
+                if found:
+                    return True, next_threshold, next_path
+
+                min_next_threshold = min(min_next_threshold, next_threshold)
+
+        return False, min_next_threshold, path
+
+    def ida_star_pathfinding():
+        h_start = manhattan_distance(start, end)
+        threshold = h_start
+
+        while threshold < n * m:
+            found, next_threshold, path = dfs_ida_star_path(
+                start, (-1, -1), 0, threshold, []
+            )
+
+            if found:
+                print(f"找到最优路径！长度: {len(path) - 1}")
+                path_str = ' -> '.join([f"({x},{y})" for x, y in path])
+                print(f"路径: {path_str}")
+                return True
+
+            threshold = next_threshold
+
+        print("未找到路径")
+        return False
+
+    ida_star_pathfinding()
+
+solve()
+```
+
+典型例题
+--------
+1. 八数码问题（经典）：IDA*的标准应用
+2. 15数码问题：需要更强的启发函数
+3. 华容道问题：复杂的状态空间搜索
+4. 推箱子游戏：最少步数求解
+5. 魔方还原：状态空间巨大
+
+注意事项
+--------
+1. IDA*的优势：
+   - 空间复杂度极低：O(d)
+   - 保证找到最优解（可采纳启发函数）
+   - 适用于状态空间巨大的问题
+   - 不需要优先队列，实现相对简单
+
+2. IDA*的劣势：
+   - 会重复访问节点
+   - 需要设计好的启发函数
+   - 阈值更新策略可能影响效率
+
+3. 启发函数设计：
+   - 必须满足可采纳性：h(n) <= h*(n)
+   - 越接近实际值越好
+   - 常用：曼哈顿距离、欧几里得距离、线性冲突
+
+4. 优化技巧：
+   - 使用更精确的启发函数
+   - 记忆化（在空间允许的情况下）
+   - 有效的状态表示
+   - 合理的移动顺序
+
+IDA* vs A* vs IDA
+-----------------
+| 算法 | 空间复杂度 | 是否最优 | 适用场景 |
+|------|-----------|---------|---------|
+| A* | O(b^d) | 是 | 内存充足 |
+| IDA | O(d) | 是 | 无启发信息 |
+| IDA* | O(d) | 是 | 内存受限 + 有启发 |
+
+时间复杂度总结
+--------------
+- 最坏情况：O(b^d)
+- 平均情况：远优于IDA
+- 取决于启发函数的质量
+- 空间复杂度：O(d) - 这是IDA*的最大优势
+
+IDA*算法是解决大规模状态空间搜索问题的利器，特别是在内存受限的情况下，
+它能够在保证最优性的同时，只需要线性的空间复杂度。

@@ -1,0 +1,603 @@
+背包DP（Knapsack Dynamic Programming）
+====================================
+
+算法概述
+--------
+背包问题是动态规划中最经典的一类问题。给定一组物品，每种物品都有自己的重量和价值，在限定的总重量内，我们如何选择，才能使得物品的总价值最高。
+
+根据物品的选取限制，背包问题主要分为三类：
+1. 01背包：每个物品最多选一次
+2. 完全背包：每个物品可以选无限次
+3. 多重背包：每个物品有限定的选择次数
+
+核心思想
+--------
+背包DP的核心思想是状态定义和状态转移：
+- 状态定义：dp[i][j] 表示考虑前i个物品，背包容量为j时的最大价值
+- 状态转移：根据第i个物品选或不选来转移
+- 空间优化：通过倒序或正序遍历将二维数组优化到一维
+
+一、01背包问题
+-------------
+
+问题描述：
+给定n个物品，第i个物品的重量为w[i]，价值为v[i]。背包容量为W，每个物品最多选一次，求最大价值。
+
+状态转移方程：
+dp[i][j] = max(dp[i-1][j], dp[i-1][j-w[i]] + v[i])
+含义：不选第i个物品（dp[i-1][j]）或选第i个物品（dp[i-1][j-w[i]] + v[i]）
+
+基础版本（二维数组）
+------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+const int MAXW = 1005;
+
+int n, W;
+int w[MAXN], v[MAXN];
+int dp[MAXN][MAXW];  // dp[i][j]: 前i个物品，容量为j的最大价值
+
+int main() {
+    cin >> n >> W;
+    for (int i = 1; i <= n; i++) {
+        cin >> w[i] >> v[i];
+    }
+
+    // 初始化
+    memset(dp, 0, sizeof(dp));
+
+    // DP转移
+    for (int i = 1; i <= n; i++) {
+        for (int j = 0; j <= W; j++) {
+            dp[i][j] = dp[i-1][j];  // 不选第i个物品
+            if (j >= w[i]) {
+                dp[i][j] = max(dp[i][j], dp[i-1][j-w[i]] + v[i]);
+            }
+        }
+    }
+
+    cout << dp[n][W] << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def solve():
+    n, W = map(int, input().split())
+    w = [0] * (n + 1)
+    v = [0] * (n + 1)
+
+    for i in range(1, n + 1):
+        w[i], v[i] = map(int, input().split())
+
+    # dp[i][j]: 前i个物品，容量为j的最大价值
+    dp = [[0] * (W + 1) for _ in range(n + 1)]
+
+    for i in range(1, n + 1):
+        for j in range(W + 1):
+            dp[i][j] = dp[i-1][j]  # 不选第i个物品
+            if j >= w[i]:
+                dp[i][j] = max(dp[i][j], dp[i-1][j-w[i]] + v[i])
+
+    print(dp[n][W])
+
+solve()
+```
+
+空间优化版本（一维数组）
+-----------------------
+
+关键点：内层循环需要倒序遍历，避免重复使用同一个物品
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+const int MAXW = 1005;
+
+int n, W;
+int w[MAXN], v[MAXN];
+int dp[MAXW];  // dp[j]: 容量为j时的最大价值
+
+int main() {
+    cin >> n >> W;
+    for (int i = 1; i <= n; i++) {
+        cin >> w[i] >> v[i];
+    }
+
+    memset(dp, 0, sizeof(dp));
+
+    for (int i = 1; i <= n; i++) {
+        // 倒序遍历，确保每个物品只被用一次
+        for (int j = W; j >= w[i]; j--) {
+            dp[j] = max(dp[j], dp[j-w[i]] + v[i]);
+        }
+    }
+
+    cout << dp[W] << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def solve():
+    n, W = map(int, input().split())
+    w = [0] * (n + 1)
+    v = [0] * (n + 1)
+
+    for i in range(1, n + 1):
+        w[i], v[i] = map(int, input().split())
+
+    # dp[j]: 容量为j时的最大价值
+    dp = [0] * (W + 1)
+
+    for i in range(1, n + 1):
+        # 倒序遍历，确保每个物品只被用一次
+        for j in range(W, w[i] - 1, -1):
+            dp[j] = max(dp[j], dp[j-w[i]] + v[i])
+
+    print(dp[W])
+
+solve()
+```
+
+二、完全背包问题
+--------------
+
+问题描述：
+给定n种物品，每种物品的重量为w[i]，价值为v[i]。背包容量为W，每种物品可以选无限次，求最大价值。
+
+状态转移方程：
+dp[i][j] = max(dp[i-1][j], dp[i][j-w[i]] + v[i])
+注意：这里是dp[i][j-w[i]]而不是dp[i-1][j-w[i]]，因为可以重复选
+
+关键点：内层循环正序遍历，允许重复使用物品
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+const int MAXW = 1005;
+
+int n, W;
+int w[MAXN], v[MAXN];
+int dp[MAXW];
+
+int main() {
+    cin >> n >> W;
+    for (int i = 1; i <= n; i++) {
+        cin >> w[i] >> v[i];
+    }
+
+    memset(dp, 0, sizeof(dp));
+
+    for (int i = 1; i <= n; i++) {
+        // 正序遍历，允许重复使用当前物品
+        for (int j = w[i]; j <= W; j++) {
+            dp[j] = max(dp[j], dp[j-w[i]] + v[i]);
+        }
+    }
+
+    cout << dp[W] << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def solve():
+    n, W = map(int, input().split())
+    w = [0] * (n + 1)
+    v = [0] * (n + 1)
+
+    for i in range(1, n + 1):
+        w[i], v[i] = map(int, input().split())
+
+    dp = [0] * (W + 1)
+
+    for i in range(1, n + 1):
+        # 正序遍历，允许重复使用当前物品
+        for j in range(w[i], W + 1):
+            dp[j] = max(dp[j], dp[j-w[i]] + v[i])
+
+    print(dp[W])
+
+solve()
+```
+
+三、多重背包问题
+--------------
+
+问题描述：
+给定n种物品，每种物品的重量为w[i]，价值为v[i]，数量为c[i]。背包容量为W，每种物品最多选c[i]次，求最大价值。
+
+解法一：直接转化为01背包（朴素做法）
+时间复杂度：O(n * W * Σc[i])
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+const int MAXW = 1005;
+
+int n, W;
+int dp[MAXW];
+
+int main() {
+    cin >> n >> W;
+
+    for (int i = 1; i <= n; i++) {
+        int w, v, c;
+        cin >> w >> v >> c;
+        // 将c个相同物品展开，当作01背包处理
+        for (int k = 0; k < c; k++) {
+            for (int j = W; j >= w; j--) {
+                dp[j] = max(dp[j], dp[j-w] + v);
+            }
+        }
+    }
+
+    cout << dp[W] << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def solve():
+    n, W = map(int, input().split())
+    dp = [0] * (W + 1)
+
+    for _ in range(n):
+        w, v, c = map(int, input().split())
+        # 将c个相同物品展开，当作01背包处理
+        for _ in range(c):
+            for j in range(W, w - 1, -1):
+                dp[j] = max(dp[j], dp[j-w] + v)
+
+    print(dp[W])
+
+solve()
+```
+
+解法二：二进制拆分优化
+核心思想：将c个物品拆分成若干组，每组代表一定数量的物品
+例如：c = 13，可以拆分为 1, 2, 4, 6（1+2+4+6=13）
+这样可以将O(c)优化到O(log c)
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXW = 2005;
+
+int n, W;
+int dp[MAXW];
+vector<pair<int, int>> items;  // (weight, value)
+
+int main() {
+    cin >> n >> W;
+
+    for (int i = 1; i <= n; i++) {
+        int w, v, c;
+        cin >> w >> v >> c;
+
+        // 二进制拆分
+        int k = 1;
+        while (k <= c) {
+            items.push_back({w * k, v * k});
+            c -= k;
+            k *= 2;
+        }
+        if (c > 0) {
+            items.push_back({w * c, v * c});
+        }
+    }
+
+    // 转化为01背包
+    for (auto [weight, value] : items) {
+        for (int j = W; j >= weight; j--) {
+            dp[j] = max(dp[j], dp[j-weight] + value);
+        }
+    }
+
+    cout << dp[W] << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def solve():
+    n, W = map(int, input().split())
+    items = []
+
+    for _ in range(n):
+        w, v, c = map(int, input().split())
+
+        # 二进制拆分
+        k = 1
+        while k <= c:
+            items.append((w * k, v * k))
+            c -= k
+            k *= 2
+        if c > 0:
+            items.append((w * c, v * c))
+
+    # 转化为01背包
+    dp = [0] * (W + 1)
+    for weight, value in items:
+        for j in range(W, weight - 1, -1):
+            dp[j] = max(dp[j], dp[j-weight] + value)
+
+    print(dp[W])
+
+solve()
+```
+
+四、特殊背包问题
+--------------
+
+1. 恰好装满背包
+求背包恰好装满时的最大价值，初始化时将dp[0]=0，其他设为-INF
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int INF = 0x3f3f3f3f;
+const int MAXW = 1005;
+
+int n, W;
+int dp[MAXW];
+
+int main() {
+    cin >> n >> W;
+
+    // 初始化：dp[0]=0，其他为-INF
+    memset(dp, -INF, sizeof(dp));
+    dp[0] = 0;
+
+    for (int i = 1; i <= n; i++) {
+        int w, v;
+        cin >> w >> v;
+        for (int j = W; j >= w; j--) {
+            if (dp[j-w] != -INF) {
+                dp[j] = max(dp[j], dp[j-w] + v);
+            }
+        }
+    }
+
+    if (dp[W] == -INF) {
+        cout << "Cannot fill exactly" << endl;
+    } else {
+        cout << dp[W] << endl;
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def solve():
+    import sys
+    INF = -10**9
+
+    n, W = map(int, input().split())
+
+    # 初始化：dp[0]=0，其他为-INF
+    dp = [INF] * (W + 1)
+    dp[0] = 0
+
+    for _ in range(n):
+        w, v = map(int, input().split())
+        for j in range(W, w - 1, -1):
+            if dp[j-w] != INF:
+                dp[j] = max(dp[j], dp[j-w] + v)
+
+    if dp[W] == INF:
+        print("Cannot fill exactly")
+    else:
+        print(dp[W])
+
+solve()
+```
+
+2. 求方案数
+求装满背包的方案总数
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MOD = 1e9 + 7;
+const int MAXW = 1005;
+
+int n, W;
+int dp[MAXW];
+
+int main() {
+    cin >> n >> W;
+
+    memset(dp, 0, sizeof(dp));
+    dp[0] = 1;  // 容量为0时有1种方案（什么都不选）
+
+    for (int i = 1; i <= n; i++) {
+        int w;
+        cin >> w;
+        for (int j = W; j >= w; j--) {
+            dp[j] = (dp[j] + dp[j-w]) % MOD;
+        }
+    }
+
+    cout << dp[W] << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def solve():
+    MOD = 10**9 + 7
+
+    n, W = map(int, input().split())
+
+    dp = [0] * (W + 1)
+    dp[0] = 1  # 容量为0时有1种方案（什么都不选）
+
+    for _ in range(n):
+        w = int(input())
+        for j in range(W, w - 1, -1):
+            dp[j] = (dp[j] + dp[j-w]) % MOD
+
+    print(dp[W])
+
+solve()
+```
+
+3. 求具体方案
+输出背包的最优方案
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 105;
+const int MAXW = 1005;
+
+int n, W;
+int w[MAXN], v[MAXN];
+int dp[MAXN][MAXW];
+bool choice[MAXN][MAXW];  // choice[i][j]表示第i个物品是否选
+
+int main() {
+    cin >> n >> W;
+    for (int i = 1; i <= n; i++) {
+        cin >> w[i] >> v[i];
+    }
+
+    memset(dp, 0, sizeof(dp));
+    memset(choice, 0, sizeof(choice));
+
+    // 正向DP
+    for (int i = 1; i <= n; i++) {
+        for (int j = 0; j <= W; j++) {
+            dp[i][j] = dp[i-1][j];
+            if (j >= w[i] && dp[i-1][j-w[i]] + v[i] > dp[i][j]) {
+                dp[i][j] = dp[i-1][j-w[i]] + v[i];
+                choice[i][j] = true;
+            }
+        }
+    }
+
+    // 回溯方案
+    vector<int> selected;
+    int cur_w = W;
+    for (int i = n; i >= 1; i--) {
+        if (choice[i][cur_w]) {
+            selected.push_back(i);
+            cur_w -= w[i];
+        }
+    }
+
+    reverse(selected.begin(), selected.end());
+
+    cout << "Max value: " << dp[n][W] << endl;
+    cout << "Selected items: ";
+    for (int idx : selected) {
+        cout << idx << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def solve():
+    n, W = map(int, input().split())
+    w = [0] * (n + 1)
+    v = [0] * (n + 1)
+
+    for i in range(1, n + 1):
+        w[i], v[i] = map(int, input().split())
+
+    # dp[i][j]: 前i个物品，容量为j的最大价值
+    dp = [[0] * (W + 1) for _ in range(n + 1)]
+    choice = [[False] * (W + 1) for _ in range(n + 1)]
+
+    for i in range(1, n + 1):
+        for j in range(W + 1):
+            dp[i][j] = dp[i-1][j]
+            if j >= w[i] and dp[i-1][j-w[i]] + v[i] > dp[i][j]:
+                dp[i][j] = dp[i-1][j-w[i]] + v[i]
+                choice[i][j] = True
+
+    # 回溯方案
+    selected = []
+    cur_w = W
+    for i in range(n, 0, -1):
+        if choice[i][cur_w]:
+            selected.append(i)
+            cur_w -= w[i]
+
+    selected.reverse()
+
+    print(f"Max value: {dp[n][W]}")
+    print(f"Selected items: {' '.join(map(str, selected))}")
+
+solve()
+```
+
+典型例题
+--------
+1. 01背包模板题（洛谷P1048）：采药问题
+2. 完全背包模板题（洛谷P1616）：疯狂的采药
+3. 多重背包模板题（洛谷P1776）：宝物筛选
+4. 混合背包（洛谷P1833）：包含01、完全、多重三种背包
+5. 二维费用背包（洛谷P1507）：NASA的食物计划
+6. 分组背包（洛谷P1757）：每组物品最多选一个
+
+注意事项
+--------
+1. 01背包内层循环必须倒序，完全背包内层循环必须正序
+2. 初始化时注意是否要求恰好装满，恰好装满需将dp[0]=0，其他设为-INF
+3. 多重背包使用二进制拆分时注意物品总数可能很多，注意数组大小
+4. 如果题目要求输出方案，需要用二维DP记录选择情况
+5. 注意数据范围，必要时使用long long
+6. 求方案数时注意模运算，避免溢出
+7. 背包问题可以与其他DP结合，如树形DP、区间DP等
+
+时间复杂度总结
+--------------
+- 01背包：O(n * W)
+- 完全背包：O(n * W)
+- 多重背包（朴素）：O(n * W * Σc[i])
+- 多重背包（二进制优化）：O(n * W * log(Σc[i]))
+
+背包DP是动态规划的基础，掌握好背包问题对学习其他DP类型非常有帮助。

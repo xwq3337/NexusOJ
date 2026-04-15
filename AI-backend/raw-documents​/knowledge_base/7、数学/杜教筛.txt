@@ -1,0 +1,331 @@
+杜教筛（Du Jiao Sieve）
+=====================
+
+算法概述
+--------
+杜教筛是一种用于快速计算积性函数前缀和的算法。
+对于积性函数f(n)，可以O(n^(2/3))时间复杂度计算前缀和S(n) = Σf(i)。
+
+核心思想
+--------
+利用狄利克雷卷积和前缀和的性质，通过递归计算较小规模的前缀和来优化计算。
+
+关键公式：
+    S(n) = Σ(i=1 to n) f(i)
+    如果f * g = h，其中*表示狄利克雷卷积
+    则：S(n) = Σ(i=1 to n) h(i) - Σ(i=2 to n) g(i) × S(⌊n/i⌋)
+
+基础模板：欧拉函数前缀和
+----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+const int MAXN = 5000005;
+ll phi[MAXN];
+ll sum_phi[MAXN];  // 前缀和
+bool vis[MAXN];
+vector<int> primes;
+
+// 线性筛求欧拉函数
+void euler_sieve(int n) {
+    phi[1] = 1;
+    for (int i = 2; i <= n; i++) {
+        if (!vis[i]) {
+            primes.push_back(i);
+            phi[i] = i - 1;
+        }
+
+        for (int p : primes) {
+            if ((long long)i * p > n) break;
+            vis[i * p] = true;
+
+            if (i % p == 0) {
+                phi[i * p] = phi[i] * p;
+                break;
+            } else {
+                phi[i * p] = phi[i] * (p - 1);
+            }
+        }
+    }
+
+    // 预处理前缀和
+    for (int i = 1; i <= n; i++) {
+        sum_phi[i] = sum_phi[i - 1] + phi[i];
+    }
+}
+
+unordered_map<ll, ll> memo;
+
+// 杜教筛求欧拉函数前缀和
+ll du_jiao_phi(ll n) {
+    if (n <= MAXN - 5) {
+        return sum_phi[n];
+    }
+
+    if (memo.count(n)) {
+        return memo[n];
+    }
+
+    // 利用公式：φ * 1 = id
+    // S_φ(n) = n(n+1)/2 - Σ(i=2 to n) S_φ(⌊n/i⌋)
+    ll res = n * (n + 1) / 2;
+
+    for (ll l = 2, r; l <= n; l = r + 1) {
+        r = n / (n / l);
+        res -= (r - l + 1) * du_jiao_phi(n / l);
+    }
+
+    return memo[n] = res;
+}
+
+int main() {
+    euler_sieve(MAXN - 5);
+
+    ll n;
+    cin >> n;
+
+    cout << "Σφ(i) (i=1 to " << n << ") = " << du_jiao_phi(n) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import Dict
+from collections import defaultdict
+
+MAXN = 5000005
+phi = [0] * MAXN
+sum_phi = [0] * MAXN
+vis = [False] * MAXN
+primes = []
+
+def euler_sieve(n: int):
+    """线性筛求欧拉函数"""
+    phi[1] = 1
+    for i in range(2, n + 1):
+        if not vis[i]:
+            primes.append(i)
+            phi[i] = i - 1
+
+        for p in primes:
+            if i * p > n:
+                break
+            vis[i * p] = True
+
+            if i % p == 0:
+                phi[i * p] = phi[i] * p
+                break
+            else:
+                phi[i * p] = phi[i] * (p - 1)
+
+    # 预处理前缀和
+    for i in range(1, n + 1):
+        sum_phi[i] = sum_phi[i - 1] + phi[i]
+
+memo = defaultdict(int)
+
+def du_jiao_phi(n: int) -> int:
+    """杜教筛求欧拉函数前缀和"""
+    if n <= MAXN - 5:
+        return sum_phi[n]
+
+    if n in memo:
+        return memo[n]
+
+    # 利用公式：φ * 1 = id
+    res = n * (n + 1) // 2
+
+    l = 2
+    while l <= n:
+        r = n // (n // l)
+        res -= (r - l + 1) * du_jiao_phi(n // l)
+        l = r + 1
+
+    memo[n] = res
+    return res
+
+def solve():
+    euler_sieve(MAXN - 5)
+    n = int(input())
+    result = du_jiao_phi(n)
+    print(f"Σφ(i) (i=1 to {n}) = {result}")
+
+solve()
+```
+
+应用一：莫比乌斯函数前缀和
+-----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+const int MAXN = 5000005;
+int mu[MAXN];
+ll sum_mu[MAXN];
+bool vis[MAXN];
+vector<int> primes;
+
+// 线性筛求莫比乌斯函数
+void mobius_sieve(int n) {
+    mu[1] = 1;
+    for (int i = 2; i <= n; i++) {
+        if (!vis[i]) {
+            primes.push_back(i);
+            mu[i] = -1;
+        }
+
+        for (int p : primes) {
+            if ((long long)i * p > n) break;
+            vis[i * p] = true;
+
+            if (i % p == 0) {
+                mu[i * p] = 0;
+                break;
+            } else {
+                mu[i * p] = -mu[i];
+            }
+        }
+    }
+
+    for (int i = 1; i <= n; i++) {
+        sum_mu[i] = sum_mu[i - 1] + mu[i];
+    }
+}
+
+unordered_map<ll, ll> memo_mu;
+
+// 杜教筛求莫比乌斯函数前缀和
+ll du_jiao_mu(ll n) {
+    if (n <= MAXN - 5) {
+        return sum_mu[n];
+    }
+
+    if (memo_mu.count(n)) {
+        return memo_mu[n];
+    }
+
+    // 利用公式：μ * 1 = ε
+    // S_μ(n) = 1 - Σ(i=2 to n) S_μ(⌊n/i⌋)
+    ll res = 1;
+
+    for (ll l = 2, r; l <= n; l = r + 1) {
+        r = n / (n / l);
+        res -= (r - l + 1) * du_jiao_mu(n / l);
+    }
+
+    return memo_mu[n] = res;
+}
+
+int main() {
+    mobius_sieve(MAXN - 5);
+
+    ll n;
+    cin >> n;
+
+    cout << "Σμ(i) (i=1 to " << n << ") = " << du_jiao_mu(n) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from typing import Dict
+from collections import defaultdict
+
+MAXN = 5000005
+mu = [0] * MAXN
+sum_mu = [0] * MAXN
+vis = [False] * MAXN
+primes = []
+
+def mobius_sieve(n: int):
+    """线性筛求莫比乌斯函数"""
+    mu[1] = 1
+    for i in range(2, n + 1):
+        if not vis[i]:
+            primes.append(i)
+            mu[i] = -1
+
+        for p in primes:
+            if i * p > n:
+                break
+            vis[i * p] = True
+
+            if i % p == 0:
+                mu[i * p] = 0
+                break
+            else:
+                mu[i * p] = -mu[i]
+
+    for i in range(1, n + 1):
+        sum_mu[i] = sum_mu[i - 1] + mu[i]
+
+memo_mu = defaultdict(int)
+
+def du_jiao_mu(n: int) -> int:
+    """杜教筛求莫比乌斯函数前缀和"""
+    if n <= MAXN - 5:
+        return sum_mu[n]
+
+    if n in memo_mu:
+        return memo_mu[n]
+
+    res = 1
+
+    l = 2
+    while l <= n:
+        r = n // (n // l)
+        res -= (r - l + 1) * du_jiao_mu(n // l)
+        l = r + 1
+
+    memo_mu[n] = res
+    return res
+
+def solve():
+    mobius_sieve(MAXN - 5)
+    n = int(input())
+    result = du_jiao_mu(n)
+    print(f"Σμ(i) (i=1 to {n}) = {result}")
+
+solve()
+```
+
+典型例题
+--------
+1. 【模板】杜教筛（洛谷P4213）：基本应用
+2. Sum（杜教筛）：前缀和问题
+3. 莫比乌斯函数前缀和（杜教筛）：μ求和
+
+注意事项
+--------
+1. 预处理范围：
+   - 通常预处理到n^(2/3)
+   - 平衡递归和预处理的代价
+
+2. 记忆化：
+   - 使用unordered_map记忆化
+   - 避免重复计算
+
+3. 常见错误：
+   - 预处理范围不够
+   - 递归边界处理错误
+
+时间复杂度总结
+--------------
+- 预处理：O(n^(2/3))
+- 单次查询：O(n^(2/3))
+
+杜教筛是计算积性函数前缀和的高效算法，
+掌握它对解决大范围的数论求和问题很有帮助。

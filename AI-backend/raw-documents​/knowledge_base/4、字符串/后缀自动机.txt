@@ -1,0 +1,738 @@
+后缀自动机（Suffix Automaton，SAM）
+==================================
+
+算法概述
+--------
+后缀自动机是一种用于处理子串问题的强大数据结构。它是一个DFA（确定有限状态自动机），能识别给定字符串的所有子串。SAM可以在O(n)时间内构建（n为字符串长度），空间复杂度为O(n)，支持高效地查询子串出现次数、不同子串数量、最长公共子串等问题。
+
+核心思想
+--------
+1. 每个状态代表一些等价的子串集合（endpos集合相同）
+2. 通过extend操作逐个添加字符，动态构建SAM
+3. 每个状态维护：len（最长子串长度）、link（后缀链接）、next（转移）
+4. 利用后缀链接形成一棵树，可以处理各种子串统计问题
+
+算法原理
+--------
+1. SAM的状态定义：
+   - 每个状态代表一个endpos等价类
+   - endpos集合：子串在字符串中所有出现位置的结束位置
+   - 一个状态的最长和最短长度为len[link[u]]+1到len[u]
+
+2. 关键性质：
+   - 状态数不超过2n-1
+   - 转移数不超过3n-4
+   - 从初始状态出发能到达所有子串
+
+3. extend操作：
+   - 创建新状态last表示整个字符串
+   - 沿着后缀链接更新转移
+   - 克隆状态处理特殊情况
+
+4. 后缀链接树：
+   - 形成一棵树，根为初始状态
+   - 可以用于统计子串出现次数
+
+基础模板
+--------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 200005;
+const int ALPHABET = 26;
+
+struct SAMNode {
+    int next[ALPHABET];  // 转移
+    int link;            // 后缀链接
+    int len;             // 最长子串长度
+    int cnt;             // 出现次数
+} sam[MAXN];
+
+int last = 0;   // 最后一个状态
+int size = 1;   // 状态数量（状态0是初始状态）
+
+// 初始化SAM
+void init() {
+    memset(sam, 0, sizeof(sam));
+    last = 0;
+    size = 1;
+}
+
+// 扩展SAM，添加字符c
+void extend(char c) {
+    int v = c - 'a';
+    int cur = size++;  // 创建新状态
+    sam[cur].len = sam[last].len + 1;
+    sam[cur].cnt = 1;
+
+    int p = last;
+    // 沿着后缀链接添加转移
+    while (p != -1 && sam[p].next[v] == 0) {
+        sam[p].next[v] = cur;
+        p = sam[p].link;
+    }
+
+    if (p == -1) {
+        // 到达根节点
+        sam[cur].link = 0;
+    } else {
+        int q = sam[p].next[v];
+        if (sam[p].len + 1 == sam[q].len) {
+            // 直接连接
+            sam[cur].link = q;
+        } else {
+            // 需要克隆状态
+            int clone = size++;
+            sam[clone].len = sam[p].len + 1;
+            sam[clone].link = sam[q].link;
+            memcpy(sam[clone].next, sam[q].next, sizeof(sam[q].next));
+            sam[clone].cnt = 0;
+
+            // 更新转移
+            while (p != -1 && sam[p].next[v] == q) {
+                sam[p].next[v] = clone;
+                p = sam[p].link;
+            }
+
+            sam[q].link = sam[cur].link = clone;
+        }
+    }
+
+    last = cur;
+}
+
+int main() {
+    init();
+    sam[0].link = -1;
+
+    char s[MAXN];
+    scanf("%s", s);
+
+    for (int i = 0; s[i]; i++) {
+        extend(s[i]);
+    }
+
+    printf("SAM built successfully\n");
+    printf("Number of states: %d\n", size);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class SAMNode:
+    def __init__(self):
+        self.next = {}  # 转移字典
+        self.link = -1  # 后缀链接
+        self.length = 0  # 最长子串长度
+        self.cnt = 0  # 出现次数
+
+class SuffixAutomaton:
+    def __init__(self):
+        self.sam = [SAMNode()]  # 状态0是初始状态
+        self.last = 0  # 最后一个状态
+
+    def extend(self, c):
+        """扩展SAM，添加字符c"""
+        v = ord(c) - ord('a')
+        cur = len(self.sam)
+        self.sam.append(SAMNode())
+        self.sam[cur].length = self.sam[self.last].length + 1
+        self.sam[cur].cnt = 1
+
+        p = self.last
+        while p >= 0 and v not in self.sam[p].next:
+            self.sam[p].next[v] = cur
+            p = self.sam[p].link
+
+        if p < 0:
+            self.sam[cur].link = 0
+        else:
+            q = self.sam[p].next[v]
+            if self.sam[p].length + 1 == self.sam[q].length:
+                self.sam[cur].link = q
+            else:
+                # 克隆状态
+                clone = len(self.sam)
+                self.sam.append(SAMNode())
+                self.sam[clone].length = self.sam[p].length + 1
+                self.sam[clone].link = self.sam[q].link
+                self.sam[clone].next = self.sam[q].next.copy()
+                self.sam[clone].cnt = 0
+
+                while p >= 0 and self.sam[p].next.get(v) == q:
+                    self.sam[p].next[v] = clone
+                    p = self.sam[p].link
+
+                self.sam[q].link = self.sam[cur].link = clone
+
+        self.last = cur
+
+    def build(self, s):
+        """构建SAM"""
+        for ch in s:
+            self.extend(ch)
+
+def solve():
+    s = input().strip()
+    sam = SuffixAutomaton()
+    sam.build(s)
+
+    print(f"SAM built successfully")
+    print(f"Number of states: {len(sam.sam)}")
+
+solve()
+```
+
+应用一：统计不同子串数量
+----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 200005;
+const int ALPHABET = 26;
+
+struct SAMNode {
+    int next[ALPHABET];
+    int link;
+    int len;
+} sam[MAXN];
+
+int last = 0, size = 1;
+
+void init() {
+    memset(sam, 0, sizeof(sam));
+    last = 0;
+    size = 1;
+    sam[0].link = -1;
+}
+
+void extend(char c) {
+    int v = c - 'a';
+    int cur = size++;
+    sam[cur].len = sam[last].len + 1;
+
+    int p = last;
+    while (p != -1 && sam[p].next[v] == 0) {
+        sam[p].next[v] = cur;
+        p = sam[p].link;
+    }
+
+    if (p == -1) {
+        sam[cur].link = 0;
+    } else {
+        int q = sam[p].next[v];
+        if (sam[p].len + 1 == sam[q].len) {
+            sam[cur].link = q;
+        } else {
+            int clone = size++;
+            sam[clone].len = sam[p].len + 1;
+            sam[clone].link = sam[q].link;
+            memcpy(sam[clone].next, sam[q].next, sizeof(sam[q].next));
+
+            while (p != -1 && sam[p].next[v] == q) {
+                sam[p].next[v] = clone;
+                p = sam[p].link;
+            }
+
+            sam[q].link = sam[cur].link = clone;
+        }
+    }
+
+    last = cur;
+}
+
+// 统计不同子串数量
+long long count_distinct_substrings() {
+    long long ans = 0;
+    for (int i = 1; i < size; i++) {
+        ans += sam[i].len - sam[sam[i].link].len;
+    }
+    return ans;
+}
+
+int main() {
+    init();
+
+    char s[MAXN];
+    scanf("%s", s);
+
+    for (int i = 0; s[i]; i++) {
+        extend(s[i]);
+    }
+
+    long long result = count_distinct_substrings();
+    printf("Number of distinct substrings: %lld\n", result);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class SuffixAutomaton:
+    def __init__(self):
+        self.sam = [{'next': {}, 'link': -1, 'length': 0}]
+        self.last = 0
+
+    def extend(self, c):
+        v = ord(c) - ord('a')
+        cur = len(self.sam)
+        self.sam.append({'next': {}, 'link': 0, 'length': self.sam[self.last]['length'] + 1})
+
+        p = self.last
+        while p >= 0 and v not in self.sam[p]['next']:
+            self.sam[p]['next'][v] = cur
+            p = self.sam[p]['link']
+
+        if p < 0:
+            self.sam[cur]['link'] = 0
+        else:
+            q = self.sam[p]['next'][v]
+            if self.sam[p]['length'] + 1 == self.sam[q]['length']:
+                self.sam[cur]['link'] = q
+            else:
+                clone = len(self.sam)
+                self.sam.append({
+                    'next': self.sam[q]['next'].copy(),
+                    'link': self.sam[q]['link'],
+                    'length': self.sam[p]['length'] + 1
+                })
+
+                while p >= 0 and self.sam[p]['next'].get(v) == q:
+                    self.sam[p]['next'][v] = clone
+                    p = self.sam[p]['link']
+
+                self.sam[q]['link'] = self.sam[cur]['link'] = clone
+
+        self.last = cur
+
+    def count_distinct_substrings(self):
+        """统计不同子串数量"""
+        ans = 0
+        for i in range(1, len(self.sam)):
+            link_len = self.sam[self.sam[i]['link']]['length'] if self.sam[i]['link'] >= 0 else 0
+            ans += self.sam[i]['length'] - link_len
+        return ans
+
+def solve():
+    s = input().strip()
+    sam = SuffixAutomaton()
+
+    for ch in s:
+        sam.extend(ch)
+
+    result = sam.count_distinct_substrings()
+    print(f"Number of distinct substrings: {result}")
+
+solve()
+```
+
+应用二：最长公共子串
+------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 200005;
+const int ALPHABET = 26;
+
+struct SAMNode {
+    int next[ALPHABET];
+    int link;
+    int len;
+} sam[MAXN];
+
+int last = 0, size = 1;
+
+void init() {
+    memset(sam, 0, sizeof(sam));
+    last = 0;
+    size = 1;
+    sam[0].link = -1;
+}
+
+void extend(char c) {
+    int v = c - 'a';
+    int cur = size++;
+    sam[cur].len = sam[last].len + 1;
+
+    int p = last;
+    while (p != -1 && sam[p].next[v] == 0) {
+        sam[p].next[v] = cur;
+        p = sam[p].link;
+    }
+
+    if (p == -1) {
+        sam[cur].link = 0;
+    } else {
+        int q = sam[p].next[v];
+        if (sam[p].len + 1 == sam[q].len) {
+            sam[cur].link = q;
+        } else {
+            int clone = size++;
+            sam[clone].len = sam[p].len + 1;
+            sam[clone].link = sam[q].link;
+            memcpy(sam[clone].next, sam[q].next, sizeof(sam[q].next));
+
+            while (p != -1 && sam[p].next[v] == q) {
+                sam[p].next[v] = clone;
+                p = sam[p].link;
+            }
+
+            sam[q].link = sam[cur].link = clone;
+        }
+    }
+
+    last = cur;
+}
+
+// 查找最长公共子串
+string longest_common_substring(char *t) {
+    int v = 0, l = 0;
+    int best = 0, bestpos = 0;
+
+    for (int i = 0; t[i]; i++) {
+        int c = t[i] - 'a';
+        while (v && sam[v].next[c] == 0) {
+            v = sam[v].link;
+            l = sam[v].len;
+        }
+
+        if (sam[v].next[c]) {
+            v = sam[v].next[c];
+            l++;
+        }
+
+        if (l > best) {
+            best = l;
+            bestpos = i;
+        }
+    }
+
+    return string(t + bestpos - best + 1, t + bestpos + 1);
+}
+
+int main() {
+    init();
+
+    char s[MAXN], t[MAXN];
+    scanf("%s%s", s, t);
+
+    // 构建第一个字符串的SAM
+    for (int i = 0; s[i]; i++) {
+        extend(s[i]);
+    }
+
+    string result = longest_common_substring(t);
+
+    printf("Longest common substring: %s\n", result.c_str());
+    printf("Length: %d\n", (int)result.length());
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class SuffixAutomaton:
+    def __init__(self):
+        self.sam = [{'next': {}, 'link': -1, 'length': 0}]
+        self.last = 0
+
+    def extend(self, c):
+        v = ord(c) - ord('a')
+        cur = len(self.sam)
+        self.sam.append({'next': {}, 'link': 0, 'length': self.sam[self.last]['length'] + 1})
+
+        p = self.last
+        while p >= 0 and v not in self.sam[p]['next']:
+            self.sam[p]['next'][v] = cur
+            p = self.sam[p]['link']
+
+        if p < 0:
+            self.sam[cur]['link'] = 0
+        else:
+            q = self.sam[p]['next'][v]
+            if self.sam[p]['length'] + 1 == self.sam[q]['length']:
+                self.sam[cur]['link'] = q
+            else:
+                clone = len(self.sam)
+                self.sam.append({
+                    'next': self.sam[q]['next'].copy(),
+                    'link': self.sam[q]['link'],
+                    'length': self.sam[p]['length'] + 1
+                })
+
+                while p >= 0 and self.sam[p]['next'].get(v) == q:
+                    self.sam[p]['next'][v] = clone
+                    p = self.sam[p]['link']
+
+                self.sam[q]['link'] = self.sam[cur]['link'] = clone
+
+        self.last = cur
+
+    def longest_common_substring(self, t):
+        """查找最长公共子串"""
+        v = 0
+        l = 0
+        best = 0
+        bestpos = 0
+
+        for i, ch in enumerate(t):
+            c = ord(ch) - ord('a')
+            while v > 0 and c not in self.sam[v]['next']:
+                v = self.sam[v]['link']
+                l = self.sam[v]['length']
+
+            if c in self.sam[v]['next']:
+                v = self.sam[v]['next'][c]
+                l += 1
+
+            if l > best:
+                best = l
+                bestpos = i
+
+        return t[bestpos - best + 1:bestpos + 1]
+
+def solve():
+    s = input().strip()
+    t = input().strip()
+
+    sam = SuffixAutomaton()
+    for ch in s:
+        sam.extend(ch)
+
+    result = sam.longest_common_substring(t)
+    print(f"Longest common substring: {result}")
+    print(f"Length: {len(result)}")
+
+solve()
+```
+
+应用三：统计每个子串出现次数
+--------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 200005;
+const int ALPHABET = 26;
+
+struct SAMNode {
+    int next[ALPHABET];
+    int link;
+    int len;
+    int cnt;  // 出现次数
+} sam[MAXN];
+
+int last = 0, size = 1;
+
+void init() {
+    memset(sam, 0, sizeof(sam));
+    last = 0;
+    size = 1;
+    sam[0].link = -1;
+}
+
+void extend(char c) {
+    int v = c - 'a';
+    int cur = size++;
+    sam[cur].len = sam[last].len + 1;
+    sam[cur].cnt = 1;
+
+    int p = last;
+    while (p != -1 && sam[p].next[v] == 0) {
+        sam[p].next[v] = cur;
+        p = sam[p].link;
+    }
+
+    if (p == -1) {
+        sam[cur].link = 0;
+    } else {
+        int q = sam[p].next[v];
+        if (sam[p].len + 1 == sam[q].len) {
+            sam[cur].link = q;
+        } else {
+            int clone = size++;
+            sam[clone].len = sam[p].len + 1;
+            sam[clone].link = sam[q].link;
+            memcpy(sam[clone].next, sam[q].next, sizeof(sam[q].next));
+            sam[clone].cnt = 0;
+
+            while (p != -1 && sam[p].next[v] == q) {
+                sam[p].next[v] = clone;
+                p = sam[p].link;
+            }
+
+            sam[q].link = sam[cur].link = clone;
+        }
+    }
+
+    last = cur;
+}
+
+// 统计出现次数
+void count_occurrences() {
+    // 按长度排序
+    vector<int> order(size);
+    for (int i = 0; i < size; i++) {
+        order[i] = i;
+    }
+
+    sort(order.begin(), order.end(), [](int a, int b) {
+        return sam[a].len > sam[b].len;
+    });
+
+    // 沿着后缀链接累加
+    for (int u : order) {
+        if (sam[u].link != -1) {
+            sam[sam[u].link].cnt += sam[u].cnt;
+        }
+    }
+}
+
+int main() {
+    init();
+
+    char s[MAXN];
+    scanf("%s", s);
+
+    for (int i = 0; s[i]; i++) {
+        extend(s[i]);
+    }
+
+    count_occurrences();
+
+    // 输出每个状态的出现次数
+    for (int i = 1; i < size; i++) {
+        printf("State %d: length=%d, count=%d\n", i, sam[i].len, sam[i].cnt);
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class SuffixAutomaton:
+    def __init__(self):
+        self.sam = [{'next': {}, 'link': -1, 'length': 0, 'cnt': 0}]
+        self.last = 0
+
+    def extend(self, c):
+        v = ord(c) - ord('a')
+        cur = len(self.sam)
+        self.sam.append({'next': {}, 'link': 0, 'length': self.sam[self.last]['length'] + 1, 'cnt': 1})
+
+        p = self.last
+        while p >= 0 and v not in self.sam[p]['next']:
+            self.sam[p]['next'][v] = cur
+            p = self.sam[p]['link']
+
+        if p < 0:
+            self.sam[cur]['link'] = 0
+        else:
+            q = self.sam[p]['next'][v]
+            if self.sam[p]['length'] + 1 == self.sam[q]['length']:
+                self.sam[cur]['link'] = q
+            else:
+                clone = len(self.sam)
+                self.sam.append({
+                    'next': self.sam[q]['next'].copy(),
+                    'link': self.sam[q]['link'],
+                    'length': self.sam[p]['length'] + 1,
+                    'cnt': 0
+                })
+
+                while p >= 0 and self.sam[p]['next'].get(v) == q:
+                    self.sam[p]['next'][v] = clone
+                    p = self.sam[p]['link']
+
+                self.sam[q]['link'] = self.sam[cur]['link'] = clone
+
+        self.last = cur
+
+    def count_occurrences(self):
+        """统计出现次数"""
+        # 按长度排序
+        order = list(range(len(self.sam)))
+        order.sort(key=lambda x: -self.sam[x]['length'])
+
+        # 沿着后缀链接累加
+        for u in order:
+            if self.sam[u]['link'] >= 0:
+                self.sam[self.sam[u]['link']]['cnt'] += self.sam[u]['cnt']
+
+def solve():
+    s = input().strip()
+    sam = SuffixAutomaton()
+
+    for ch in s:
+        sam.extend(ch)
+
+    sam.count_occurrences()
+
+    for i in range(1, len(sam.sam)):
+        print(f"State {i}: length={sam.sam[i]['length']}, count={sam.sam[i]['cnt']}")
+
+solve()
+```
+
+典型例题
+--------
+1. 后缀自动机模板（洛谷P3804）：构建SAM，统计不同子串
+2. 最长公共子串（洛谷P4556）：两个字符串的最长公共子串
+3. 子串出现次数（SPOJ SUBST1）：统计子串出现次数
+4. 第K小子串（洛谷P3975）：查找字典序第K小的子串
+5. 循环串问题（洛谷P4070）：处理循环字符串的子串问题
+
+注意事项
+--------
+1. SAM的性质：
+   - 状态数不超过2n-1
+   - 转移数不超过3n-4
+   - 构建时间O(n)
+
+2. 克隆状态：
+   - 当需要创建新状态时
+   - 复制原状态的所有信息
+   - 更新相关转移
+
+3. 后缀链接：
+   - 形成一棵树
+   - 用于统计和查询
+   - 可以按长度排序处理
+
+4. 空间优化：
+   - 使用map或字典存储转移
+   - 适用于字符集较大的情况
+   - 增加一个log的时间复杂度
+
+5. 应用场景：
+   - 子串统计
+   - 最长公共子串
+   - 模式匹配
+   - 字符串问题转换
+
+时间复杂度总结
+--------------
+- 构建SAM：O(n)
+- 统计不同子串：O(n)
+- 最长公共子串：O(n)
+- 统计出现次数：O(n log n)（排序）
+- 查询子串：O(m)，m为子串长度
+- 空间复杂度：O(n)
+
+后缀自动机是处理子串问题的终极武器，掌握它能解决绝大多数字符串子串相关的问题。

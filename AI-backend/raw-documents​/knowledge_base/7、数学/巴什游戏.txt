@@ -1,0 +1,291 @@
+巴什游戏（Bash Game）
+====================
+
+游戏规则
+--------
+有一堆n个石子，两个玩家轮流取石子。
+每次可以取1到m个石子，取走最后一个石子的人获胜。
+
+游戏分析
+--------
+这是一个经典的博弈论问题。
+
+胜负判定：
+- 如果n % (m + 1) = 0，则先手必败（后手必胜）
+- 如果n % (m + 1) ≠ 0，则先手必胜
+
+必胜策略
+--------
+当n % (m + 1) ≠ 0时：
+- 先手取走n % (m + 1)个石子
+- 之后无论后手取多少个（假设为k），先手都取(m + 1 - k)个
+- 这样先手总能取到最后一个石子
+
+基础模板
+--------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 巴什游戏判断
+bool bash_game(ll n, ll m) {
+    return n % (m + 1) != 0;  // 返回true表示先手必胜
+}
+
+// 找到必胜策略
+ll find_winning_move(ll n, ll m) {
+    if (n % (m + 1) == 0) {
+        return -1;  // 没有必胜策略
+    }
+    return n % (m + 1);
+}
+
+int main() {
+    ll n, m;
+    cin >> n >> m;
+
+    if (bash_game(n, m)) {
+        cout << "先手必胜" << '\n';
+        ll take = find_winning_move(n, m);
+        cout << "先手第一次取" << take << "个石子" << '\n';
+    } else {
+        cout << "后手必胜" << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def bash_game(n: int, m: int) -> bool:
+    """巴什游戏判断"""
+    return n % (m + 1) != 0  # 返回True表示先手必胜
+
+def find_winning_move(n: int, m: int) -> int:
+    """找到必胜策略"""
+    if n % (m + 1) == 0:
+        return -1  # 没有必胜策略
+    return n % (m + 1)
+
+def solve():
+    n, m = map(int, input().split())
+
+    if bash_game(n, m):
+        print("先手必胜")
+        take = find_winning_move(n, m)
+        print(f"先手第一次取{take}个石子")
+    else:
+        print("后手必胜")
+
+solve()
+```
+
+应用一：多堆巴什游戏
+------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 多堆巴什游戏
+bool multi_bash_game(vector<ll>& piles, ll m) {
+    // 每一堆单独计算
+    // 如果所有堆都是必败态，则后手必胜
+    // 否则先手必胜
+    for (ll n : piles) {
+        if (n % (m + 1) != 0) {
+            return true;  // 先手必胜
+        }
+    }
+    return false;  // 后手必胜
+}
+
+int main() {
+    int k;
+    ll m;
+    cin >> k >> m;
+
+    vector<ll> piles(k);
+    for (int i = 0; i < k; i++) {
+        cin >> piles[i];
+    }
+
+    if (multi_bash_game(piles, m)) {
+        cout << "先手必胜" << '\n';
+    } else {
+        cout << "后手必胜" << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def multi_bash_game(piles: list, m: int) -> bool:
+    """多堆巴什游戏"""
+    for n in piles:
+        if n % (m + 1) != 0:
+            return True  # 先手必胜
+    return False  # 后手必胜
+
+def solve():
+    k, m = map(int, input().split())
+    piles = list(map(int, input().split()))
+
+    if multi_bash_game(piles, m):
+        print("先手必胜")
+    else:
+        print("后手必胜")
+
+solve()
+```
+
+应用二：变种巴什游戏
+------------------
+每次取的石子数必须是2的幂次。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 变种巴什游戏：只能取2的幂次个石子
+bool bash_game_powers(ll n) {
+    // 先手必胜当且仅当n不是3的倍数
+    return n % 3 != 0;
+}
+
+int main() {
+    ll n;
+    cin >> n;
+
+    if (bash_game_powers(n)) {
+        cout << "先手必胜" << '\n';
+    } else {
+        cout << "后手必胜" << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def bash_game_powers(n: int) -> bool:
+    """变种巴什游戏：只能取2的幂次个石子"""
+    return n % 3 != 0
+
+def solve():
+    n = int(input())
+    if bash_game_powers(n):
+        print("先手必胜")
+    else:
+        print("后手必胜")
+
+solve()
+```
+
+应用三：威佐夫游戏（Wythoff Game）
+--------------------------------
+有两堆石子，每次可以从一堆中取任意个，或从两堆中取相同数量的石子。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 威佐夫游戏
+bool wythoff_game(ll a, ll b) {
+    if (a > b) swap(a, b);
+
+    // 黄金分割比例
+    double phi = (sqrt(5) + 1) / 2;
+    ll k = b - a;
+
+    // 必败态：(floor(k*phi), floor(k*phi) + k)
+    ll a_lose = (ll)(k * phi);
+    return a != a_lose;
+}
+
+int main() {
+    ll a, b;
+    cin >> a >> b;
+
+    if (wythoff_game(a, b)) {
+        cout << "先手必胜" << '\n';
+    } else {
+        cout << "后手必胜" << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import math
+
+def wythoff_game(a: int, b: int) -> bool:
+    """威佐夫游戏"""
+    if a > b:
+        a, b = b, a
+
+    # 黄金分割比例
+    phi = (math.sqrt(5) + 1) / 2
+    k = b - a
+
+    # 必败态：(floor(k*phi), floor(k*phi) + k)
+    a_lose = int(k * phi)
+    return a != a_lose
+
+def solve():
+    a, b = map(int, input().split())
+    if wythoff_game(a, b):
+        print("先手必胜")
+    else:
+        print("后手必胜")
+
+solve()
+```
+
+典型例题
+--------
+1. 【模板】巴什游戏（洛谷P2198）：基本应用
+2. 取石子游戏（洛谷P2252）：变种问题
+3. 威佐夫游戏（洛谷P2258）：经典问题
+
+注意事项
+--------
+1. 关键点：
+   - 模(m+1)判断胜负
+   - 必胜策略保持剩余石子数为(m+1)的倍数
+
+2. 变种问题：
+   - 改变每次可取的石子数
+   - 多堆石子
+   - 取石子规则变化
+
+3. 常见错误：
+   - 模运算错误
+   - 必胜策略理解错误
+
+时间复杂度总结
+--------------
+- 时间复杂度：O(1)
+- 空间复杂度：O(1)
+
+巴什游戏是博弈论的基础问题，
+掌握它对理解更复杂的博弈问题很重要。

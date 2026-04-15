@@ -1,0 +1,612 @@
+分层图最短路（Layered Graph Shortest Path）
+========================================
+
+算法概述
+--------
+分层图是一种特殊的图论建模技巧，用于处理具有"有限次决策权"或"可变状态"的最短路问题。
+
+核心思想是将原图复制多层，层与层之间通过特殊的边连接，从而将原本难以建模的"选择机会"
+转化为图上的路径问题。通过在分层图上运行最短路算法，可以同时优化路径和决策。
+
+核心思想
+--------
+1. 图的分层：将原图复制k+1层（编号0到k），每一层是原图的完整副本
+2. 层间边：相邻层之间建立特殊边，表示使用一次决策权
+3. 层内边：每层内部保持原图的所有边
+4. 最短路：从第0层的起点到第k层或任意层的终点的最短路径
+
+分层图的关键在于：
+- 第0层表示尚未使用任何决策权
+- 第i层表示已经使用了i次决策权
+- 从第i层到第i+1层的边表示使用第i+1次决策权
+- 可以约束最多使用k次决策权，或者允许不使用完所有决策权
+
+基本模型：免费通行k次
+--------------------
+问题描述：给定一张带权有向图，可以选择最多k条边使其边权为0，求从s到t的最短路。
+
+建模方法：
+1. 建立k+1层图，每层包含原图的所有节点
+2. 对于原图中的每条边u->v，权值为w：
+   - 在每层内部添加边u->v，权值为w（不使用免费机会）
+   - 从第i层的u到第i+1层的v添加边，权值为0（使用一次免费机会）
+3. 从第0层的s到任意层的t的最短路径即为答案
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int MAXK = 15;
+const long long INF = 1e18;
+
+int n, m, k, s, t;
+vector<pair<int, int>> adj[MAXN];
+
+// dist[i][j]: 到达第j层的节点i的最短距离
+long long dist[MAXN][MAXK + 1];
+bool vis[MAXN][MAXK + 1];
+
+void dijkstra() {
+    using State = tuple<long long, int, int>;  // (distance, node, layer)
+    priority_queue<State, vector<State>, greater<State>> pq;
+
+    // 初始化
+    for (int i = 1; i <= n; i++) {
+        for (int j = 0; j <= k; j++) {
+            dist[i][j] = INF;
+        }
+    }
+
+    dist[s][0] = 0;
+    pq.push({0, s, 0});
+
+    while (!pq.empty()) {
+        auto [d, u, layer] = pq.top();
+        pq.pop();
+
+        if (vis[u][layer]) continue;
+        vis[u][layer] = true;
+
+        // 1. 在当前层内移动（不使用免费机会）
+        for (auto [v, w] : adj[u]) {
+            if (layer <= k && dist[v][layer] > d + w) {
+                dist[v][layer] = d + w;
+                pq.push({dist[v][layer], v, layer});
+            }
+        }
+
+        // 2. 跳到下一层（使用免费机会）
+        if (layer < k) {
+            for (auto [v, w] : adj[u]) {
+                if (dist[v][layer + 1] > d) {  // 免费通行
+                    dist[v][layer + 1] = d;
+                    pq.push({dist[v][layer + 1], v, layer + 1});
+                }
+            }
+        }
+    }
+
+    // 答案是任意层到达t的最小值
+    long long ans = INF;
+    for (int i = 0; i <= k; i++) {
+        ans = min(ans, dist[t][i]);
+    }
+    cout << ans << '\n';
+}
+
+int main() {
+    cin >> n >> m >> k >> s >> t;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});  // 如果是无向图
+    }
+
+    dijkstra();
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import heapq
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m, k, s, t = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        adj[v].append((u, w))
+
+    INF = 10**18
+    # dist[i][j]: 到达第j层的节点i的最短距离
+    dist = [[INF] * (k + 1) for _ in range(n + 1)]
+    dist[s][0] = 0
+
+    # Dijkstra: (distance, node, layer)
+    pq = [(0, s, 0)]
+
+    while pq:
+        d, u, layer = heapq.heappop(pq)
+
+        if d != dist[u][layer]:
+            continue
+
+        # 1. 在当前层内移动
+        for v, w in adj[u]:
+            if layer <= k and dist[v][layer] > d + w:
+                dist[v][layer] = d + w
+                heapq.heappush(pq, (dist[v][layer], v, layer))
+
+        # 2. 跳到下一层（使用免费机会）
+        if layer < k:
+            for v, w in adj[u]:
+                if dist[v][layer + 1] > d:
+                    dist[v][layer + 1] = d
+                    heapq.heappush(pq, (dist[v][layer + 1], v, layer + 1))
+
+    # 答案是任意层到达t的最小值
+    ans = min(dist[t])
+    print(ans)
+
+solve()
+```
+
+应用一：必须恰好使用k次
+----------------------
+问题描述：必须恰好使用k次免费机会，求从s到t的最短路。
+
+修改方法：
+1. 答案只能从第k层取，即dist[t][k]
+2. 如果k > 路径上的边数，则无解
+
+C++版本：
+```cpp
+// 只需修改输出部分
+long long ans = dist[t][k];  // 必须恰好使用k次
+if (ans >= INF) {
+    cout << -1 << '\n';
+} else {
+    cout << ans << '\n';
+}
+```
+
+Python版本：
+```python
+ans = dist[t][k]
+if ans >= INF:
+    print(-1)
+else:
+    print(ans)
+```
+
+应用二：分层图+最大利益
+----------------------
+问题描述：每条边有两个权值（成本和收益），要求总成本不超过M的情况下最大化收益。
+
+建模方法：
+1. 按成本分层，第i层表示已使用成本为i
+2. 从第i层到第i+w层（w是边成本）转移，带上收益
+3. 使用DP而不是最短路
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 105;
+const int MAXM = 10005;
+
+int n, m, M;
+int dp[MAXN][MAXM];  // dp[i][j]: 到达节点i，花费j时的最大收益
+vector<tuple<int, int, int>> adj[MAXN];  // (to, cost, profit)
+
+void solve() {
+    cin >> n >> m >> M;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, c, p;
+        cin >> u >> v >> c >> p;
+        adj[u].push_back({v, c, p});
+    }
+
+    memset(dp, -0x3f, sizeof(dp));
+    dp[1][0] = 0;
+
+    for (int j = 0; j <= M; j++) {
+        for (int i = 1; i <= n; i++) {
+            if (dp[i][j] < 0) continue;
+            for (auto [to, cost, profit] : adj[i]) {
+                if (j + cost <= M) {
+                    dp[to][j + cost] = max(dp[to][j + cost], dp[i][j] + profit);
+                }
+            }
+        }
+    }
+
+    int ans = 0;
+    for (int j = 0; j <= M; j++) {
+        ans = max(ans, dp[n][j]);
+    }
+    cout << ans << '\n';
+}
+
+int main() {
+    solve();
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m, M = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v, c, p = map(int, input().split())
+        adj[u].append((v, c, p))
+
+    # dp[i][j]: 到达节点i，花费j时的最大收益
+    dp = [[-10**9] * (M + 1) for _ in range(n + 1)]
+    dp[1][0] = 0
+
+    for j in range(M + 1):
+        for i in range(1, n + 1):
+            if dp[i][j] < 0:
+                continue
+            for to, cost, profit in adj[i]:
+                if j + cost <= M:
+                    dp[to][j + cost] = max(dp[to][j + cost], dp[i][j] + profit)
+
+    ans = max(dp[n])
+    print(ans)
+
+solve()
+```
+
+应用三：分层图+路径恢复
+----------------------
+如何恢复分层图中的路径？需要记录前驱信息。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+const int MAXK = 15;
+const long long INF = 1e18;
+
+int n, m, k, s, t;
+vector<pair<int, int>> adj[MAXN];
+
+long long dist[MAXN][MAXK + 1];
+bool vis[MAXN][MAXK + 1];
+int pre_node[MAXN][MAXK + 1];  // 前驱节点
+int pre_layer[MAXN][MAXK + 1];  // 前驱层
+
+void print_path(int u, int layer) {
+    if (u == s && layer == 0) {
+        cout << u;
+        return;
+    }
+
+    int pn = pre_node[u][layer];
+    int pl = pre_layer[u][layer];
+
+    print_path(pn, pl);
+
+    if (pl == layer) {
+        cout << " ->(";
+        for (auto [v, w] : adj[pn]) {
+            if (v == u) {
+                cout << w;
+                break;
+            }
+        }
+        cout << ") " << u;
+    } else {
+        cout << " ->(FREE) " << u;
+    }
+}
+
+void dijkstra() {
+    using State = tuple<long long, int, int>;
+    priority_queue<State, vector<State>, greater<State>> pq;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 0; j <= k; j++) {
+            dist[i][j] = INF;
+        }
+    }
+
+    dist[s][0] = 0;
+    pq.push({0, s, 0});
+
+    while (!pq.empty()) {
+        auto [d, u, layer] = pq.top();
+        pq.pop();
+
+        if (vis[u][layer]) continue;
+        vis[u][layer] = true;
+
+        // 在当前层内移动
+        for (auto [v, w] : adj[u]) {
+            if (dist[v][layer] > d + w) {
+                dist[v][layer] = d + w;
+                pre_node[v][layer] = u;
+                pre_layer[v][layer] = layer;
+                pq.push({dist[v][layer], v, layer});
+            }
+        }
+
+        // 跳到下一层
+        if (layer < k) {
+            for (auto [v, w] : adj[u]) {
+                if (dist[v][layer + 1] > d) {
+                    dist[v][layer + 1] = d;
+                    pre_node[v][layer + 1] = u;
+                    pre_layer[v][layer + 1] = layer;
+                    pq.push({dist[v][layer + 1], v, layer + 1});
+                }
+            }
+        }
+    }
+
+    // 找最优解
+    long long ans = INF;
+    int best_layer = -1;
+    for (int i = 0; i <= k; i++) {
+        if (dist[t][i] < ans) {
+            ans = dist[t][i];
+            best_layer = i;
+        }
+    }
+
+    cout << "最短距离: " << ans << '\n';
+    cout << "使用免费次数: " << best_layer << '\n';
+    cout << "路径: ";
+    print_path(t, best_layer);
+    cout << '\n';
+}
+
+int main() {
+    cin >> n >> m >> k >> s >> t;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    }
+
+    dijkstra();
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import heapq
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m, k, s, t = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        adj[v].append((u, w))
+
+    INF = 10**18
+    dist = [[INF] * (k + 1) for _ in range(n + 1)]
+    pre_node = [[-1] * (k + 1) for _ in range(n + 1)]
+    pre_layer = [[-1] * (k + 1) for _ in range(n + 1)]
+
+    dist[s][0] = 0
+    pq = [(0, s, 0)]
+
+    while pq:
+        d, u, layer = heapq.heappop(pq)
+
+        if d != dist[u][layer]:
+            continue
+
+        # 在当前层内移动
+        for v, w in adj[u]:
+            if dist[v][layer] > d + w:
+                dist[v][layer] = d + w
+                pre_node[v][layer] = u
+                pre_layer[v][layer] = layer
+                heapq.heappush(pq, (dist[v][layer], v, layer))
+
+        # 跳到下一层
+        if layer < k:
+            for v, w in adj[u]:
+                if dist[v][layer + 1] > d:
+                    dist[v][layer + 1] = d
+                    pre_node[v][layer + 1] = u
+                    pre_layer[v][layer + 1] = layer
+                    heapq.heappush(pq, (dist[v][layer + 1], v, layer + 1))
+
+    # 找最优解
+    ans = INF
+    best_layer = -1
+    for i in range(k + 1):
+        if dist[t][i] < ans:
+            ans = dist[t][i]
+            best_layer = i
+
+    print(f"最短距离: {ans}")
+    print(f"使用免费次数: {best_layer}")
+
+    # 恢复路径
+    path = []
+    u, layer = t, best_layer
+    while not (u == s and layer == 0):
+        path.append((u, layer))
+        u, layer = pre_node[u][layer], pre_layer[u][layer]
+    path.append((s, 0))
+    path.reverse()
+
+    print("路径:", end="")
+    for i, (node, lay) in enumerate(path):
+        if i > 0:
+            prev_node, prev_layer = path[i-1]
+            if prev_layer == lay:
+                for v, w in adj[prev_node]:
+                    if v == node:
+                        print(f" ->({w})", end="")
+                        break
+            else:
+                print(" ->(FREE)", end="")
+        print(f" {node}", end="")
+    print()
+
+solve()
+```
+
+应用四：三维分层图
+----------------
+问题描述：同时有两种决策权，每种最多使用k1和k2次。
+
+建模方法：建立(k1+1)*(k2+1)层三维图。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+const int MAXK = 15;
+const long long INF = 1e18;
+
+int n, m, k1, k2, s, t;
+vector<pair<int, int>> adj[MAXN];
+
+long long dist[MAXN][MAXK + 1][MAXK + 1];
+bool vis[MAXN][MAXK + 1][MAXK + 1];
+
+void dijkstra() {
+    using State = tuple<long long, int, int, int>;
+    priority_queue<State, vector<State>, greater<State>> pq;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = 0; j <= k1; j++) {
+            for (int k = 0; k <= k2; k++) {
+                dist[i][j][k] = INF;
+            }
+        }
+    }
+
+    dist[s][0][0] = 0;
+    pq.push({0, s, 0, 0});
+
+    while (!pq.empty()) {
+        auto [d, u, l1, l2] = pq.top();
+        pq.pop();
+
+        if (vis[u][l1][l2]) continue;
+        vis[u][l1][l2] = true;
+
+        // 1. 不使用任何决策权
+        for (auto [v, w] : adj[u]) {
+            if (dist[v][l1][l2] > d + w) {
+                dist[v][l1][l2] = d + w;
+                pq.push({dist[v][l1][l2], v, l1, l2});
+            }
+        }
+
+        // 2. 使用第一种决策权
+        if (l1 < k1) {
+            for (auto [v, w] : adj[u]) {
+                if (dist[v][l1 + 1][l2] > d) {
+                    dist[v][l1 + 1][l2] = d;
+                    pq.push({dist[v][l1 + 1][l2], v, l1 + 1, l2});
+                }
+            }
+        }
+
+        // 3. 使用第二种决策权
+        if (l2 < k2) {
+            for (auto [v, w] : adj[u]) {
+                if (dist[v][l1][l2 + 1] > d / 2) {  // 假设第二种是半价
+                    dist[v][l1][l2 + 1] = d / 2;
+                    pq.push({dist[v][l1][l2 + 1], v, l1, l2 + 1});
+                }
+            }
+        }
+    }
+
+    long long ans = INF;
+    for (int i = 0; i <= k1; i++) {
+        for (int j = 0; j <= k2; j++) {
+            ans = min(ans, dist[t][i][j]);
+        }
+    }
+    cout << ans << '\n';
+}
+
+int main() {
+    cin >> n >> m >> k1 >> k2 >> s >> t;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    }
+
+    dijkstra();
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 免费乘车（洛谷P4568）：经典分层图模板题，最多k次免费通行
+2. 飞行路线（洛谷P4822）：最多k次免费，输出最短路径
+3. 邮递员（POJ 3741）：分层图建模
+4. 最短路计数（Codeforces 1063B）：分层图+路径计数
+5. 炸弹拆除（洛谷P3899）：分层图+状态压缩
+
+注意事项
+--------
+1. 分层图的层数不要开太大，否则会MLE或TLE
+2. 如果k很大（如k >= n-1），需要考虑特殊处理
+3. 某些题目要求恰好使用k次，有些要求最多k次，注意区分
+4. 边数要乘以层数，注意边的总数量
+5. 三维或更高维的分层图空间复杂度很高，谨慎使用
+6. 路径恢复需要同时记录前驱节点和前驱层
+7. 使用0-1 BFS或SPFA时注意处理不同权重的边
+
+算法技巧总结
+-----------
+1. 识别分层图问题：看到"最多k次选择"、"可以改变k次"等关键词
+2. 确定分层的依据：是决策次数、花费大小还是其他
+3. 建图技巧：
+   - 层内边：表示不使用特殊决策
+   - 层间边：表示使用特殊决策
+4. 最终答案：通常是到达终点在任意层的最值
+
+时间复杂度：O((k+1) * (n + m) * log((k+1) * n)) 使用Dijkstra
+空间复杂度：O((k+1) * (n + m))
+
+分层图是处理"有限选择权"问题的强大工具，掌握好建模技巧是关键。

@@ -1,0 +1,38 @@
+快速幂（Fast Exponentiation）是一种高效计算大数幂运算的算法，它将时间复杂度从传统的O(n)优化到O(log n)，
+通过二进制分解和分治策略大幅减少计算次数。下面通过几个典型场景帮你直观把握其核心思路和典型场景。
+
+
+算法原理
+快速幂的核心思想基于以下两点：
+指数二进制分解：将指数视为二进制数，例如计算3^13时，13的二进制是1101，那么3^13 = 3^8 × 3^4 × 3^1。只需将指数二进制位为1的对应幂次相乘即可。
+平方倍增：通过反复平方底数来快速得到各个二进制位的权重。从底数开始，每一步将当前值平方，从而得到3^1、3^2、3^4、3^8……等幂次的值。
+
+递归实现
+long long fastPow(long long base, long long power) {
+    if (power == 0) return 1;
+    long long half = fastPow(base, power / 2);
+    if (power % 2 == 0) {
+        return half * half;
+    } else {
+        return half * half * base;
+    }
+}
+
+迭代实现（更推荐）
+long long fastPow(long long base, long long power) {
+    long long result = 1;
+    while (power > 0) {
+        if (power & 1) {
+            result *= base;
+        }
+        base *= base;
+        power >> 1;
+    }
+    return result;
+}
+
+
+应用场景
+模运算应用: 快速幂算法在模运算中有着广泛的应用，特别是在计算大数的模幂运算时。模幂运算在密码学、数论等领域有着重要的应用，例如计算RSA加密中的大数幂运算。需计算 (a^b) mod m。利用模运算的性质：(a × b) mod m = [(a mod m) × (b mod m)] mod m，可将快速幂与模运算结合
+矩阵快速幂：用于加速矩阵的幂运算，特别适用于求解线性递推关系。例如，斐波那契数列第n项可以通过矩阵快速幂在O(log n)时间内求出
+快速乘（龟速乘）：当模数很大，连乘法都可能溢出时，可以借鉴快速幂的思想，用加法来实现乘法，防止中间结果溢出，这就是“快速乘”

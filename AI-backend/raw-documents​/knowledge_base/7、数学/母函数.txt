@@ -1,0 +1,275 @@
+母函数（Generating Function）
+===========================
+
+基本概念
+--------
+母函数（生成函数）是一种将序列映射为函数的数学工具。
+它在组合数学、概率论、数论等领域有广泛应用。
+
+普通母函数（OGF）
+---------------
+对于序列{a_n}，其普通母函数定义为：
+    G(x) = Σ(a_n × x^n)，n从0到∞
+
+例如：
+- 序列1, 1, 1, ... → 1 + x + x² + x³ + ... = 1/(1-x)
+- 序列1, 2, 3, ... → 1 + 2x + 3x² + ... = 1/(1-x)²
+
+指数母函数（EGF）
+---------------
+对于序列{a_n}，其指数母函数定义为：
+    E(x) = Σ(a_n × x^n/n!)，n从0到∞
+
+应用一：组合计数
+--------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 使用母函数计算组合数
+// 例如：有无限个1, 2, 5元硬币，求凑出n元的方法数
+
+ll combination_count(int n) {
+    vector<ll> dp(n + 1, 0);
+    dp[0] = 1;
+
+    int coins[] = {1, 2, 5};
+    for (int coin : coins) {
+        for (int i = coin; i <= n; i++) {
+            dp[i] += dp[i - coin];
+        }
+    }
+
+    return dp[n];
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    cout << "凑出" << n << "元的方法数：" << combination_count(n) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def combination_count(n: int) -> int:
+    """使用母函数计算组合数"""
+    dp = [0] * (n + 1)
+    dp[0] = 1
+
+    coins = [1, 2, 5]
+    for coin in coins:
+        for i in range(coin, n + 1):
+            dp[i] += dp[i - coin]
+
+    return dp[n]
+
+def solve():
+    n = int(input())
+    result = combination_count(n)
+    print(f"凑出{n}元的方法数：{result}")
+
+solve()
+```
+
+应用二：整数划分
+--------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+const int MAXN = 1005;
+ll dp[MAXN];
+
+// 整数划分数
+// 将n划分为若干个正整数之和的方法数
+ll integer_partition(int n) {
+    memset(dp, 0, sizeof(dp));
+    dp[0] = 1;
+
+    for (int i = 1; i <= n; i++) {
+        for (int j = i; j <= n; j++) {
+            dp[j] += dp[j - i];
+        }
+    }
+
+    return dp[n];
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    cout << "整数划分方法数：" << integer_partition(n) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def integer_partition(n: int) -> int:
+    """整数划分数"""
+    dp = [0] * (n + 1)
+    dp[0] = 1
+
+    for i in range(1, n + 1):
+        for j in range(i, n + 1):
+            dp[j] += dp[j - i]
+
+    return dp[n]
+
+def solve():
+    n = int(input())
+    result = integer_partition(n)
+    print(f"整数划分方法数：{result}")
+
+solve()
+```
+
+应用三：多项式乘法（FFT）
+-----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef complex<double> CD;
+const double PI = acos(-1);
+
+// FFT
+void fft(vector<CD>& a, bool invert) {
+    int n = a.size();
+
+    for (int i = 1, j = 0; i < n; i++) {
+        int bit = n >> 1;
+        for (; j & bit; bit >>= 1) {
+            j ^= bit;
+        }
+        j ^= bit;
+        if (i < j) swap(a[i], a[j]);
+    }
+
+    for (int len = 2; len <= n; len <<= 1) {
+        double ang = 2 * PI / len * (invert ? -1 : 1);
+        CD wlen(cos(ang), sin(ang));
+        for (int i = 0; i < n; i += len) {
+            CD w(1);
+            for (int j = 0; j < len / 2; j++) {
+                CD u = a[i + j], v = a[i + j + len / 2] * w;
+                a[i + j] = u + v;
+                a[i + j + len / 2] = u - v;
+                w *= wlen;
+            }
+        }
+    }
+
+    if (invert) {
+        for (CD& x : a) {
+            x /= n;
+        }
+    }
+}
+
+// 多项式乘法
+vector<int> multiply(vector<int>& a, vector<int>& b) {
+    vector<CD> fa(a.begin(), a.end()), fb(b.begin(), b.end());
+
+    int n = 1;
+    while (n < a.size() + b.size()) {
+        n <<= 1;
+    }
+
+    fa.resize(n);
+    fb.resize(n);
+
+    fft(fa, false);
+    fft(fb, false);
+
+    for (int i = 0; i < n; i++) {
+        fa[i] *= fb[i];
+    }
+
+    fft(fa, true);
+
+    vector<int> result(n);
+    for (int i = 0; i < n; i++) {
+        result[i] = round(fa[i].real());
+    }
+
+    return result;
+}
+
+int main() {
+    string a_str, b_str;
+    cin >> a_str >> b_str;
+
+    vector<int> a, b;
+    for (char c : a_str) {
+        a.push_back(c - '0');
+    }
+    reverse(a.begin(), a.end());
+
+    for (char c : b_str) {
+        b.push_back(c - '0');
+    }
+    reverse(b.begin(), b.end());
+
+    vector<int> result = multiply(a, b);
+
+    // 处理进位
+    for (int i = 0; i < result.size() - 1; i++) {
+        result[i + 1] += result[i] / 10;
+        result[i] %= 10;
+    }
+
+    // 输出
+    while (result.size() > 1 && result.back() == 0) {
+        result.pop_back();
+    }
+
+    reverse(result.begin(), result.end());
+    for (int digit : result) {
+        cout << digit;
+    }
+    cout << '\n';
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 【模板】多项式乘法（FFT）：基本应用
+2. 整数划分（洛谷P1025）：组合计数
+3. 凑钱问题（洛谷P1164）：背包问题
+
+注意事项
+--------
+1. OGF与EGF的选择：
+   - 组合问题：普通母函数
+   - 排列问题：指数母函数
+
+2. 优化技巧：
+   - 使用FFT加速多项式乘法
+   - 利用生成函数的性质简化计算
+
+时间复杂度总结
+--------------
+- 直接计算：O(n²)
+- FFT优化：O(n log n)
+
+母函数是解决组合计数问题的强大工具，
+掌握它对解决很多组合数学问题都有帮助。

@@ -1,1 +1,4 @@
-raw-documents​
+__pycache__/
+*.pyc
+.env
+raw-documents/

@@ -1,0 +1,533 @@
+斯特林数（Stirling Numbers）
+==========================
+
+算法概述
+--------
+斯特林数是组合数学中的重要概念，分为两类：
+1. 第一类斯特林数：将n个元素划分为k个圆排列的方案数
+2. 第二类斯特林数：将n个不同元素划分为k个非空子集的方案数
+
+第一类斯特林数（Stirling Numbers of the First Kind）
+----------------------------------------------------
+定义：s(n, k) 表示将n个不同元素排列成k个圆排列（循环）的方案数。
+
+递推公式：
+- s(n, k) = s(n-1, k-1) + (n-1) * s(n-1, k)
+- 边界条件：s(0, 0) = 1, s(n, 0) = 0 (n > 0), s(0, k) = 0 (k > 0)
+
+组合意义：
+- s(n-1, k-1)：将元素n单独作为一个圆排列
+- (n-1) * s(n-1, k)：将元素n插入到前n-1个元素的任意一个圆排列中，有n-1个位置
+
+C++版本（第一类斯特林数）：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+const int MOD = 1e9 + 7;
+
+long long s[MAXN][MAXN];  // 第一类斯特林数
+
+void init() {
+    s[0][0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        for (int j = 1; j <= i; j++) {
+            s[i][j] = (s[i-1][j-1] + (i-1) * s[i-1][j]) % MOD;
+        }
+    }
+}
+
+int main() {
+    init();
+
+    int n, k;
+    cin >> n >> k;
+    cout << s[n][k] << '\n';
+
+    return 0;
+}
+```
+
+Python版本（第一类斯特林数）：
+```python
+MOD = 10**9 + 7
+MAXN = 1005
+
+def init_stirling1():
+    s = [[0] * MAXN for _ in range(MAXN)]
+    s[0][0] = 1
+    for i in range(1, MAXN):
+        for j in range(1, i + 1):
+            s[i][j] = (s[i-1][j-1] + (i-1) * s[i-1][j]) % MOD
+    return s
+
+def main():
+    s = init_stirling1()
+    n, k = map(int, input().split())
+    print(s[n][k])
+
+if __name__ == "__main__":
+    main()
+```
+
+第二类斯特林数（Stirling Numbers of the Second Kind）
+----------------------------------------------------
+定义：S(n, k) 表示将n个不同元素划分为k个非空子集的方案数。
+
+递推公式：
+- S(n, k) = S(n-1, k-1) + k * S(n-1, k)
+- 边界条件：S(0, 0) = 1, S(n, 0) = 0 (n > 0), S(0, k) = 0 (k > 0)
+
+组合意义：
+- S(n-1, k-1)：将元素n单独作为一个集合
+- k * S(n-1, k)：将元素n放入前n-1个元素的k个集合中的任意一个
+
+C++版本（第二类斯特林数）：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+const int MOD = 1e9 + 7;
+
+long long S[MAXN][MAXN];  // 第二类斯特林数
+
+void init() {
+    S[0][0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        for (int j = 1; j <= i; j++) {
+            S[i][j] = (S[i-1][j-1] + j * S[i-1][j]) % MOD;
+        }
+    }
+}
+
+int main() {
+    init();
+
+    int n, k;
+    cin >> n >> k;
+    cout << S[n][k] << '\n';
+
+    return 0;
+}
+```
+
+Python版本（第二类斯特林数）：
+```python
+MOD = 10**9 + 7
+MAXN = 1005
+
+def init_stirling2():
+    S = [[0] * MAXN for _ in range(MAXN)]
+    S[0][0] = 1
+    for i in range(1, MAXN):
+        for j in range(1, i + 1):
+            S[i][j] = (S[i-1][j-1] + j * S[i-1][j]) % MOD
+    return S
+
+def main():
+    S = init_stirling2()
+    n, k = map(int, input().split())
+    print(S[n][k])
+
+if __name__ == "__main__":
+    main()
+```
+
+进阶应用：第二类斯特林数的通项公式
+-----------------------------------
+S(n, k) = (1/k!) * sum((-1)^(k-i) * C(k, i) * i^n) for i = 0 to k
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MOD = 1e9 + 7;
+
+long long qpow(long long a, long long b) {
+    long long res = 1;
+    while (b) {
+        if (b & 1) res = res * a % MOD;
+        a = a * a % MOD;
+        b >>= 1;
+    }
+    return res;
+}
+
+long long fact(int n) {
+    long long res = 1;
+    for (int i = 1; i <= n; i++) {
+        res = res * i % MOD;
+    }
+    return res;
+}
+
+// 计算C(n, m)
+long long C(long long n, long long m) {
+    if (m < 0 || m > n) return 0;
+    if (m > n - m) m = n - m;
+
+    long long res = 1;
+    for (long long i = 1; i <= m; i++) {
+        res = res * (n - m + i) % MOD;
+        res = res * qpow(i, MOD - 2) % MOD;
+    }
+    return res;
+}
+
+// 第二类斯特林数 S(n, k)
+long long Stirling2(int n, int k) {
+    long long res = 0;
+    for (int i = 0; i <= k; i++) {
+        long long term = C(k, i) * qpow(i, n) % MOD;
+        if ((k - i) % 2 == 1) {
+            res = (res - term + MOD) % MOD;
+        } else {
+            res = (res + term) % MOD;
+        }
+    }
+    res = res * qpow(fact(k), MOD - 2) % MOD;
+    return res;
+}
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+    cout << Stirling2(n, k) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+
+def qpow(a, b):
+    res = 1
+    while b:
+        if b & 1:
+            res = res * a % MOD
+        a = a * a % MOD
+        b >>= 1
+    return res
+
+def fact(n):
+    res = 1
+    for i in range(1, n + 1):
+        res = res * i % MOD
+    return res
+
+def C(n, m):
+    if m < 0 or m > n:
+        return 0
+    if m > n - m:
+        m = n - m
+
+    res = 1
+    for i in range(1, m + 1):
+        res = res * (n - m + i) % MOD
+        res = res * qpow(i, MOD - 2) % MOD
+    return res
+
+def Stirling2(n, k):
+    res = 0
+    for i in range(k + 1):
+        term = C(k, i) * qpow(i, n) % MOD
+        if (k - i) % 2 == 1:
+            res = (res - term + MOD) % MOD
+        else:
+            res = (res + term) % MOD
+    res = res * qpow(fact(k), MOD - 2) % MOD
+    return res
+
+def main():
+    n, k = map(int, input().split())
+    print(Stirling2(n, k))
+
+if __name__ == "__main__":
+    main()
+```
+
+典型例题一：球盒问题（不同球，相同盒）
+--------------------------------------
+将n个不同的球放入k个相同的盒子中，每个盒子至少有一个球，求方案数。
+
+答案：S(n, k) - 第二类斯特林数
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+const int MOD = 1e9 + 7;
+
+long long S[MAXN][MAXN];
+
+void init() {
+    S[0][0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        for (int j = 1; j <= i; j++) {
+            S[i][j] = (S[i-1][j-1] + j * S[i-1][j]) % MOD;
+        }
+    }
+}
+
+int main() {
+    init();
+
+    int n, k;
+    cin >> n >> k;
+    cout << S[n][k] << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+MAXN = 1005
+
+def init():
+    S = [[0] * MAXN for _ in range(MAXN)]
+    S[0][0] = 1
+    for i in range(1, MAXN):
+        for j in range(1, i + 1):
+            S[i][j] = (S[i-1][j-1] + j * S[i-1][j]) % MOD
+    return S
+
+def main():
+    S = init()
+    n, k = map(int, input().split())
+    print(S[n][k])
+
+if __name__ == "__main__":
+    main()
+```
+
+典型例题二：集合划分问题
+------------------------
+给定n个不同的元素，求将其划分为若干个非空子集的所有方案数。
+
+答案：sum(S(n, k)) for k = 1 to n，这就是贝尔数Bell(n)
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+const int MOD = 1e9 + 7;
+
+long long S[MAXN][MAXN];
+
+void init() {
+    S[0][0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        for (int j = 1; j <= i; j++) {
+            S[i][j] = (S[i-1][j-1] + j * S[i-1][j]) % MOD;
+        }
+    }
+}
+
+int main() {
+    init();
+
+    int n;
+    cin >> n;
+
+    long long ans = 0;
+    for (int k = 1; k <= n; k++) {
+        ans = (ans + S[n][k]) % MOD;
+    }
+    cout << ans << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+MAXN = 1005
+
+def init():
+    S = [[0] * MAXN for _ in range(MAXN)]
+    S[0][0] = 1
+    for i in range(1, MAXN):
+        for j in range(1, i + 1):
+            S[i][j] = (S[i-1][j-1] + j * S[i-1][j]) % MOD
+    return S
+
+def main():
+    S = init()
+    n = int(input())
+
+    ans = 0
+    for k in range(1, n + 1):
+        ans = (ans + S[n][k]) % MOD
+    print(ans)
+
+if __name__ == "__main__":
+    main()
+```
+
+典型例题三：排列的轮换数
+------------------------
+求n个元素的排列中恰好有k个轮换的排列数。
+
+答案：|s(n, k)| - 第一类斯特林数的绝对值
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+const int MOD = 1e9 + 7;
+
+long long s[MAXN][MAXN];  // 第一类斯特林数
+
+void init() {
+    s[0][0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        for (int j = 1; j <= i; j++) {
+            s[i][j] = (s[i-1][j-1] + (i-1) * s[i-1][j]) % MOD;
+        }
+    }
+}
+
+int main() {
+    init();
+
+    int n, k;
+    cin >> n >> k;
+    cout << s[n][k] << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+MAXN = 1005
+
+def init():
+    s = [[0] * MAXN for _ in range(MAXN)]
+    s[0][0] = 1
+    for i in range(1, MAXN):
+        for j in range(1, i + 1):
+            s[i][j] = (s[i-1][j-1] + (i-1) * s[i-1][j]) % MOD
+    return s
+
+def main():
+    s = init()
+    n, k = map(int, input().split())
+    print(s[n][k])
+
+if __name__ == "__main__":
+    main()
+```
+
+典型例题四：第二类斯特林数求和
+------------------------------
+求 sum(S(i, k)) for i = k to n
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+const int MOD = 1e9 + 7;
+
+long long S[MAXN][MAXN];
+
+void init() {
+    S[0][0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        for (int j = 1; j <= i; j++) {
+            S[i][j] = (S[i-1][j-1] + j * S[i-1][j]) % MOD;
+        }
+    }
+}
+
+int main() {
+    init();
+
+    int n, k;
+    cin >> n >> k;
+
+    long long ans = 0;
+    for (int i = k; i <= n; i++) {
+        ans = (ans + S[i][k]) % MOD;
+    }
+    cout << ans << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+MAXN = 1005
+
+def init():
+    S = [[0] * MAXN for _ in range(MAXN)]
+    S[0][0] = 1
+    for i in range(1, MAXN):
+        for j in range(1, i + 1):
+            S[i][j] = (S[i-1][j-1] + j * S[i-1][j]) % MOD
+    return S
+
+def main():
+    S = init()
+    n, k = map(int, input().split())
+
+    ans = 0
+    for i in range(k, n + 1):
+        ans = (ans + S[i][k]) % MOD
+    print(ans)
+
+if __name__ == "__main__":
+    main()
+```
+
+重要性质总结
+------------
+第一类斯特林数 s(n, k)：
+1. s(n, n) = 1：n个元素形成n个轮换，每个元素自成一个轮换
+2. s(n, 1) = (n-1)!：所有元素形成一个轮换
+3. s(n, n-1) = C(n, 2)：n个元素形成n-1个轮换，必有一个2元轮换
+4. x(x+1)...(x+n-1) = sum(s(n, k) * x^k)
+
+第二类斯特林数 S(n, k)：
+1. S(n, n) = 1：每个元素自成一个集合
+2. S(n, 1) = 1：所有元素在同一个集合
+3. S(n, 2) = 2^(n-1) - 1
+4. S(n, n-1) = C(n, 2)：n个元素分成n-1个集合，必有一个2元集合
+5. k^n = sum(S(n, i) * k! * C(k, i)) for i = 0 to k
+
+注意事项
+--------
+1. 第一类斯特林数处理圆排列（轮换）问题
+2. 第二类斯特林数处理集合划分问题
+3. 递推公式中的系数不同：第一类是(n-1)，第二类是k
+4. 注意边界条件的正确设置
+5. 计算时注意模数运算，防止负数
+6. 对于大规模数据，可以使用通项公式或NTT优化
+7. 第一类斯特林数有符号版本，通常使用无符号版本（绝对值）
+
+时间复杂度总结
+--------------
+- 递推预处理：O(n^2)
+- 单次查询：O(1)
+- 通项公式计算：O(k log n) 或 O(k log MOD)
+
+斯特林数在组合计数问题中应用广泛，特别是涉及集合划分和轮换的问题。

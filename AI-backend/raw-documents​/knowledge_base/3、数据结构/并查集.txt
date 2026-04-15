@@ -1,0 +1,821 @@
+并查集（Disjoint Set Union, DSU）
+====================
+
+算法概述
+--------
+并查集是一种树形数据结构，用于处理一些不交集的合并及查询问题。它支持两种操作：查找元素所在的集合，合并两个集合。
+
+核心特点：
+1. 支持快速查找和合并
+2. 路径压缩优化：查找时压缩路径
+3. 按秩合并优化：按树的大小或高度合并
+4. 时间复杂度接近O(1)
+
+核心思想
+--------
+1. 每个集合用一棵树表示，根节点代表集合
+2. 查找：找到元素的根节点
+3. 合并：将一棵树的根连接到另一棵树的根
+4. 优化：路径压缩+按秩合并
+
+基础模板：基础并查集
+------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int parent[MAXN];  // parent[i]表示i的父节点
+
+// 初始化
+void init(int n) {
+    for (int i = 1; i <= n; i++) {
+        parent[i] = i;  // 初始时每个元素是自己的父节点
+    }
+}
+
+// 查找根节点（未优化）
+int find(int x) {
+    if (parent[x] != x) {
+        parent[x] = find(parent[x]);  // 路径压缩
+    }
+    return parent[x];
+}
+
+// 合并两个集合
+void unionSets(int x, int y) {
+    int rootX = find(x);
+    int rootY = find(y);
+
+    if (rootX != rootY) {
+        parent[rootX] = rootY;
+    }
+}
+
+// 判断是否在同一集合
+bool isConnected(int x, int y) {
+    return find(x) == find(y);
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    init(n);
+
+    while (m--) {
+        char op;
+        int a, b;
+        cin >> op >> a >> b;
+
+        if (op == 'M') {  // Merge: 合并
+            unionSets(a, b);
+        } else {  // Query: 查询
+            if (isConnected(a, b)) {
+                cout << "Yes" << endl;
+            } else {
+                cout << "No" << endl;
+            }
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class DSU:
+    def __init__(self, n):
+        self.parent = list(range(n + 1))
+
+    def find(self, x):
+        """查找根节点（带路径压缩）"""
+        if self.parent[x] != x:
+            self.parent[x] = self.find(self.parent[x])
+        return self.parent[x]
+
+    def union(self, x, y):
+        """合并两个集合"""
+        root_x = self.find(x)
+        root_y = self.find(y)
+
+        if root_x != root_y:
+            self.parent[root_x] = root_y
+
+    def is_connected(self, x, y):
+        """判断是否在同一集合"""
+        return self.find(x) == self.find(y)
+
+# 测试
+n, m = map(int, input().split())
+dsu = DSU(n)
+
+for _ in range(m):
+    parts = input().split()
+    op = parts[0]
+    a, b = int(parts[1]), int(parts[2])
+
+    if op == 'M':
+        dsu.union(a, b)
+    else:
+        print("Yes" if dsu.is_connected(a, b) else "No")
+```
+
+应用一：按秩合并+路径压缩
+-----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int parent[MAXN];
+int rank_[MAXN];  // rank_[i]表示以i为根的树的高度
+
+// 初始化
+void init(int n) {
+    for (int i = 1; i <= n; i++) {
+        parent[i] = i;
+        rank_[i] = 1;  // 初始高度为1
+    }
+}
+
+// 查找根节点（路径压缩）
+int find(int x) {
+    if (parent[x] != x) {
+        parent[x] = find(parent[x]);
+    }
+    return parent[x];
+}
+
+// 合并两个集合（按秩合并）
+void unionSets(int x, int y) {
+    int rootX = find(x);
+    int rootY = find(y);
+
+    if (rootX != rootY) {
+        // 将高度小的树合并到高度大的树
+        if (rank_[rootX] < rank_[rootY]) {
+            parent[rootX] = rootY;
+        } else if (rank_[rootX] > rank_[rootY]) {
+            parent[rootY] = rootX;
+        } else {
+            parent[rootX] = rootY;
+            rank_[rootY]++;
+        }
+    }
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    init(n);
+
+    while (m--) {
+        int a, b;
+        cin >> a >> b;
+        unionSets(a, b);
+    }
+
+    // 统计连通块数量
+    int cnt = 0;
+    for (int i = 1; i <= n; i++) {
+        if (parent[i] == i) {
+            cnt++;
+        }
+    }
+
+    cout << "连通块数量: " << cnt << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class DSU:
+    def __init__(self, n):
+        self.parent = list(range(n + 1))
+        self.rank = [1] * (n + 1)
+
+    def find(self, x):
+        """查找根节点（带路径压缩）"""
+        if self.parent[x] != x:
+            self.parent[x] = self.find(self.parent[x])
+        return self.parent[x]
+
+    def union(self, x, y):
+        """合并两个集合（按秩合并）"""
+        root_x = self.find(x)
+        root_y = self.find(y)
+
+        if root_x != root_y:
+            if self.rank[root_x] < self.rank[root_y]:
+                self.parent[root_x] = root_y
+            elif self.rank[root_x] > self.rank[root_y]:
+                self.parent[root_y] = root_x
+            else:
+                self.parent[root_x] = root_y
+                self.rank[root_y] += 1
+
+# 测试
+n, m = map(int, input().split())
+dsu = DSU(n)
+
+for _ in range(m):
+    a, b = map(int, input().split())
+    dsu.union(a, b)
+
+# 统计连通块数量
+cnt = sum(1 for i in range(1, n + 1) if dsu.parent[i] == i)
+print(f"连通块数量: {cnt}")
+```
+
+应用二：带权并查集
+----------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int parent[MAXN];
+int weight[MAXN];  // weight[i]表示i到父节点的权值
+
+// 初始化
+void init(int n) {
+    for (int i = 1; i <= n; i++) {
+        parent[i] = i;
+        weight[i] = 0;
+    }
+}
+
+// 查找根节点（路径压缩，更新权值）
+int find(int x) {
+    if (parent[x] != x) {
+        int root = find(parent[x]);
+        weight[x] += weight[parent[x]];  // 更新权值
+        parent[x] = root;
+    }
+    return parent[x];
+}
+
+// 合并两个集合
+void unionSets(int x, int y, int w) {
+    int rootX = find(x);
+    int rootY = find(y);
+
+    if (rootX != rootY) {
+        parent[rootX] = rootY;
+        weight[rootX] = weight[y] + w - weight[x];
+    }
+}
+
+// 查询x到y的距离
+int query(int x, int y) {
+    if (find(x) != find(y)) {
+        return -1;  // 不在同一集合
+    }
+    return abs(weight[x] - weight[y]);
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    init(n);
+
+    while (m--) {
+        char op;
+        int a, b, c;
+        cin >> op >> a >> b;
+
+        if (op == '!') {  // 合并
+            cin >> c;
+            unionSets(a, b, c);
+        } else {  // 查询
+            int dist = query(a, b);
+            if (dist == -1) {
+                cout << "UNKNOWN" << endl;
+            } else {
+                cout << dist << endl;
+            }
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class WeightedDSU:
+    def __init__(self, n):
+        self.parent = list(range(n + 1))
+        self.weight = [0] * (n + 1)
+
+    def find(self, x):
+        """查找根节点（带路径压缩和权值更新）"""
+        if self.parent[x] != x:
+            root = self.find(self.parent[x])
+            self.weight[x] += self.weight[self.parent[x]]
+            self.parent[x] = root
+        return self.parent[x]
+
+    def union(self, x, y, w):
+        """合并两个集合"""
+        root_x = self.find(x)
+        root_y = self.find(y)
+
+        if root_x != root_y:
+            self.parent[root_x] = root_y
+            self.weight[root_x] = self.weight[y] + w - self.weight[x]
+
+    def query(self, x, y):
+        """查询x到y的距离"""
+        if self.find(x) != self.find(y):
+            return -1
+        return abs(self.weight[x] - self.weight[y])
+
+# 测试
+n, m = map(int, input().split())
+dsu = WeightedDSU(n)
+
+for _ in range(m):
+    parts = input().split()
+    op = parts[0]
+    a, b = int(parts[1]), int(parts[2])
+
+    if op == '!':
+        c = int(parts[3])
+        dsu.union(a, b, c)
+    else:
+        dist = dsu.query(a, b)
+        if dist == -1:
+            print("UNKNOWN")
+        else:
+            print(dist)
+```
+
+应用三：连通性问题
+----------------
+
+C++版本（岛屿数量）：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class DSU {
+public:
+    vector<int> parent;
+    vector<int> rank_;
+
+    DSU(int n) {
+        parent.resize(n);
+        rank_.resize(n, 1);
+        for (int i = 0; i < n; i++) {
+            parent[i] = i;
+        }
+    }
+
+    int find(int x) {
+        if (parent[x] != x) {
+            parent[x] = find(parent[x]);
+        }
+        return parent[x];
+    }
+
+    void unite(int x, int y) {
+        int rootX = find(x);
+        int rootY = find(y);
+
+        if (rootX != rootY) {
+            if (rank_[rootX] < rank_[rootY]) {
+                parent[rootX] = rootY;
+            } else if (rank_[rootX] > rank_[rootY]) {
+                parent[rootY] = rootX;
+            } else {
+                parent[rootX] = rootY;
+                rank_[rootY]++;
+            }
+        }
+    }
+};
+
+int numIslands(vector<vector<char>>& grid) {
+    if (grid.empty() || grid[0].empty()) return 0;
+
+    int m = grid.size();
+    int n = grid[0].size();
+    DSU dsu(m * n);
+
+    int dx[] = {0, 0, 1, -1};
+    int dy[] = {1, -1, 0, 0};
+
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            if (grid[i][j] == '1') {
+                for (int k = 0; k < 4; k++) {
+                    int ni = i + dx[k];
+                    int nj = j + dy[k];
+
+                    if (ni >= 0 && ni < m && nj >= 0 && nj < n && grid[ni][nj] == '1') {
+                        dsu.unite(i * n + j, ni * n + nj);
+                    }
+                }
+            }
+        }
+    }
+
+    unordered_set<int> islands;
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            if (grid[i][j] == '1') {
+                islands.insert(dsu.find(i * n + j));
+            }
+        }
+    }
+
+    return islands.size();
+}
+
+int main() {
+    int m, n;
+    cin >> m >> n;
+
+    vector<vector<char>> grid(m, vector<char>(n));
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            cin >> grid[i][j];
+        }
+    }
+
+    cout << "岛屿数量: " << numIslands(grid) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class DSU:
+    def __init__(self, n):
+        self.parent = list(range(n))
+        self.rank = [1] * n
+
+    def find(self, x):
+        if self.parent[x] != x:
+            self.parent[x] = self.find(self.parent[x])
+        return self.parent[x]
+
+    def unite(self, x, y):
+        root_x = self.find(x)
+        root_y = self.find(y)
+
+        if root_x != root_y:
+            if self.rank[root_x] < self.rank[root_y]:
+                self.parent[root_x] = root_y
+            elif self.rank[root_x] > self.rank[root_y]:
+                self.parent[root_y] = root_x
+            else:
+                self.parent[root_x] = root_y
+                self.rank[root_y] += 1
+
+def num_islands(grid):
+    """计算岛屿数量"""
+    if not grid or not grid[0]:
+        return 0
+
+    m, n = len(grid), len(grid[0])
+    dsu = DSU(m * n)
+
+    dx = [0, 0, 1, -1]
+    dy = [1, -1, 0, 0]
+
+    for i in range(m):
+        for j in range(n):
+            if grid[i][j] == '1':
+                for k in range(4):
+                    ni, nj = i + dx[k], j + dy[k]
+                    if 0 <= ni < m and 0 <= nj < n and grid[ni][nj] == '1':
+                        dsu.unite(i * n + j, ni * n + nj)
+
+    islands = set()
+    for i in range(m):
+        for j in range(n):
+            if grid[i][j] == '1':
+                islands.add(dsu.find(i * n + j))
+
+    return len(islands)
+
+# 测试
+m, n = map(int, input().split())
+grid = [list(input().strip()) for _ in range(m)]
+
+print(f"岛屿数量: {num_islands(grid)}")
+```
+
+应用四：最小生成树（Kruskal算法）
+--------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+struct Edge {
+    int u, v, w;
+    bool operator<(const Edge& other) const {
+        return w < other.w;
+    }
+};
+
+int parent[MAXN];
+int rank_[MAXN];
+
+void init(int n) {
+    for (int i = 1; i <= n; i++) {
+        parent[i] = i;
+        rank_[i] = 1;
+    }
+}
+
+int find(int x) {
+    if (parent[x] != x) {
+        parent[x] = find(parent[x]);
+    }
+    return parent[x];
+}
+
+void unite(int x, int y) {
+    int rootX = find(x);
+    int rootY = find(y);
+
+    if (rootX != rootY) {
+        if (rank_[rootX] < rank_[rootY]) {
+            parent[rootX] = rootY;
+        } else if (rank_[rootX] > rank_[rootY]) {
+            parent[rootY] = rootX;
+        } else {
+            parent[rootX] = rootY;
+            rank_[rootY]++;
+        }
+    }
+}
+
+int kruskal(int n, vector<Edge>& edges) {
+    init(n);
+    sort(edges.begin(), edges.end());
+
+    int totalWeight = 0;
+    int edgeCount = 0;
+
+    for (auto& edge : edges) {
+        if (find(edge.u) != find(edge.v)) {
+            unite(edge.u, edge.v);
+            totalWeight += edge.w;
+            edgeCount++;
+
+            if (edgeCount == n - 1) {
+                break;
+            }
+        }
+    }
+
+    return totalWeight;
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    vector<Edge> edges(m);
+    for (int i = 0; i < m; i++) {
+        cin >> edges[i].u >> edges[i].v >> edges[i].w;
+    }
+
+    int mstWeight = kruskal(n, edges);
+    cout << "最小生成树权重: " << mstWeight << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class DSU:
+    def __init__(self, n):
+        self.parent = list(range(n + 1))
+        self.rank = [1] * (n + 1)
+
+    def find(self, x):
+        if self.parent[x] != x:
+            self.parent[x] = self.find(self.parent[x])
+        return self.parent[x]
+
+    def unite(self, x, y):
+        root_x = self.find(x)
+        root_y = self.find(y)
+
+        if root_x != root_y:
+            if self.rank[root_x] < self.rank[root_y]:
+                self.parent[root_x] = root_y
+            elif self.rank[root_x] > self.rank[root_y]:
+                self.parent[root_y] = root_x
+            else:
+                self.parent[root_x] = root_y
+                self.rank[root_y] += 1
+
+def kruskal(n, edges):
+    """Kruskal算法求最小生成树"""
+    dsu = DSU(n)
+    edges.sort(key=lambda x: x[2])  # 按权重排序
+
+    total_weight = 0
+    edge_count = 0
+
+    for u, v, w in edges:
+        if dsu.find(u) != dsu.find(v):
+            dsu.unite(u, v)
+            total_weight += w
+            edge_count += 1
+
+            if edge_count == n - 1:
+                break
+
+    return total_weight
+
+# 测试
+n, m = map(int, input().split())
+edges = []
+for _ in range(m):
+    u, v, w = map(int, input().split())
+    edges.append((u, v, w))
+
+mst_weight = kruskal(n, edges)
+print(f"最小生成树权重: {mst_weight}")
+```
+
+应用五：食物链（带权并查集）
+------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 50005;
+
+int parent[MAXN];
+int relation[MAXN];  // 0:同类，1:吃父节点，2:被父节点吃
+
+void init(int n) {
+    for (int i = 1; i <= n; i++) {
+        parent[i] = i;
+        relation[i] = 0;
+    }
+}
+
+int find(int x) {
+    if (parent[x] != x) {
+        int root = find(parent[x]);
+        relation[x] = (relation[x] + relation[parent[x]]) % 3;
+        parent[x] = root;
+    }
+    return parent[x];
+}
+
+bool unite(int x, int y, int r) {
+    int rootX = find(x);
+    int rootY = find(y);
+
+    if (rootX == rootY) {
+        return (relation[x] - relation[y] + 3) % 3 == r;
+    }
+
+    parent[rootX] = rootY;
+    relation[rootX] = (relation[y] - relation[x] + r + 3) % 3;
+    return true;
+}
+
+int main() {
+    int n, k;
+    cin >> n >> k;
+
+    init(n);
+    int ans = 0;
+
+    while (k--) {
+        int d, x, y;
+        cin >> d >> x >> y;
+
+        if (x > n || y > n) {
+            ans++;
+            continue;
+        }
+
+        if (d == 1) {  // 同类
+            if (!unite(x, y, 0)) {
+                ans++;
+            }
+        } else {  // x吃y
+            if (!unite(x, y, 1)) {
+                ans++;
+            }
+        }
+    }
+
+    cout << "假话数量: " << ans << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class DSU:
+    def __init__(self, n):
+        self.parent = list(range(n + 1))
+        self.relation = [0] * (n + 1)  # 0:同类，1:吃父节点，2:被父节点吃
+
+    def find(self, x):
+        if self.parent[x] != x:
+            root = self.find(self.parent[x])
+            self.relation[x] = (self.relation[x] + self.relation[self.parent[x]]) % 3
+            self.parent[x] = root
+        return self.parent[x]
+
+    def unite(self, x, y, r):
+        """合并，返回True表示为真话"""
+        root_x = self.find(x)
+        root_y = self.find(y)
+
+        if root_x == root_y:
+            return (self.relation[x] - self.relation[y] + 3) % 3 == r
+
+        self.parent[root_x] = root_y
+        self.relation[root_x] = (self.relation[y] - self.relation[x] + r + 3) % 3
+        return True
+
+# 测试
+n, k = map(int, input().split())
+dsu = DSU(n)
+ans = 0
+
+for _ in range(k):
+    d, x, y = map(int, input().split())
+
+    if x > n or y > n:
+        ans += 1
+        continue
+
+    if d == 1:  # 同类
+        if not dsu.unite(x, y, 0):
+            ans += 1
+    else:  # x吃y
+        if not dsu.unite(x, y, 1):
+            ans += 1
+
+print(f"假话数量: {ans}")
+```
+
+典型例题
+--------
+1. 朋友圈（LeetCode 547）：并查集基础
+2. 岛屿数量（LeetCode 200）：网格+并查集
+3. 冗余连接（LeetCode 684）：并查集检测环
+4. 冗余连接II（LeetCode 685）：有向图+并查集
+5. 账户合并（LeetCode 721）：字符串+并查集
+6. 相似字符串组（LeetCode 839）：并查集分组
+7. 除法求值（LeetCode 399）：带权并查集
+8. 食物链（洛谷P2024）：经典带权并查集
+
+注意事项
+--------
+1. 路径压缩和按秩合并缺一不可，这样才能保证接近O(1)的时间复杂度
+2. 初始化时要让每个节点的父节点指向自己
+3. 带权并查集要注意权值的更新规则
+4. 在某些问题中，需要注意元素下标从0还是从1开始
+5. 统计连通块时，要找根节点（parent[i] == i）
+6. 合并时要先查找再合并，避免出现环
+7. 注意题目中的特殊条件，如是否允许自环等
+
+时间复杂度总结
+--------------
+- 初始化：O(n)
+- 查找操作：接近O(1)（路径压缩+按秩合并）
+- 合并操作：接近O(1)
+- 空间复杂度：O(n)
+
+并查集是处理连通性问题的利器，掌握它对解决图论问题非常有帮助。

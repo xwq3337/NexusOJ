@@ -1,4 +1,4 @@
-import { forEach, pick } from 'lodash'
+import { pick } from 'lodash'
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
@@ -11,11 +11,13 @@ export const useUserStore = defineStore(
     const gender = ref('')
     const avatar = ref('')
     const rating = ref(0)
-    function initStore( obj : { id : Number, username: string, nickname : string, gender : string, avatar: string, rating: number } ) {
+    const refs = { id, username, nickname, gender, avatar, rating }
+
+    function initStore( obj : { id : number, username: string, nickname : string, gender : string, avatar: string, rating: number } ) {
       const pickedObj = pick(obj, ['id', 'username', 'nickname', 'gender', 'avatar', 'rating'])
-      forEach(pickedObj, (val, key) => {
-        eval(key).value = val
-      })
+      for (const [key, val] of Object.entries(pickedObj)) {
+        refs[key as keyof typeof refs].value = val
+      }
     }
 
     const resetStore = () => {

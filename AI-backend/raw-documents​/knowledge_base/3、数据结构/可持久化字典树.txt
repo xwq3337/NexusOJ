@@ -1,0 +1,165 @@
+可持久化字典树（Persistent Trie）
+====================
+
+算法概述
+--------
+可持久化字典树是字典树(Trie)的可持久化版本，保留所有历史版本。常用于处理异或最值问题、前缀查询等。
+
+核心特点：
+1. 保留所有历史版本
+2. 支持异或最大值查询
+3. 时间复杂度O(log MAX_VALUE)
+4. 空间复杂度O(n log MAX_VALUE)
+
+核心思想
+--------
+1. 每个版本记录根节点
+2. 插入时只创建新路径
+3. 共享未修改的节点
+4. 从高位到低位处理
+
+基础模板
+--------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int MAXM = MAXN * 32;
+
+int trie[MAXM][2];
+int roots[MAXN];
+int node_cnt = 0;
+
+int newNode() {
+    node_cnt++;
+    trie[node_cnt][0] = trie[node_cnt][1] = 0;
+    return node_cnt;
+}
+
+void insert(int pre_root, int& cur_root, int x) {
+    cur_root = newNode();
+    int cur = cur_root;
+    int pre = pre_root;
+
+    for (int i = 30; i >= 0; i--) {
+        int bit = (x >> i) & 1;
+        trie[cur][bit] = newNode();
+        trie[cur][bit ^ 1] = trie[pre][bit ^ 1];
+
+        cur = trie[cur][bit];
+        pre = trie[pre][bit];
+    }
+}
+
+int query(int root, int x) {
+    int cur = root;
+    int ans = 0;
+
+    for (int i = 30; i >= 0; i--) {
+        int bit = (x >> i) & 1;
+        if (trie[cur][bit ^ 1]) {
+            ans |= (1 << i);
+            cur = trie[cur][bit ^ 1];
+        } else {
+            cur = trie[cur][bit];
+        }
+    }
+
+    return ans;
+}
+
+int main() {
+    int n, m;
+    cin >> n >> m;
+
+    roots[0] = newNode();
+
+    for (int i = 1; i <= n; i++) {
+        int x;
+        cin >> x;
+        insert(roots[i - 1], roots[i], x);
+    }
+
+    for (int i = 1; i <= m; i++) {
+        int x;
+        cin >> x;
+        cout << query(roots[x], x) << endl;
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class PersistentTrie:
+    def __init__(self):
+        self.trie = [[0, 0]]
+        self.roots = [0]
+        self.node_cnt = 0
+
+    def new_node(self):
+        self.node_cnt += 1
+        self.trie.append([0, 0])
+        return self.node_cnt
+
+    def insert(self, pre_root, x):
+        """插入数字"""
+        cur_root = self.new_node()
+        cur = cur_root
+        pre = pre_root
+
+        for i in range(30, -1, -1):
+            bit = (x >> i) & 1
+            self.trie[cur][bit] = self.new_node()
+            self.trie[cur][bit ^ 1] = self.trie[pre][bit ^ 1]
+
+            cur = self.trie[cur][bit]
+            pre = self.trie[pre][bit]
+
+        return cur_root
+
+    def query(self, root, x):
+        """查询最大异或值"""
+        cur = root
+        ans = 0
+
+        for i in range(30, -1, -1):
+            bit = (x >> i) & 1
+            if self.trie[cur][bit ^ 1]:
+                ans |= (1 << i)
+                cur = self.trie[cur][bit ^ 1]
+            else:
+                cur = self.trie[cur][bit]
+
+        return ans
+
+# 测试
+n, m = map(int, input().split())
+pt = PersistentTrie()
+pt.roots[0] = pt.new_node()
+
+for i in range(1, n + 1):
+    x = int(input())
+    pt.roots.append(pt.insert(pt.roots[i - 1], x))
+
+for _ in range(m):
+    x = int(input())
+    print(pt.query(pt.roots[x], x))
+```
+
+典型例题
+--------
+1. 可持久化Trie（牛客网）
+2. 异或之和（区间查询）
+
+注意事项
+--------
+1. 节点数量：n * 31
+2. 从高位到低位处理
+3. 注意数据范围
+
+时间复杂度：O(31)每次操作

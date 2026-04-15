@@ -1,0 +1,416 @@
+伸展树（Splay Tree）
+====================
+
+算法概述
+--------
+伸展树(Splay Tree)是一种自调整的二叉搜索树，通过splay操作将访问的节点移动到根部，从而保证均摊时间复杂度。
+
+核心特点：
+1. 自调整平衡
+2. 不需要存储额外信息（如高度、颜色）
+3. 将访问的节点splay到根部
+4. 均摊时间复杂度O(log n)
+
+核心思想
+--------
+1. Zig、Zig-Zig、Zig-Zag三种旋转
+2. 通过splay操作保持树的平衡
+3. 路径压缩思想
+4. 分裂和合并操作
+
+基础模板
+--------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+struct SplayTree {
+    int ch[MAXN][2];  // 左右子节点
+    int fa[MAXN];     // 父节点
+    int val[MAXN];    // 节点值
+    int cnt[MAXN];    // 节点计数
+    int size[MAXN];   // 子树大小
+    int root, tot;
+
+    void init() {
+        root = tot = 0;
+        memset(ch, 0, sizeof(ch));
+        memset(fa, 0, sizeof(fa));
+        memset(cnt, 0, sizeof(cnt));
+        memset(size, 0, sizeof(size));
+    }
+
+    int newNode(int v) {
+        tot++;
+        val[tot] = v;
+        cnt[tot] = size[tot] = 1;
+        ch[tot][0] = ch[tot][1] = fa[tot] = 0;
+        return tot;
+    }
+
+    void pushUp(int x) {
+        size[x] = size[ch[x][0]] + size[ch[x][1]] + cnt[x];
+    }
+
+    void rotate(int x) {
+        int y = fa[x], z = fa[y];
+        int k = (ch[y][1] == x);
+
+        if (z) ch[z][ch[z][1] == y] = x;
+        ch[y][k] = ch[x][k ^ 1];
+        fa[ch[y][k]] = y;
+        ch[x][k ^ 1] = y;
+        fa[y] = x;
+        fa[x] = z;
+
+        pushUp(y);
+        pushUp(x);
+    }
+
+    void splay(int x, int target = 0) {
+        while (fa[x] != target) {
+            int y = fa[x], z = fa[y];
+            if (z != target) {
+                if ((ch[y][1] == x) ^ (ch[z][1] == y)) {
+                    rotate(x);
+                } else {
+                    rotate(y);
+                }
+            }
+            rotate(x);
+        }
+
+        if (!target) root = x;
+    }
+
+    void insert(int v) {
+        if (!root) {
+            root = newNode(v);
+            return;
+        }
+
+        int cur = root, f = 0;
+        while (true) {
+            if (val[cur] == v) {
+                cnt[cur]++;
+                pushUp(cur);
+                pushUp(f);
+                splay(cur);
+                return;
+            }
+
+            f = cur;
+            cur = ch[cur][v > val[cur]];
+
+            if (!cur) {
+                cur = newNode(v);
+                fa[cur] = f;
+                ch[f][v > val[f]] = cur;
+                pushUp(f);
+                splay(cur);
+                return;
+            }
+        }
+    }
+
+    int find(int v) {
+        int res = 0, cur = root;
+
+        while (true) {
+            if (cur == 0) return res;
+
+            if (v < val[cur]) {
+                cur = ch[cur][0];
+            } else {
+                res += size[ch[cur][0]];
+                if (v == val[cur]) {
+                    splay(cur);
+                    return res + 1;
+                }
+                res += cnt[cur];
+                cur = ch[cur][1];
+            }
+        }
+    }
+
+    int kth(int k) {
+        int cur = root;
+
+        while (true) {
+            if (ch[cur][0] && k <= size[ch[cur][0]]) {
+                cur = ch[cur][0];
+            } else {
+                k -= cnt[cur] + size[ch[cur][0]];
+                if (k <= 0) {
+                    splay(cur);
+                    return val[cur];
+                }
+                cur = ch[cur][1];
+            }
+        }
+    }
+
+    void erase(int v) {
+        int node = find(v);
+
+        if (cnt[node] > 1) {
+            cnt[node]--;
+            pushUp(node);
+            return;
+        }
+
+        if (!ch[node][0] && !ch[node][1]) {
+            root = 0;
+        } else if (!ch[node][0]) {
+            root = ch[node][1];
+            fa[root] = 0;
+        } else if (!ch[node][1]) {
+            root = ch[node][0];
+            fa[root] = 0;
+        } else {
+            int left = ch[node][0];
+            while (ch[left][1]) left = ch[left][1];
+
+            splay(left);
+            ch[left][1] = ch[node][1];
+            fa[ch[node][1]] = left;
+            pushUp(left);
+        }
+    }
+
+    int getPre(int v) {
+        int res = 0, cur = root;
+
+        while (cur) {
+            if (val[cur] < v) {
+                res = cur;
+                cur = ch[cur][1];
+            } else {
+                cur = ch[cur][0];
+            }
+        }
+
+        splay(res);
+        return val[res];
+    }
+
+    int getNext(int v) {
+        int res = 0, cur = root;
+
+        while (cur) {
+            if (val[cur] > v) {
+                res = cur;
+                cur = ch[cur][0];
+            } else {
+                cur = ch[cur][1];
+            }
+        }
+
+        splay(res);
+        return val[res];
+    }
+} splay;
+
+int main() {
+    int n;
+    cin >> n;
+
+    splay.init();
+
+    for (int i = 0; i < n; i++) {
+        int op, x;
+        cin >> op >> x;
+
+        if (op == 1) {  // 插入
+            splay.insert(x);
+        } else if (op == 2) {  // 删除
+            splay.erase(x);
+        } else if (op == 3) {  // 查询排名
+            cout << splay.find(x) << endl;
+        } else if (op == 4) {  // 查询第k小
+            int k;
+            cin >> k;
+            cout << splay.kth(k) << endl;
+        } else if (op == 5) {  // 前驱
+            cout << splay.getPre(x) << endl;
+        } else {  // 后继
+            cout << splay.getNext(x) << endl;
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class SplayTree:
+    def __init__(self):
+        self.root = None
+
+    class Node:
+        def __init__(self, val):
+            self.val = val
+            self.left = None
+            self.right = None
+            self.parent = None
+            self.cnt = 1
+            self.size = 1
+
+    def update_size(self, node):
+        if node:
+            size = node.cnt
+            if node.left:
+                size += node.left.size
+            if node.right:
+                size += node.right.size
+            node.size = size
+
+    def rotate(self, x):
+        y = x.parent
+        z = y.parent
+
+        if y.left == x:
+            y.left = x.right
+            if x.right:
+                x.right.parent = y
+            x.right = y
+        else:
+            y.right = x.left
+            if x.left:
+                x.left.parent = y
+            x.left = y
+
+        x.parent = z
+        y.parent = x
+
+        if z:
+            if z.left == y:
+                z.left = x
+            else:
+                z.right = x
+
+        self.update_size(y)
+        self.update_size(x)
+
+    def splay(self, x, target=None):
+        while x.parent != target:
+            y = x.parent
+            z = y.parent
+
+            if z != target:
+                if (y.left == x) ^ (z.left == y):
+                    self.rotate(x)
+                else:
+                    self.rotate(y)
+            self.rotate(x)
+
+        if not target:
+            self.root = x
+
+    def insert(self, val):
+        if not self.root:
+            self.root = self.Node(val)
+            return
+
+        node = self.root
+        parent = None
+
+        while node:
+            parent = node
+            if node.val == val:
+                node.cnt += 1
+                self.splay(node)
+                return
+            elif val < node.val:
+                node = node.left
+            else:
+                node = node.right
+
+        new_node = self.Node(val)
+        new_node.parent = parent
+
+        if val < parent.val:
+            parent.left = new_node
+        else:
+            parent.right = new_node
+
+        self.splay(new_node)
+
+    def find(self, val):
+        res = 0
+        node = self.root
+
+        while node:
+            if val < node.val:
+                node = node.left
+            else:
+                if node.left:
+                    res += node.left.size
+                if val == node.val:
+                    self.splay(node)
+                    return res + 1
+                res += node.cnt
+                node = node.right
+
+        return res + 1
+
+    def kth(self, k):
+        node = self.root
+
+        while node:
+            left_size = node.left.size if node.left else 0
+
+            if k <= left_size:
+                node = node.left
+            elif k <= left_size + node.cnt:
+                self.splay(node)
+                return node.val
+            else:
+                k -= left_size + node.cnt
+                node = node.right
+
+        return None
+
+# 测试
+st = SplayTree()
+n = int(input())
+
+for _ in range(n):
+    parts = input().split()
+    op = int(parts[0])
+
+    if op == 1:  # 插入
+        x = int(parts[1])
+        st.insert(x)
+    elif op == 2:  # 删除
+        x = int(parts[1])
+        # 删除操作较为复杂，这里省略
+    elif op == 3:  # 查询排名
+        x = int(parts[1])
+        print(st.find(x))
+    elif op == 4:  # 查询第k小
+        k = int(parts[1])
+        print(st.kth(k))
+```
+
+典型应用
+--------
+1. 平衡树替代
+2. 区间操作
+3. LCT的基础
+
+注意事项
+--------
+1. splay操作后要更新指针
+2. 注意旋转顺序
+3. 维护size信息
+4. 均摊复杂度，单次可能O(n)
+
+时间复杂度：均摊O(log n)
+
+Splay Tree是一种简单但强大的平衡树，通过自调整保持平衡，是许多高级数据结构的基础。

@@ -1,0 +1,474 @@
+逆元（Modular Inverse）
+=====================
+
+概念概述
+--------
+在模运算中，逆元是一个重要的概念。对于整数a和模数m，
+如果存在整数x使得 a × x ≡ 1 (mod m)，则称x为a模m的逆元，记作a^(-1)。
+
+逆元存在的条件
+--------------
+整数a模m的逆元存在的充要条件是：gcd(a, m) = 1，即a与m互质。
+
+逆元的性质
+----------
+1. 如果a有逆元，则逆元唯一
+2. (a × b)^(-1) ≡ a^(-1) × b^(-1) (mod m)
+3. (a^k)^(-1) ≡ (a^(-1))^k (mod m)
+
+方法一：扩展欧几里得求逆元
+------------------------
+当gcd(a, m) = 1时，可以用扩展欧几里得算法求逆元。
+
+求解a × x ≡ 1 (mod m)等价于求解a × x + m × y = 1
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 扩展欧几里得算法
+ll exgcd(ll a, ll b, ll &x, ll &y) {
+    if (b == 0) {
+        x = 1;
+        y = 0;
+        return a;
+    }
+    ll x1, y1;
+    ll gcd = exgcd(b, a % b, x1, y1);
+    x = y1;
+    y = x1 - (a / b) * y1;
+    return gcd;
+}
+
+// 求逆元（扩展欧几里得）
+ll inv_exgcd(ll a, ll m) {
+    ll x, y;
+    ll g = exgcd(a, m, x, y);
+    if (g != 1) {
+        return -1;  // 逆元不存在
+    }
+    return (x % m + m) % m;  // 保证为正
+}
+
+int main() {
+    ll a, m;
+    cin >> a >> m;
+
+    ll inv_a = inv_exgcd(a, m);
+    if (inv_a == -1) {
+        cout << "逆元不存在" << '\n';
+    } else {
+        cout << a << "模" << m << "的逆元是：" << inv_a << '\n';
+        cout << "验证：" << a << " × " << inv_a << " mod " << m
+             << " = " << (a * inv_a % m) << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def exgcd(a: int, b: int):
+    """扩展欧几里得算法"""
+    if b == 0:
+        return a, 1, 0
+    gcd, x1, y1 = exgcd(b, a % b)
+    x = y1
+    y = x1 - (a // b) * y1
+    return gcd, x, y
+
+def inv_exgcd(a: int, m: int) -> int:
+    """求逆元（扩展欧几里得）"""
+    g, x, y = exgcd(a, m)
+    if g != 1:
+        return -1  # 逆元不存在
+    return (x % m + m) % m
+
+def solve():
+    a, m = map(int, input().split())
+    inv_a = inv_exgcd(a, m)
+    if inv_a == -1:
+        print("逆元不存在")
+    else:
+        print(f"{a}模{m}的逆元是：{inv_a}")
+        print(f"验证：{a} × {inv_a} mod {m} = {a * inv_a % m}")
+
+solve()
+```
+
+方法二：费马小定理求逆元
+----------------------
+当m是质数时，可以用费马小定理求逆元。
+
+根据费马小定理：a^(m-1) ≡ 1 (mod m)
+因此：a^(-1) ≡ a^(m-2) (mod m)
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 快速幂
+ll pow_mod(ll a, ll b, ll mod) {
+    ll res = 1;
+    a %= mod;
+    while (b > 0) {
+        if (b & 1) res = res * a % mod;
+        a = a * a % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 求逆元（费马小定理）
+ll inv_fermat(ll a, ll mod) {
+    return pow_mod(a, mod - 2, mod);
+}
+
+int main() {
+    ll a, mod;
+    cin >> a >> mod;
+
+    ll inv_a = inv_fermat(a, mod);
+    cout << a << "模" << mod << "的逆元是：" << inv_a << '\n';
+    cout << "验证：" << a << " × " << inv_a << " mod " << mod
+         << " = " << (a * inv_a % mod) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def pow_mod(a: int, b: int, mod: int) -> int:
+    """快速幂"""
+    res = 1
+    a %= mod
+    while b > 0:
+        if b & 1:
+            res = res * a % mod
+        a = a * a % mod
+        b >>= 1
+    return res
+
+def inv_fermat(a: int, mod: int) -> int:
+    """求逆元（费马小定理）"""
+    return pow_mod(a, mod - 2, mod)
+
+def solve():
+    a, mod = map(int, input().split())
+    inv_a = inv_fermat(a, mod)
+    print(f"{a}模{mod}的逆元是：{inv_a}")
+    print(f"验证：{a} × {inv_a} mod {mod} = {a * inv_a % mod}")
+
+solve()
+```
+
+方法三：线性递推求逆元
+--------------------
+当模数m是质数时，可以O(n)时间预处理1到n的所有逆元。
+
+递推公式：
+inv[i] = (m - m / i) × inv[m % i] % m
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+const int MAXN = 3000005;
+ll inv[MAXN];
+
+// 线性递推求逆元
+void init_inv(int n, ll mod) {
+    inv[1] = 1;
+    for (int i = 2; i <= n; i++) {
+        inv[i] = (mod - mod / i) * inv[mod % i] % mod;
+    }
+}
+
+int main() {
+    int n;
+    ll mod;
+    cin >> n >> mod;
+
+    init_inv(n, mod);
+
+    for (int i = 1; i <= n; i++) {
+        cout << inv[i] << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def init_inv(n: int, mod: int):
+    """线性递推求逆元"""
+    inv = [0] * (n + 1)
+    inv[1] = 1
+    for i in range(2, n + 1):
+        inv[i] = (mod - mod // i) * inv[mod % i] % mod
+    return inv
+
+def solve():
+    n, mod = map(int, input().split())
+    inv = init_inv(n, mod)
+    for i in range(1, n + 1):
+        print(inv[i])
+
+solve()
+```
+
+应用一：计算组合数
+----------------
+使用逆元计算组合数C(n, m) = n! / (m! × (n-m)!)
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+const ll MOD = 1e9 + 7;
+
+const int MAXN = 2000005;
+ll fact[MAXN];     // 阶乘
+ll inv_fact[MAXN]; // 逆元阶乘
+
+// 快速幂
+ll pow_mod(ll a, ll b) {
+    ll res = 1;
+    a %= MOD;
+    while (b > 0) {
+        if (b & 1) res = res * a % MOD;
+        a = a * a % MOD;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 预处理阶乘和逆元阶乘
+void init_comb(int n) {
+    fact[0] = 1;
+    for (int i = 1; i <= n; i++) {
+        fact[i] = fact[i-1] * i % MOD;
+    }
+
+    inv_fact[n] = pow_mod(fact[n], MOD - 2);
+    for (int i = n - 1; i >= 0; i--) {
+        inv_fact[i] = inv_fact[i + 1] * (i + 1) % MOD;
+    }
+}
+
+// 计算组合数C(n, m)
+ll comb(ll n, ll m) {
+    if (m < 0 || m > n) return 0;
+    return fact[n] * inv_fact[m] % MOD * inv_fact[n - m] % MOD;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    init_comb(n);
+
+    ll a, b;
+    cin >> a >> b;
+    cout << "C(" << a << ", " << b << ") = " << comb(a, b) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+MOD = 10**9 + 7
+
+def pow_mod(a: int, b: int) -> int:
+    """快速幂"""
+    res = 1
+    a %= MOD
+    while b > 0:
+        if b & 1:
+            res = res * a % MOD
+        a = a * a % MOD
+        b >>= 1
+    return res
+
+def init_comb(n: int):
+    """预处理阶乘和逆元阶乘"""
+    fact = [1] * (n + 1)
+    for i in range(1, n + 1):
+        fact[i] = fact[i-1] * i % MOD
+
+    inv_fact = [1] * (n + 1)
+    inv_fact[n] = pow_mod(fact[n], MOD - 2)
+    for i in range(n - 1, -1, -1):
+        inv_fact[i] = inv_fact[i + 1] * (i + 1) % MOD
+
+    return fact, inv_fact
+
+def comb(n: int, m: int, fact, inv_fact) -> int:
+    """计算组合数"""
+    if m < 0 or m > n:
+        return 0
+    return fact[n] * inv_fact[m] % MOD * inv_fact[n - m] % MOD
+
+def solve():
+    n = int(input())
+    fact, inv_fact = init_comb(n)
+
+    a, b = map(int, input().split())
+    print(f"C({a}, {b}) = {comb(a, b, fact, inv_fact)}")
+
+solve()
+```
+
+应用二：模意义下的除法
+--------------------
+在模运算中，除法等价于乘以逆元。
+
+a / b ≡ a × b^(-1) (mod m)
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+const ll MOD = 1e9 + 7;
+
+// 快速幂
+ll pow_mod(ll a, ll b) {
+    ll res = 1;
+    a %= MOD;
+    while (b > 0) {
+        if (b & 1) res = res * a % MOD;
+        a = a * a % MOD;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 求逆元
+ll inv(ll a) {
+    return pow_mod(a, MOD - 2);
+}
+
+// 模意义下的除法
+ll mod_div(ll a, ll b) {
+    return a * inv(b) % MOD;
+}
+
+int main() {
+    ll a, b;
+    cin >> a >> b;
+
+    cout << a << " / " << b << " mod " << MOD << " = "
+         << mod_div(a, b) << '\n';
+
+    return 0;
+}
+```
+
+应用三：线性方程组求解
+--------------------
+求解模意义下的线性方程组。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+const ll MOD = 1e9 + 7;
+
+// 快速幂
+ll pow_mod(ll a, ll b) {
+    ll res = 1;
+    a %= MOD;
+    while (b > 0) {
+        if (b & 1) res = res * a % MOD;
+        a = a * a % MOD;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 求逆元
+ll inv(ll a) {
+    return pow_mod(a, MOD - 2);
+}
+
+int main() {
+    // 求解：2x + 3y ≡ 7 (mod MOD)
+    //      4x + 5y ≡ 9 (mod MOD)
+
+    ll a1 = 2, b1 = 3, c1 = 7;
+    ll a2 = 4, b2 = 5, c2 = 9;
+
+    // 消元
+    ll det = a1 * b2 % MOD - a2 * b1 % MOD;
+    det = (det % MOD + MOD) % MOD;
+
+    ll det_inv = inv(det);
+
+    ll x = (c1 * b2 % MOD - c2 * b1 % MOD) % MOD;
+    x = x * det_inv % MOD;
+    x = (x % MOD + MOD) % MOD;
+
+    ll y = (a1 * c2 % MOD - a2 * c1 % MOD) % MOD;
+    y = y * det_inv % MOD;
+    y = (y % MOD + MOD) % MOD;
+
+    cout << "x = " << x << '\n';
+    cout << "y = " << y << '\n';
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 【模板】乘法逆元（洛谷P3811）：线性求逆元
+2. 【模板】组合数（洛谷P3807）：逆元应用
+3. A/B Problem（洛谷P2023）：模除法
+4. 模线性方程组：高斯消元+逆元
+
+注意事项
+--------
+1. 逆元存在条件：
+   - gcd(a, m) = 1
+
+2. 方法选择：
+   - 费马小定理：模数是质数
+   - 扩展欧几里得：任何互质情况
+   - 线性递推：批量求逆元，模数是质数
+
+3. 常见错误：
+   - 忘记检查逆元是否存在
+   - 负数取模处理错误
+   - 阶乘预处理范围不够
+
+4. 优化技巧：
+   - 预处理阶乘和逆元阶乘
+   - 使用线性递推批量求逆元
+
+时间复杂度总结
+--------------
+- 费马小定理：O(log m)
+- 扩展欧几里得：O(log min(a, m))
+- 线性递推：O(n)
+- 预处理阶乘：O(n)
+
+逆元是模运算中除法的桥梁，
+掌握它对解决组合计数、模方程等问题至关重要。

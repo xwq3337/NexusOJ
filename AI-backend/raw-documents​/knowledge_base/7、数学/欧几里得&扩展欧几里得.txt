@@ -1,0 +1,585 @@
+欧几里得算法 & 扩展欧几里得算法
+==============================
+
+算法概述
+--------
+欧几里得算法（又称辗转相除法）是求最大公约数（GCD）的高效算法。
+扩展欧几里得算法不仅能求GCD，还能找到满足贝祖等式的整数解。
+
+欧几里得算法
+------------
+算法基于以下原理：
+    gcd(a, b) = gcd(b, a % b)
+
+当b = 0时，gcd(a, 0) = a
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 辗转相除法
+int gcd(int a, int b) {
+    return b == 0 ? a : gcd(b, a % b);
+}
+
+// 迭代版本
+int gcd_iter(int a, int b) {
+    while (b) {
+        int t = a % b;
+        a = b;
+        b = t;
+    }
+    return a;
+}
+
+// C++17内置函数
+int gcd_builtin(int a, int b) {
+    return std::gcd(a, b);
+}
+
+int main() {
+    int a, b;
+    cin >> a >> b;
+
+    cout << "gcd(" << a << ", " << b << ") = " << gcd(a, b) << '\n';
+    cout << "lcm(" << a << ", " << b << ") = " << a / gcd(a, b) * b << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import math
+
+def gcd(a: int, b: int) -> int:
+    """辗转相除法"""
+    return a if b == 0 else gcd(b, a % b)
+
+def gcd_iter(a: int, b: int) -> int:
+    """迭代版本"""
+    while b:
+        a, b = b, a % b
+    return a
+
+def lcm(a: int, b: int) -> int:
+    """最小公倍数"""
+    return a // math.gcd(a, b) * b
+
+def solve():
+    a, b = map(int, input().split())
+    print(f"gcd({a}, {b}) = {gcd(a, b)}")
+    print(f"lcm({a}, {b}) = {lcm(a, b)}")
+
+solve()
+```
+
+扩展欧几里得算法
+----------------
+贝祖等式：对于任意整数a, b，存在整数x, y使得：
+    a × x + b × y = gcd(a, b)
+
+扩展欧几里得算法不仅计算gcd(a, b)，还求出满足上述等式的x和y。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 扩展欧几里得算法
+// 返回gcd(a, b)，并求出满足 a*x + b*y = gcd(a,b) 的x, y
+ll exgcd(ll a, ll b, ll &x, ll &y) {
+    if (b == 0) {
+        x = 1;
+        y = 0;
+        return a;
+    }
+    ll x1, y1;
+    ll gcd = exgcd(b, a % b, x1, y1);
+    x = y1;
+    y = x1 - (a / b) * y1;
+    return gcd;
+}
+
+// 求解a*x ≡ b (mod m)，等价于a*x + m*y = b
+ll solve_linear_congruence(ll a, ll b, ll m) {
+    ll x, y;
+    ll g = exgcd(a, m, x, y);
+    if (b % g != 0) {
+        return -1;  // 无解
+    }
+    ll mod = m / g;
+    x = (x % mod + mod) % mod;  // 保证x非负
+    x = x * (b / g) % mod;
+    return x;
+}
+
+int main() {
+    ll a, b;
+    cin >> a >> b;
+
+    ll x, y;
+    ll g = exgcd(a, b, x, y);
+
+    cout << "gcd(" << a << ", " << b << ") = " << g << '\n';
+    cout << "满足 " << a << "×" << x << " + " << b << "×" << y << " = " << g << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def exgcd(a: int, b: int):
+    """
+    扩展欧几里得算法
+    返回 (gcd, x, y)，满足 a*x + b*y = gcd(a, b)
+    """
+    if b == 0:
+        return a, 1, 0
+    gcd, x1, y1 = exgcd(b, a % b)
+    x = y1
+    y = x1 - (a // b) * y1
+    return gcd, x, y
+
+def solve_linear_congruence(a: int, b: int, m: int) -> int:
+    """求解a*x ≡ b (mod m)"""
+    gcd, x, y = exgcd(a, m)
+    if b % gcd != 0:
+        return -1  # 无解
+    mod = m // gcd
+    x = (x % mod + mod) % mod
+    x = x * (b // gcd) % mod
+    return x
+
+def solve():
+    a, b = map(int, input().split())
+    g, x, y = exgcd(a, b)
+    print(f"gcd({a}, {b}) = {g}")
+    print(f"满足 {a}×{x} + {b}×{y} = {g}")
+
+solve()
+```
+
+应用一：求解模线性方程
+----------------------
+方程形式：a × x ≡ b (mod m)
+
+等价于：a × x + m × y = b
+
+使用扩展欧几里得求解。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 扩展欧几里得
+ll exgcd(ll a, ll b, ll &x, ll &y) {
+    if (b == 0) {
+        x = 1;
+        y = 0;
+        return a;
+    }
+    ll x1, y1;
+    ll gcd = exgcd(b, a % b, x1, y1);
+    x = y1;
+    y = x1 - (a / b) * y1;
+    return gcd;
+}
+
+// 求解a*x ≡ b (mod m)
+// 返回最小非负整数解，无解返回-1
+ll linear_congruence(ll a, ll b, ll m) {
+    ll x, y;
+    ll g = exgcd(a, m, x, y);
+
+    if (b % g != 0) {
+        return -1;  // 无解
+    }
+
+    // 通解：x = x0 + k*(m/g)，k为整数
+    ll m_div_g = m / g;
+    ll x0 = (x % m_div_g + m_div_g) % m_div_g;  // 转为非负
+    x0 = x0 * (b / g) % m_div_g;
+
+    return x0;
+}
+
+int main() {
+    ll a, b, m;
+    cin >> a >> b >> m;
+
+    ll x = linear_congruence(a, b, m);
+    if (x == -1) {
+        cout << "无解" << '\n';
+    } else {
+        cout << "最小非负整数解：x = " << x << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def exgcd(a: int, b: int):
+    """扩展欧几里得算法"""
+    if b == 0:
+        return a, 1, 0
+    gcd, x1, y1 = exgcd(b, a % b)
+    x = y1
+    y = x1 - (a // b) * y1
+    return gcd, x, y
+
+def linear_congruence(a: int, b: int, m: int) -> int:
+    """求解a*x ≡ b (mod m)，返回最小非负整数解"""
+    g, x, y = exgcd(a, m)
+
+    if b % g != 0:
+        return -1  # 无解
+
+    m_div_g = m // g
+    x0 = (x % m_div_g + m_div_g) % m_div_g
+    x0 = x0 * (b // g) % m_div_g
+    return x0
+
+def solve():
+    a, b, m = map(int, input().split())
+    x = linear_congruence(a, b, m)
+    if x == -1:
+        print("无解")
+    else:
+        print(f"最小非负整数解：x = {x}")
+
+solve()
+```
+
+应用二：求乘法逆元
+------------------
+求a模m的乘法逆元，即求x使得a × x ≡ 1 (mod m)
+
+条件：gcd(a, m) = 1
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 扩展欧几里得
+ll exgcd(ll a, ll b, ll &x, ll &y) {
+    if (b == 0) {
+        x = 1;
+        y = 0;
+        return a;
+    }
+    ll x1, y1;
+    ll gcd = exgcd(b, a % b, x1, y1);
+    x = y1;
+    y = x1 - (a / b) * y1;
+    return gcd;
+}
+
+// 求逆元
+ll inv(ll a, ll m) {
+    ll x, y;
+    ll g = exgcd(a, m, x, y);
+    if (g != 1) {
+        return -1;  // 逆元不存在
+    }
+    return (x % m + m) % m;  // 保证为正
+}
+
+int main() {
+    ll a, m;
+    cin >> a >> m;
+
+    ll inv_a = inv(a, m);
+    if (inv_a == -1) {
+        cout << "逆元不存在" << '\n';
+    } else {
+        cout << a << "模" << m << "的逆元是：" << inv_a << '\n';
+        cout << "验证：" << a << " × " << inv_a << " mod " << m
+             << " = " << (a * inv_a % m) << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def exgcd(a: int, b: int):
+    """扩展欧几里得算法"""
+    if b == 0:
+        return a, 1, 0
+    gcd, x1, y1 = exgcd(b, a % b)
+    x = y1
+    y = x1 - (a // b) * y1
+    return gcd, x, y
+
+def inv(a: int, m: int) -> int:
+    """求逆元"""
+    g, x, y = exgcd(a, m)
+    if g != 1:
+        return -1  # 逆元不存在
+    return (x % m + m) % m
+
+def solve():
+    a, m = map(int, input().split())
+    inv_a = inv(a, m)
+    if inv_a == -1:
+        print("逆元不存在")
+    else:
+        print(f"{a}模{m}的逆元是：{inv_a}")
+        print(f"验证：{a} × {inv_a} mod {m} = {a * inv_a % m}")
+
+solve()
+```
+
+应用三：求解不定方程
+--------------------
+方程形式：a × x + b × y = c
+
+使用扩展欧几里得求解。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 扩展欧几里得
+ll exgcd(ll a, ll b, ll &x, ll &y) {
+    if (b == 0) {
+        x = 1;
+        y = 0;
+        return a;
+    }
+    ll x1, y1;
+    ll gcd = exgcd(b, a % b, x1, y1);
+    x = y1;
+    y = x1 - (a / b) * y1;
+    return gcd;
+}
+
+// 求解a*x + b*y = c
+// 返回是否有解，若有解则返回x, y
+bool solve_diophantine(ll a, ll b, ll c, ll &x, ll &y) {
+    ll x0, y0;
+    ll g = exgcd(a, b, x0, y0);
+
+    if (c % g != 0) {
+        return false;  // 无解
+    }
+
+    // 特解
+    ll m = c / g;
+    x = x0 * m;
+    y = y0 * m;
+
+    // 通解：
+    // x = x + k*(b/g)
+    // y = y - k*(a/g)
+    // k为任意整数
+
+    return true;
+}
+
+int main() {
+    ll a, b, c;
+    cin >> a >> b >> c;
+
+    ll x, y;
+    if (solve_diophantine(a, b, c, x, y)) {
+        cout << "方程 " << a << "x + " << b << "y = " << c << " 有解" << '\n';
+        cout << "一个特解：x = " << x << ", y = " << y << '\n';
+    } else {
+        cout << "方程无解" << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def exgcd(a: int, b: int):
+    """扩展欧几里得算法"""
+    if b == 0:
+        return a, 1, 0
+    gcd, x1, y1 = exgcd(b, a % b)
+    x = y1
+    y = x1 - (a // b) * y1
+    return gcd, x, y
+
+def solve_diophantine(a: int, b: int, c: int):
+    """求解a*x + b*y = c"""
+    g, x0, y0 = exgcd(a, b)
+
+    if c % g != 0:
+        return None  # 无解
+
+    # 特解
+    m = c // g
+    x = x0 * m
+    y = y0 * m
+    return x, y
+
+def solve():
+    a, b, c = map(int, input().split())
+    result = solve_diophantine(a, b, c)
+    if result:
+        x, y = result
+        print(f"方程 {a}x + {b}y = {c} 有解")
+        print(f"一个特解：x = {x}, y = {y}")
+    else:
+        print("方程无解")
+
+solve()
+```
+
+应用四：求最小正解
+------------------
+求模线性方程的最小正整数解。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 扩展欧几里得
+ll exgcd(ll a, ll b, ll &x, ll &y) {
+    if (b == 0) {
+        x = 1;
+        y = 0;
+        return a;
+    }
+    ll x1, y1;
+    ll gcd = exgcd(b, a % b, x1, y1);
+    x = y1;
+    y = x1 - (a / b) * y1;
+    return gcd;
+}
+
+// 求a*x ≡ b (mod m)的最小正整数解
+ll linear_congruence_min_positive(ll a, ll b, ll m) {
+    ll x, y;
+    ll g = exgcd(a, m, x, y);
+
+    if (b % g != 0) {
+        return -1;  // 无解
+    }
+
+    ll m_div_g = m / g;
+    ll x0 = ((x % m_div_g) + m_div_g) % m_div_g;
+    x0 = x0 * (b / g) % m_div_g;
+
+    if (x0 == 0) x0 = m_div_g;  // 如果是0，返回周期
+    return x0;
+}
+
+int main() {
+    ll a, b, m;
+    cin >> a >> b >> m;
+
+    ll x = linear_congruence_min_positive(a, b, m);
+    if (x == -1) {
+        cout << "无解" << '\n';
+    } else {
+        cout << "最小正整数解：x = " << x << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def exgcd(a: int, b: int):
+    """扩展欧几里得算法"""
+    if b == 0:
+        return a, 1, 0
+    gcd, x1, y1 = exgcd(b, a % b)
+    x = y1
+    y = x1 - (a // b) * y1
+    return gcd, x, y
+
+def linear_congruence_min_positive(a: int, b: int, m: int) -> int:
+    """求a*x ≡ b (mod m)的最小正整数解"""
+    g, x, y = exgcd(a, m)
+
+    if b % g != 0:
+        return -1  # 无解
+
+    m_div_g = m // g
+    x0 = ((x % m_div_g) + m_div_g) % m_div_g
+    x0 = x0 * (b // g) % m_div_g
+
+    if x0 == 0:
+        x0 = m_div_g
+    return x0
+
+def solve():
+    a, b, m = map(int, input().split())
+    x = linear_congruence_min_positive(a, b, m)
+    if x == -1:
+        print("无解")
+    else:
+        print(f"最小正整数解：x = {x}")
+
+solve()
+```
+
+典型例题
+--------
+1. 【模板】欧几里得算法（洛谷P4549）：求GCD
+2. 【模板】扩展欧几里得（洛谷P1082）：求解同余方程
+3. 【模板】乘法逆元（洛谷P3811）：求逆元
+4. 青蛙的约会（洛谷P1516）：扩展欧几里得应用
+5. 同余方程（洛谷P1082）：求解模线性方程
+
+注意事项
+--------
+1. 欧几里得算法：
+   - 时间复杂度：O(log(min(a, b)))
+   - 空间复杂度：O(log(min(a, b)))（递归栈）
+   - 推荐使用迭代版本避免栈溢出
+
+2. 扩展欧几里得算法：
+   - 不仅可以求GCD，还能求贝祖等式的解
+   - 通解形式：x = x0 + k*(b/g), y = y0 - k*(a/g)
+
+3. 乘法逆元：
+   - 存在条件：gcd(a, m) = 1
+   - 如果m是质数，可用费马小定理：a^(m-2) mod m
+   - 如果m不是质数，必须用扩展欧几里得
+
+4. 模线性方程：
+   - 方程有解的条件：gcd(a, m) | b
+   - 解的个数：gcd(a, m)个
+   - 解的周期：m/gcd(a, m)
+
+5. 常见错误：
+   - 忘记处理负数情况
+   - 求逆元前忘记检查是否存在
+   - 混淆最小非负解和最小正解
+
+时间复杂度总结
+--------------
+- 欧几里得算法：O(log(min(a, b)))
+- 扩展欧几里得算法：O(log(min(a, b)))
+- 求解模线性方程：O(log(min(a, m)))
+
+欧几里得算法和扩展欧几里得算法是数论的基础，
+它们在求解同余方程、求逆元、中国剩余定理等方面都有重要应用。

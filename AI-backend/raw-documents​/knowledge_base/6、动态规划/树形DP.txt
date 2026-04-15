@@ -1,0 +1,847 @@
+树形DP（Tree Dynamic Programming）
+==================================
+
+算法概述
+--------
+树形DP是指在树形结构上进行动态规划。由于树具有良好的递归性质，树的每个子树都可以看作一个独立的子问题，因此非常适合使用动态规划来解决。
+
+树形DP的一般流程：
+1. 确定DP状态（通常在节点上定义）
+2. 确定DP转移方程（通常通过子节点信息更新父节点）
+3. 确定DP顺序（通常使用DFS后序遍历）
+
+核心思想
+--------
+1. 树的递归性质：每个节点的DP值可以由其子节点的DP值得到
+2. 后序遍历：先处理子节点，再处理当前节点
+3. 状态设计：通常在节点上定义状态，如dp[u][0/1]表示u节点选/不选
+4. 转移方向：从叶子节点向根节点转移
+
+一、基础模板：树的最大独立集
+----------------------------
+
+问题描述：
+给定一棵树，选择一些节点，使得这些节点之间没有边相连（即父子节点不能同时选），求最多能选多少个节点。
+
+状态定义：
+dp[u][0]：不选节点u时，以u为根的子树的最大独立集大小
+dp[u][1]：选节点u时，以u为根的子树的最大独立集大小
+
+状态转移：
+dp[u][0] = Σmax(dp[v][0], dp[v][1])，v是u的子节点
+dp[u][1] = Σdp[v][0] + 1
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 5005;
+
+vector<int> adj[MAXN];
+int dp[MAXN][2];  // dp[u][0/1]: 不选/选u的最大独立集
+bool vis[MAXN];
+
+void dfs(int u) {
+    vis[u] = true;
+    dp[u][0] = 0;
+    dp[u][1] = 1;  // 选自己，初始为1
+
+    for (int v : adj[u]) {
+        if (vis[v]) continue;
+        dfs(v);
+
+        // 不选u，子节点可选可不选
+        dp[u][0] += max(dp[v][0], dp[v][1]);
+        // 选u，子节点必须不选
+        dp[u][1] += dp[v][0];
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    for (int i = 1; i < n; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    memset(vis, false, sizeof(vis));
+    dfs(1);
+
+    cout << max(dp[1][0], dp[1][1]) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import defaultdict
+
+sys.setrecursionlimit(100005)
+
+def solve():
+    input = sys.stdin.readline
+    n = int(input())
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(n - 1):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    # dp[u][0/1]: 不选/选u的最大独立集
+    dp = [[0, 0] for _ in range(n + 1)]
+    vis = [False] * (n + 1)
+
+    def dfs(u):
+        vis[u] = True
+        dp[u][0] = 0
+        dp[u][1] = 1  # 选自己，初始为1
+
+        for v in adj[u]:
+            if vis[v]:
+                continue
+            dfs(v)
+
+            # 不选u，子节点可选可不选
+            dp[u][0] += max(dp[v][0], dp[v][1])
+            # 选u，子节点必须不选
+            dp[u][1] += dp[v][0]
+
+    dfs(1)
+    print(max(dp[1][0], dp[1][1]))
+
+solve()
+```
+
+二、应用一：树的重心
+------------------
+
+问题描述：
+找到一个节点，使得删除该节点后，剩余的各个连通块中节点数的最大值最小。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 5005;
+const int INF = 0x3f3f3f3f;
+
+vector<int> adj[MAXN];
+int size[MAXN];       // 以u为根的子树大小
+int dp[MAXN];         // 删除u后最大连通块大小
+bool vis[MAXN];
+int n;
+int min_size = INF;
+vector<int> centroids;
+
+void dfs(int u) {
+    vis[u] = true;
+    size[u] = 1;
+    dp[u] = 0;
+
+    for (int v : adj[u]) {
+        if (vis[v]) continue;
+        dfs(v);
+
+        size[u] += size[v];
+        dp[u] = max(dp[u], size[v]);
+    }
+
+    // 还要考虑u的父节点方向的连通块
+    dp[u] = max(dp[u], n - size[u]);
+
+    if (dp[u] < min_size) {
+        min_size = dp[u];
+        centroids.clear();
+        centroids.push_back(u);
+    } else if (dp[u] == min_size) {
+        centroids.push_back(u);
+    }
+}
+
+int main() {
+    cin >> n;
+
+    for (int i = 1; i < n; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    memset(vis, false, sizeof(vis));
+    dfs(1);
+
+    cout << min_size << endl;
+    for (int c : centroids) {
+        cout << c << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import defaultdict
+
+sys.setrecursionlimit(100005)
+
+def solve():
+    input = sys.stdin.readline
+    n = int(input())
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(n - 1):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    size = [0] * (n + 1)
+    dp = [0] * (n + 1)
+    vis = [False] * (n + 1)
+
+    min_size = float('inf')
+    centroids = []
+
+    def dfs(u):
+        nonlocal min_size
+        vis[u] = True
+        size[u] = 1
+        dp[u] = 0
+
+        for v in adj[u]:
+            if vis[v]:
+                continue
+            dfs(v)
+
+            size[u] += size[v]
+            dp[u] = max(dp[u], size[v])
+
+        # 还要考虑u的父节点方向的连通块
+        dp[u] = max(dp[u], n - size[u])
+
+        nonlocal centroids
+        if dp[u] < min_size:
+            min_size = dp[u]
+            centroids = [u]
+        elif dp[u] == min_size:
+            centroids.append(u)
+
+    dfs(1)
+
+    print(min_size)
+    print(' '.join(map(str, centroids)))
+
+solve()
+```
+
+三、应用二：树的直径
+------------------
+
+问题描述：
+找到树中距离最远的两个节点，这两个节点之间的距离就是树的直径。
+
+解法一：两次DFS/ BFS
+1. 从任意节点出发，找到最远的节点u
+2. 从节点u出发，找到最远的节点v
+3. u和v之间的距离就是直径
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+vector<int> adj[MAXN];
+int dist[MAXN];
+int farthest_node;
+int max_dist;
+
+void dfs(int u, int fa) {
+    for (int v : adj[u]) {
+        if (v == fa) continue;
+        dist[v] = dist[u] + 1;
+        if (dist[v] > max_dist) {
+            max_dist = dist[v];
+            farthest_node = v;
+        }
+        dfs(v, u);
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    for (int i = 1; i < n; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    // 第一次DFS：从节点1开始，找到最远节点
+    memset(dist, 0, sizeof(dist));
+    max_dist = 0;
+    dfs(1, 0);
+
+    // 第二次DFS：从最远节点开始，找到直径
+    memset(dist, 0, sizeof(dist));
+    max_dist = 0;
+    dfs(farthest_node, 0);
+
+    cout << max_dist << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import defaultdict
+
+sys.setrecursionlimit(200005)
+
+def solve():
+    input = sys.stdin.readline
+    n = int(input())
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(n - 1):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    dist = [0] * (n + 1)
+    farthest_node = 0
+    max_dist = 0
+
+    def dfs(u, fa):
+        nonlocal farthest_node, max_dist
+        for v in adj[u]:
+            if v == fa:
+                continue
+            dist[v] = dist[u] + 1
+            if dist[v] > max_dist:
+                max_dist = dist[v]
+                farthest_node = v
+            dfs(v, u)
+
+    # 第一次DFS：从节点1开始，找到最远节点
+    dist = [0] * (n + 1)
+    max_dist = 0
+    dfs(1, 0)
+
+    # 第二次DFS：从最远节点开始，找到直径
+    dist = [0] * (n + 1)
+    max_dist = 0
+    dfs(farthest_node, 0)
+
+    print(max_dist)
+
+solve()
+```
+
+解法二：树形DP
+dp[u]：以u为根的子树中，从u向下走的最长路径
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+vector<int> adj[MAXN];
+int diameter;
+
+int dfs(int u, int fa) {
+    int max1 = 0, max2 = 0;  // 最长和次长路径
+
+    for (int v : adj[u]) {
+        if (v == fa) continue;
+        int len = dfs(v, u) + 1;
+
+        if (len > max1) {
+            max2 = max1;
+            max1 = len;
+        } else if (len > max2) {
+            max2 = len;
+        }
+    }
+
+    // 直径可能是经过u的路径：max1 + max2
+    diameter = max(diameter, max1 + max2);
+
+    return max1;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    for (int i = 1; i < n; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    diameter = 0;
+    dfs(1, 0);
+
+    cout << diameter << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+sys.setrecursionlimit(200005)
+
+def solve():
+    input = sys.stdin.readline
+    n = int(input())
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(n - 1):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    diameter = 0
+
+    def dfs(u, fa):
+        nonlocal diameter
+        max1 = 0  # 最长路径
+        max2 = 0  # 次长路径
+
+        for v in adj[u]:
+            if v == fa:
+                continue
+            length = dfs(v, u) + 1
+
+            if length > max1:
+                max2 = max1
+                max1 = length
+            elif length > max2:
+                max2 = length
+
+        # 直径可能是经过u的路径：max1 + max2
+        diameter = max(diameter, max1 + max2)
+
+        return max1
+
+    dfs(1, 0)
+    print(diameter)
+
+solve()
+```
+
+四、应用三：树的最长路径（带边权）
+-------------------------------
+
+问题描述：
+给定一棵带边权的树，找到树上最长路径的长度。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+vector<pair<int, int>> adj[MAXN];  // (to, weight)
+int longest_path;
+
+int dfs(int u, int fa) {
+    int max1 = 0, max2 = 0;
+
+    for (auto [v, w] : adj[u]) {
+        if (v == fa) continue;
+        int len = dfs(v, u) + w;
+
+        if (len > max1) {
+            max2 = max1;
+            max1 = len;
+        } else if (len > max2) {
+            max2 = len;
+        }
+    }
+
+    longest_path = max(longest_path, max1 + max2);
+
+    return max1;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    for (int i = 1; i < n; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    }
+
+    longest_path = 0;
+    dfs(1, 0);
+
+    cout << longest_path << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+sys.setrecursionlimit(200005)
+
+def solve():
+    input = sys.stdin.readline
+    n = int(input())
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(n - 1):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        adj[v].append((u, w))
+
+    longest_path = 0
+
+    def dfs(u, fa):
+        nonlocal longest_path
+        max1 = 0
+        max2 = 0
+
+        for v, w in adj[u]:
+            if v == fa:
+                continue
+            length = dfs(v, u) + w
+
+            if length > max1:
+                max2 = max1
+                max1 = length
+            elif length > max2:
+                max2 = length
+
+        longest_path = max(longest_path, max1 + max2)
+
+        return max1
+
+    dfs(1, 0)
+    print(longest_path)
+
+solve()
+```
+
+五、应用四：树的中心
+------------------
+
+问题描述：
+找到树中离所有节点距离最短的节点（可能有多个）。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int INF = 0x3f3f3f3f;
+
+vector<int> adj[MAXN];
+int dp_down[MAXN];   // 向下的最大距离
+int dp_up[MAXN];     // 向上的最大距离
+int max_dist[MAXN];  // 节点到所有节点的最大距离
+int n;
+int min_dist = INF;
+
+// 第一次DFS：计算向下的最大距离
+void dfs1(int u, int fa) {
+    dp_down[u] = 0;
+
+    for (int v : adj[u]) {
+        if (v == fa) continue;
+        dfs1(v, u);
+        dp_down[u] = max(dp_down[u], dp_down[v] + 1);
+    }
+}
+
+// 第二次DFS：计算向上的最大距离
+void dfs2(int u, int fa) {
+    // 计算节点u到所有节点的最大距离
+    max_dist[u] = max(dp_down[u], dp_up[u]);
+    min_dist = min(min_dist, max_dist[u]);
+
+    // 预处理子节点的向下最大距离和次大距离
+    int max1 = -1, max2 = -1;
+    for (int v : adj[u]) {
+        if (v == fa) continue;
+        int dist = dp_down[v] + 1;
+        if (dist > max1) {
+            max2 = max1;
+            max1 = dist;
+        } else if (dist > max2) {
+            max2 = dist;
+        }
+    }
+
+    for (int v : adj[u]) {
+        if (v == fa) continue;
+
+        // 计算子节点v向上的距离
+        int dist_v = dp_down[v] + 1;
+        if (dist_v == max1) {
+            dp_up[v] = max(dp_up[u], max2) + 1;
+        } else {
+            dp_up[v] = max(dp_up[u], max1) + 1;
+        }
+
+        dfs2(v, u);
+    }
+}
+
+int main() {
+    cin >> n;
+
+    for (int i = 1; i < n; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    dfs1(1, 0);
+    dp_up[1] = 0;
+    dfs2(1, 0);
+
+    cout << min_dist << endl;
+    for (int i = 1; i <= n; i++) {
+        if (max_dist[i] == min_dist) {
+            cout << i << " ";
+        }
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+sys.setrecursionlimit(200005)
+
+def solve():
+    input = sys.stdin.readline
+    n = int(input())
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(n - 1):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    dp_down = [0] * (n + 1)  # 向下的最大距离
+    dp_up = [0] * (n + 1)    # 向上的最大距离
+    max_dist = [0] * (n + 1)  # 节点到所有节点的最大距离
+
+    min_dist = float('inf')
+
+    # 第一次DFS：计算向下的最大距离
+    def dfs1(u, fa):
+        for v in adj[u]:
+            if v == fa:
+                continue
+            dfs1(v, u)
+            dp_down[u] = max(dp_down[u], dp_down[v] + 1)
+
+    # 第二次DFS：计算向上的最大距离
+    def dfs2(u, fa):
+        nonlocal min_dist
+        # 计算节点u到所有节点的最大距离
+        max_dist[u] = max(dp_down[u], dp_up[u])
+        min_dist = min(min_dist, max_dist[u])
+
+        # 预处理子节点的向下最大距离和次大距离
+        max1 = -1
+        max2 = -1
+        for v in adj[u]:
+            if v == fa:
+                continue
+            dist = dp_down[v] + 1
+            if dist > max1:
+                max2 = max1
+                max1 = dist
+            elif dist > max2:
+                max2 = dist
+
+        for v in adj[u]:
+            if v == fa:
+                continue
+
+            # 计算子节点v向上的距离
+            dist_v = dp_down[v] + 1
+            if dist_v == max1:
+                dp_up[v] = max(dp_up[u], max2) + 1
+            else:
+                dp_up[v] = max(dp_up[u], max1) + 1
+
+            dfs2(v, u)
+
+    dfs1(1, 0)
+    dp_up[1] = 0
+    dfs2(1, 0)
+
+    print(min_dist)
+    result = []
+    for i in range(1, n + 1):
+        if max_dist[i] == min_dist:
+            result.append(str(i))
+    print(' '.join(result))
+
+solve()
+```
+
+六、应用五：树的最大匹配（树的最大独立集变体）
+-----------------------------------------
+
+问题描述：
+在树中选择若干条边，使得这些边没有公共端点，求最多能选多少条边。
+
+状态定义：
+dp[u][0]：不选u到父节点的边时，以u为根的子树的最大匹配
+dp[u][1]：选u到父节点的边时，以u为根的子树的最大匹配
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 5005;
+
+vector<int> adj[MAXN];
+int dp[MAXN][2];
+bool vis[MAXN];
+
+void dfs(int u, int fa) {
+    vis[u] = true;
+    dp[u][0] = 0;
+    dp[u][1] = 0;
+
+    for (int v : adj[u]) {
+        if (v == fa) continue;
+        dfs(v, u);
+
+        // 不选边u-v，v可选可不选
+        dp[u][0] += max(dp[v][0], dp[v][1]);
+        // 选边u-v，v必须不选边v-u
+        dp[u][1] += dp[v][0] + 1;
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    for (int i = 1; i < n; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    memset(vis, false, sizeof(vis));
+    dfs(1, 0);
+
+    cout << max(dp[1][0], dp[1][1]) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+
+sys.setrecursionlimit(100005)
+
+def solve():
+    input = sys.stdin.readline
+    n = int(input())
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(n - 1):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    dp = [[0, 0] for _ in range(n + 1)]
+    vis = [False] * (n + 1)
+
+    def dfs(u, fa):
+        vis[u] = True
+
+        for v in adj[u]:
+            if v == fa:
+                continue
+            dfs(v, u)
+
+            # 不选边u-v，v可选可不选
+            dp[u][0] += max(dp[v][0], dp[v][1])
+            # 选边u-v，v必须不选边v-u
+            dp[u][1] += dp[v][0] + 1
+
+    dfs(1, 0)
+    print(max(dp[1][0], dp[1][1]))
+
+solve()
+```
+
+典型例题
+--------
+1. 没有上司的舞会（洛谷P1352）：树的最大独立集
+2. 战略游戏（洛谷P2016）：树的节点覆盖
+3. 树的重心（洛谷P3478）：找树的重心
+4. 树的直径（洛谷P3304）：求树的直径
+5. 二叉苹果树（洛谷P2015）：树上背包问题
+6. 选课（洛谷P2014）：依赖背包问题
+7. 树形dp求最长路径（洛谷P3574）：树上路径问题
+
+注意事项
+--------
+1. 树的根节点选择：通常选择1或任意节点
+2. 递归深度：树很深时可能需要增加递归栈大小
+3. 状态设计：根据题目要求设计合适的DP状态
+4. 遍历顺序：通常使用后序遍历（先子后父）
+5. 边界处理：叶子节点的DP值要特别处理
+6. 记忆化：注意dp数组的初始化
+7. 父节点处理：DFS时要传递父节点避免重复遍历
+
+时间复杂度总结
+--------------
+- 一次DFS：O(n)
+- 两次DFS：O(n)
+- 树形DP：O(n × 状态数)
+
+树形DP是动态规划在树结构上的重要应用，掌握好递归思维和状态设计是关键。

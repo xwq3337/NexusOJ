@@ -1,0 +1,344 @@
+拓扑排序
+========
+
+算法概述
+--------
+拓扑排序是对有向无环图(DAG)的所有顶点进行线性排序,使得对于图中的每一条有向边(u,v),顶点u在排序中都出现在顶点v之前。拓扑排序常用于表示项目之间的依赖关系。
+
+核心思想
+--------
+1. DAG性质:只有有向无环图才有拓扑排序
+2. 入度为0优先:每次选择入度为0的节点
+3. 删除边:选择节点后删除其所有出边
+4. 重复操作:重复以上过程直到所有节点都被排序
+
+算法流程
+--------
+方法一:Kahn算法(基于入度)
+1. 统计所有节点的入度
+2. 将所有入度为0的节点加入队列
+3. 从队列中取出节点,加入拓扑序列
+4. 删除该节点的所有出边,更新邻接点入度
+5. 如果邻接点入度变为0,加入队列
+6. 重复3-5直到队列为空
+
+方法一:Kahn算法
+---------------
+时间复杂度:O(n+m),空间复杂度:O(n+m)
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+int in_degree[MAXN];
+vector<int> topo;
+
+bool kahn() {
+    queue<int> q;
+    for (int i = 1; i <= n; i++) {
+        if (in_degree[i] == 0) {
+            q.push(i);
+        }
+    }
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        topo.push_back(u);
+
+        for (int v : adj[u]) {
+            in_degree[v]--;
+            if (in_degree[v] == 0) {
+                q.push(v);
+            }
+        }
+    }
+
+    return topo.size() == n;
+}
+
+int main() {
+    cin >> n >> m;
+    memset(in_degree, 0, sizeof(in_degree));
+
+    for (int i = 1; i <= m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        in_degree[v]++;
+    }
+
+    if (kahn()) {
+        for (int x : topo) cout << x << " ";
+        cout << "\n";
+    } else {
+        cout << "Cycle detected!\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+    in_degree = [0] * (n + 1)
+
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        in_degree[v] += 1
+
+    q = deque([i for i in range(1, n + 1) if in_degree[i] == 0])
+    topo = []
+
+    while q:
+        u = q.popleft()
+        topo.append(u)
+        for v in adj[u]:
+            in_degree[v] -= 1
+            if in_degree[v] == 0:
+                q.append(v)
+
+    if len(topo) == n:
+        print(" ".join(map(str, topo)))
+    else:
+        print("Cycle detected!")
+
+solve()
+```
+
+字典序最小拓扑排序
+------------------
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+int in_degree[MAXN];
+vector<int> topo;
+
+bool kahn_lexicographic() {
+    priority_queue<int, vector<int>, greater<int>> pq;
+    for (int i = 1; i <= n; i++) {
+        if (in_degree[i] == 0) pq.push(i);
+    }
+
+    while (!pq.empty()) {
+        int u = pq.top();
+        pq.pop();
+        topo.push_back(u);
+
+        for (int v : adj[u]) {
+            if (--in_degree[v] == 0) pq.push(v);
+        }
+    }
+    return topo.size() == n;
+}
+
+int main() {
+    cin >> n >> m;
+    memset(in_degree, 0, sizeof(in_degree));
+
+    for (int i = 1; i <= m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        in_degree[v]++;
+    }
+
+    if (kahn_lexicographic()) {
+        for (int x : topo) cout << x << " ";
+        cout << "\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+import heapq
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+    in_degree = [0] * (n + 1)
+
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        in_degree[v] += 1
+
+    pq = [i for i in range(1, n + 1) if in_degree[i] == 0]
+    heapq.heapify(pq)
+    topo = []
+
+    while pq:
+        u = heapq.heappop(pq)
+        topo.append(u)
+        for v in adj[u]:
+            in_degree[v] -= 1
+            if in_degree[v] == 0:
+                heapq.heappush(pq, v)
+
+    if len(topo) == n:
+        print(" ".join(map(str, topo)))
+
+solve()
+```
+
+DFS方法拓扑排序
+--------------
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+bool visited[MAXN];
+vector<int> topo;
+
+void dfs(int u) {
+    visited[u] = true;
+    for (int v : adj[u]) {
+        if (!visited[v]) dfs(v);
+    }
+    topo.push_back(u);
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+    }
+
+    for (int i = 1; i <= n; i++) {
+        if (!visited[i]) dfs(i);
+    }
+
+    reverse(topo.begin(), topo.end());
+
+    for (int x : topo) cout << x << " ";
+    cout << "\n";
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+
+    visited = [False] * (n + 1)
+    topo = []
+
+    def dfs(u):
+        visited[u] = True
+        for v in adj[u]:
+            if not visited[v]:
+                dfs(v)
+        topo.append(u)
+
+    for i in range(1, n + 1):
+        if not visited[i]:
+            dfs(i)
+
+    topo.reverse()
+    print(" ".join(map(str, topo)))
+
+solve()
+```
+
+DAG最长路
+--------
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+int in_degree[MAXN];
+int dist[MAXN];
+vector<int> topo;
+
+void kahn() {
+    queue<int> q;
+    for (int i = 1; i <= n; i++) {
+        if (in_degree[i] == 0) q.push(i);
+    }
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        topo.push_back(u);
+
+        for (int v : adj[u]) {
+            if (--in_degree[v] == 0) q.push(v);
+        }
+    }
+}
+
+int main() {
+    cin >> n >> m;
+    memset(in_degree, 0, sizeof(in_degree));
+
+    for (int i = 1; i <= m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        in_degree[v]++;
+    }
+
+    kahn();
+
+    for (int u : topo) {
+        for (int v : adj[u]) {
+            dist[v] = max(dist[v], dist[u] + 1);
+        }
+    }
+
+    cout << *max_element(dist + 1, dist + n + 1) << "\n";
+    return 0;
+}
+```
+
+典型例题:洛谷P3644, LeetCode 210/207
+注意事项:只适用于DAG,拓扑序列不唯一

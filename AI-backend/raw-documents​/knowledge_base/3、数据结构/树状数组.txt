@@ -1,0 +1,667 @@
+树状数组（Binary Indexed Tree, BIT）
+====================
+
+算法概述
+--------
+树状数组(Binary Indexed Tree, BIT)是一种用于高效处理前缀和查询和单点修改的数据结构。它支持在O(log n)时间内进行单点修改和区间查询。
+
+核心特点：
+1. 支持单点修改和前缀和查询
+2. 时间复杂度O(log n)
+3. 空间复杂度O(n)
+4. 代码实现简单，常数小
+
+核心思想
+--------
+1. 利用二进制思想，将前缀和分解为若干个小区间
+2. 每个节点tree[x]存储某个区间的和
+3. lowbit操作：取出x的二进制中最低位的1
+4. 树的形状类似二叉树，但用数组存储
+
+基础模板：单点修改+区间查询
+------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int tree[MAXN];
+int n;
+
+// lowbit操作：取出x的最低位1
+int lowbit(int x) {
+    return x & (-x);
+}
+
+// 单点修改：在位置x上加val
+void update(int x, int val) {
+    while (x <= n) {
+        tree[x] += val;
+        x += lowbit(x);
+    }
+}
+
+// 前缀查询：查询[1, x]的和
+int query(int x) {
+    int sum = 0;
+    while (x > 0) {
+        sum += tree[x];
+        x -= lowbit(x);
+    }
+    return sum;
+}
+
+// 区间查询：查询[l, r]的和
+int rangeQuery(int l, int r) {
+    return query(r) - query(l - 1);
+}
+
+int main() {
+    cin >> n;
+
+    // 初始化：输入数组并建树
+    for (int i = 1; i <= n; i++) {
+        int x;
+        cin >> x;
+        update(i, x);
+    }
+
+    int q;
+    cin >> q;
+
+    while (q--) {
+        int op;
+        cin >> op;
+
+        if (op == 1) {  // 单点修改
+            int x, val;
+            cin >> x >> val;
+            update(x, val);
+        } else {  // 区间查询
+            int l, r;
+            cin >> l >> r;
+            cout << rangeQuery(l, r) << endl;
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class BIT:
+    def __init__(self, n):
+        self.n = n
+        self.tree = [0] * (n + 1)
+
+    @staticmethod
+    def lowbit(x):
+        """取出x的最低位1"""
+        return x & (-x)
+
+    def update(self, x, val):
+        """单点修改：在位置x上加val"""
+        while x <= self.n:
+            self.tree[x] += val
+            x += self.lowbit(x)
+
+    def query(self, x):
+        """前缀查询：查询[1, x]的和"""
+        s = 0
+        while x > 0:
+            s += self.tree[x]
+            x -= self.lowbit(x)
+        return s
+
+    def range_query(self, l, r):
+        """区间查询：查询[l, r]的和"""
+        return self.query(r) - self.query(l - 1)
+
+# 测试
+n = int(input())
+bit = BIT(n)
+
+# 初始化
+arr = list(map(int, input().split()))
+for i, val in enumerate(arr, 1):
+    bit.update(i, val)
+
+q = int(input())
+for _ in range(q):
+    parts = input().split()
+    op = int(parts[0])
+
+    if op == 1:  # 单点修改
+        x, val = int(parts[1]), int(parts[2])
+        bit.update(x, val)
+    else:  # 区间查询
+        l, r = int(parts[1]), int(parts[2])
+        print(bit.range_query(l, r))
+```
+
+应用一：区间修改+单点查询
+----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int tree[MAXN];
+int n;
+
+int lowbit(int x) {
+    return x & (-x);
+}
+
+// 区间修改：在[l, r]上加val
+void rangeUpdate(int l, int r, int val) {
+    update(l, val);
+    update(r + 1, -val);
+}
+
+void update(int x, int val) {
+    while (x <= n) {
+        tree[x] += val;
+        x += lowbit(x);
+    }
+}
+
+// 单点查询：查询位置x的值
+int query(int x) {
+    int sum = 0;
+    while (x > 0) {
+        sum += tree[x];
+        x -= lowbit(x);
+    }
+    return sum;
+}
+
+int main() {
+    cin >> n;
+
+    int q;
+    cin >> q;
+
+    while (q--) {
+        int op;
+        cin >> op;
+
+        if (op == 1) {  // 区间修改
+            int l, r, val;
+            cin >> l >> r >> val;
+            rangeUpdate(l, r, val);
+        } else {  // 单点查询
+            int x;
+            cin >> x;
+            cout << query(x) << endl;
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class BIT:
+    def __init__(self, n):
+        self.n = n
+        self.tree = [0] * (n + 1)
+
+    @staticmethod
+    def lowbit(x):
+        return x & (-x)
+
+    def update(self, x, val):
+        while x <= self.n:
+            self.tree[x] += val
+            x += self.lowbit(x)
+
+    def range_update(self, l, r, val):
+        """区间修改：在[l, r]上加val"""
+        self.update(l, val)
+        self.update(r + 1, -val)
+
+    def query(self, x):
+        """单点查询：查询位置x的值"""
+        s = 0
+        while x > 0:
+            s += self.tree[x]
+            x -= self.lowbit(x)
+        return s
+
+# 测试
+n = int(input())
+bit = BIT(n)
+
+q = int(input())
+for _ in range(q):
+    parts = input().split()
+    op = int(parts[0])
+
+    if op == 1:  # 区间修改
+        l, r, val = int(parts[1]), int(parts[2]), int(parts[3])
+        bit.range_update(l, r, val)
+    else:  # 单点查询
+        x = int(parts[1])
+        print(bit.query(x))
+```
+
+应用二：求逆序对数量
+----------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+long long tree[MAXN];
+int n;
+
+int lowbit(int x) {
+    return x & (-x);
+}
+
+void update(int x, int val) {
+    while (x <= n) {
+        tree[x] += val;
+        x += lowbit(x);
+    }
+}
+
+long long query(int x) {
+    long long sum = 0;
+    while (x > 0) {
+        sum += tree[x];
+        x -= lowbit(x);
+    }
+    return sum;
+}
+
+int main() {
+    cin >> n;
+
+    vector<int> a(n);
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+    }
+
+    // 离散化
+    vector<int> b = a;
+    sort(b.begin(), b.end());
+    b.erase(unique(b.begin(), b.end()), b.end());
+
+    for (int i = 0; i < n; i++) {
+        a[i] = lower_bound(b.begin(), b.end(), a[i]) - b.begin() + 1;
+    }
+
+    long long ans = 0;
+
+    for (int i = n - 1; i >= 0; i--) {
+        ans += query(a[i] - 1);
+        update(a[i], 1);
+    }
+
+    cout << "逆序对数量: " << ans << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class BIT:
+    def __init__(self, n):
+        self.n = n
+        self.tree = [0] * (n + 1)
+
+    @staticmethod
+    def lowbit(x):
+        return x & (-x)
+
+    def update(self, x, val):
+        while x <= self.n:
+            self.tree[x] += val
+            x += self.lowbit(x)
+
+    def query(self, x):
+        s = 0
+        while x > 0:
+            s += self.tree[x]
+            x -= self.lowbit(x)
+        return s
+
+def count_inversions(arr):
+    """计算逆序对数量"""
+    # 离散化
+    sorted_arr = sorted(set(arr))
+    rank = {v: i + 1 for i, v in enumerate(sorted_arr)}
+
+    n = len(sorted_arr)
+    bit = BIT(n)
+
+    ans = 0
+    for val in reversed(arr):
+        ans += bit.query(rank[val] - 1)
+        bit.update(rank[val], 1)
+
+    return ans
+
+# 测试
+n = int(input())
+arr = list(map(int, input().split()))
+
+print(f"逆序对数量: {count_inversions(arr)}")
+```
+
+应用三：动态求前K大
+----------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class BIT {
+private:
+    vector<int> tree;
+    int size;
+
+public:
+    BIT(int n) : tree(n + 1, 0), size(n) {}
+
+    int lowbit(int x) {
+        return x & (-x);
+    }
+
+    void update(int x, int val) {
+        while (x <= size) {
+            tree[x] += val;
+            x += lowbit(x);
+        }
+    }
+
+    int query(int x) {
+        int sum = 0;
+        while (x > 0) {
+            sum += tree[x];
+            x -= lowbit(x);
+        }
+        return sum;
+    }
+
+    // 找到第k小的数
+    int findKth(int k) {
+        int idx = 0;
+        int bitMask = 1;
+
+        while (bitMask <= size) {
+            bitMask <<= 1;
+        }
+
+        while (bitMask != 0) {
+            int tIdx = idx + bitMask;
+            if (tIdx <= size && tree[tIdx] < k) {
+                idx = tIdx;
+                k -= tree[idx];
+            }
+            bitMask >>= 1;
+        }
+
+        return idx + 1;
+    }
+};
+
+int main() {
+    int n;
+    cin >> n;
+
+    // 离散化
+    vector<int> a(n);
+    set<int> values;
+
+    for (int i = 0; i < n; i++) {
+        cin >> a[i];
+        values.insert(a[i]);
+    }
+
+    map<int, int> rank;
+    int r = 1;
+    for (int v : values) {
+        rank[v] = r++;
+    }
+
+    BIT bit(r);
+
+    for (int i = 0; i < n; i++) {
+        bit.update(rank[a[i]], 1);
+
+        if (i % 2 == 0) {  // 奇数个，求中位数
+            int k = i / 2 + 1;
+            int idx = bit.findKth(k);
+            cout << "第" << k << "小: " << idx << endl;
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class BIT:
+    def __init__(self, n):
+        self.n = n
+        self.tree = [0] * (n + 1)
+
+    @staticmethod
+    def lowbit(x):
+        return x & (-x)
+
+    def update(self, x, val):
+        while x <= self.n:
+            self.tree[x] += val
+            x += self.lowbit(x)
+
+    def query(self, x):
+        s = 0
+        while x > 0:
+            s += self.tree[x]
+            x -= self.lowbit(x)
+        return s
+
+    def find_kth(self, k):
+        """找到第k小的数"""
+        idx = 0
+        bit_mask = 1
+
+        while bit_mask <= self.n:
+            bit_mask <<= 1
+
+        while bit_mask != 0:
+            t_idx = idx + bit_mask
+            if t_idx <= self.n and self.tree[t_idx] < k:
+                idx = t_idx
+                k -= self.tree[idx]
+            bit_mask >>= 1
+
+        return idx + 1
+
+# 测试
+n = int(input())
+a = list(map(int, input().split()))
+
+# 离散化
+values = sorted(set(a))
+rank = {v: i + 1 for i, v in enumerate(values)}
+
+bit = BIT(len(values))
+
+for i, val in enumerate(a):
+    bit.update(rank[val], 1)
+
+    if i % 2 == 0:  # 奇数个，求中位数
+        k = i // 2 + 1
+        idx = bit.find_kth(k)
+        print(f"第{k}小: {idx}")
+```
+
+应用四：二维树状数组
+----------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+
+int tree[MAXN][MAXN];
+int n, m;
+
+int lowbit(int x) {
+    return x & (-x);
+}
+
+// 单点修改
+void update(int x, int y, int val) {
+    for (int i = x; i <= n; i += lowbit(i)) {
+        for (int j = y; j <= m; j += lowbit(j)) {
+            tree[i][j] += val;
+        }
+    }
+}
+
+// 区间查询
+int query(int x, int y) {
+    int sum = 0;
+    for (int i = x; i > 0; i -= lowbit(i)) {
+        for (int j = y; j > 0; j -= lowbit(j)) {
+            sum += tree[i][j];
+        }
+    }
+    return sum;
+}
+
+// 矩形区域查询
+int rangeQuery(int x1, int y1, int x2, int y2) {
+    return query(x2, y2) - query(x1 - 1, y2) - query(x2, y1 - 1) + query(x1 - 1, y1 - 1);
+}
+
+int main() {
+    cin >> n >> m;
+
+    int q;
+    cin >> q;
+
+    while (q--) {
+        int op;
+        cin >> op;
+
+        if (op == 1) {  // 单点修改
+            int x, y, val;
+            cin >> x >> y >> val;
+            update(x, y, val);
+        } else {  // 矩形查询
+            int x1, y1, x2, y2;
+            cin >> x1 >> y1 >> x2 >> y2;
+            cout << rangeQuery(x1, y1, x2, y2) << endl;
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class BIT2D:
+    def __init__(self, n, m):
+        self.n = n
+        self.m = m
+        self.tree = [[0] * (m + 1) for _ in range(n + 1)]
+
+    @staticmethod
+    def lowbit(x):
+        return x & (-x)
+
+    def update(self, x, y, val):
+        """单点修改"""
+        i = x
+        while i <= self.n:
+            j = y
+            while j <= self.m:
+                self.tree[i][j] += val
+                j += self.lowbit(j)
+            i += self.lowbit(i)
+
+    def query(self, x, y):
+        """查询(1,1)到(x,y)的和"""
+        s = 0
+        i = x
+        while i > 0:
+            j = y
+            while j > 0:
+                s += self.tree[i][j]
+                j -= self.lowbit(j)
+            i -= self.lowbit(i)
+        return s
+
+    def range_query(self, x1, y1, x2, y2):
+        """矩形区域查询"""
+        return (self.query(x2, y2) - self.query(x1 - 1, y2) -
+                self.query(x2, y1 - 1) + self.query(x1 - 1, y1 - 1))
+
+# 测试
+n, m = map(int, input().split())
+bit = BIT2D(n, m)
+
+q = int(input())
+for _ in range(q):
+    parts = input().split()
+    op = int(parts[0])
+
+    if op == 1:  # 单点修改
+        x, y, val = int(parts[1]), int(parts[2]), int(parts[3])
+        bit.update(x, y, val)
+    else:  # 矩形查询
+        x1, y1, x2, y2 = int(parts[1]), int(parts[2]), int(parts[3]), int(parts[4])
+        print(bit.range_query(x1, y1, x2, y2))
+```
+
+典型例题
+--------
+1. 单点修改区间查询（洛谷P3374）：树状数组模板
+2. 逆序对（洛谷P1908）：经典应用
+3. 楼兰图腾（洛谷P2345）：树状数组应用
+4. 简单的题意（洛谷P3368）：差分+树状数组
+5. 动态求中位数（POJ 2985）：树状数组+二分
+6. 二维树状数组（POJ 1195）：二维应用
+
+注意事项
+--------
+1. 树状数组下标从1开始
+2. lowbit操作是核心：x & (-x)
+3. 单点修改：x += lowbit(x)
+4. 前缀查询：x -= lowbit(x)
+5. 离散化：当数值范围大时需要离散化
+6. 注意数据范围，可能需要long long
+7. 二维树状数组注意两层循环
+
+时间复杂度总结
+--------------
+- 单点修改：O(log n)
+- 区间查询：O(log n)
+- 区间修改+单点查询：O(log n)
+- 二维操作：O(log n * log m)
+
+树状数组是一种优雅的数据结构，代码简洁，常数小，是前缀和问题的首选解决方案。

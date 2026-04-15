@@ -1,0 +1,840 @@
+莫队算法（Mo's Algorithm）
+=========================
+
+算法概述
+--------
+莫队算法是由莫涛发明的一种离线处理区间查询的算法。它通过巧妙的排序和双指针移动，
+将一系列区间查询问题高效解决。
+
+核心思想：
+1. 离线处理：将所有查询先收集起来，排序后统一处理
+2. 块状排序：按照左端点所在块排序，块内按右端点排序
+3. 双指针移动：用L和R两个指针维护当前区间，通过移动来回答每个查询
+4. 增量更新：移动指针时，O(1)更新答案
+
+莫队算法的本质是通过合理的查询顺序，最小化指针移动的总次数。
+
+核心思想
+--------
+1. 分块：将数组分成√n块，每块大小约为√n
+2. 排序规则：
+   - 第一关键字：左端点所在块的编号
+   - 第二关键字：右端点（如果左端点在奇数块则升序，偶数块则降序）
+3. 指针移动：
+   - 移动L指针：增加或删除左边元素
+   - 移动R指针：增加或删除右边元素
+4. 复杂度：O(n√n) 或 O(n^(5/3)) 使用优化排序
+
+基础模板：区间不同数的个数
+--------------------------
+问题描述：给定一个数组，多次询问区间[l, r]中有多少个不同的数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 50005;
+const int MAXM = 50005;
+
+int n, m;
+int a[MAXN];
+int ans[MAXM];           // 每个查询的答案
+int cnt[MAXN];           // 每个数出现的次数
+int cur_ans = 0;         // 当前区间的答案
+
+struct Query {
+    int l, r, id;
+} q[MAXM];
+
+// 获取块号
+int block(int pos) {
+    return pos / sqrt(n);
+}
+
+// 莫队排序规则
+bool cmp(const Query& a, const Query& b) {
+    int ba = block(a.l);
+    int bb = block(b.l);
+
+    if (ba != bb) return ba < bb;
+
+    // 奇偶优化：奇数块右端点升序，偶数块降序
+    if (ba & 1) return a.r < b.r;
+    else return a.r > b.r;
+}
+
+// 加入位置pos的数
+void add(int pos) {
+    if (cnt[a[pos]] == 0) cur_ans++;
+    cnt[a[pos]]++;
+}
+
+// 删除位置pos的数
+void del(int pos) {
+    cnt[a[pos]]--;
+    if (cnt[a[pos]] == 0) cur_ans--;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+    }
+
+    for (int i = 1; i <= m; i++) {
+        cin >> q[i].l >> q[i].r;
+        q[i].id = i;
+    }
+
+    // 莫队排序
+    sort(q + 1, q + m + 1, cmp);
+
+    // 初始化左右指针
+    int L = 1, R = 0;
+
+    // 处理每个查询
+    for (int i = 1; i <= m; i++) {
+        // 扩展/缩小区间
+        while (L > q[i].l) add(--L);
+        while (R < q[i].r) add(++R);
+        while (L < q[i].l) del(L++);
+        while (R > q[i].r) del(R--);
+
+        // 记录答案
+        ans[q[i].id] = cur_ans;
+    }
+
+    // 输出答案
+    for (int i = 1; i <= m; i++) {
+        cout << ans[i] << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+import math
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    a = [0] + list(map(int, input().split()))
+
+    queries = []
+    for i in range(m):
+        l, r = map(int, input().split())
+        queries.append((l, r, i))
+
+    # 获取块号
+    block_size = int(math.sqrt(n))
+
+    def block(pos):
+        return pos // block_size
+
+    # 莫队排序规则
+    def mo_cmp(q):
+        l, r, idx = q
+        ba = block(l)
+        return (ba, r if ba % 2 == 1 else -r, idx)
+
+    queries.sort(key=mo_cmp)
+
+    # 离散化
+    vals = sorted(set(a[1:]))
+    rank = {v: i for i, v in enumerate(vals, 1)}
+    a = [0] + [rank[x] for x in a[1:]]
+
+    MAXVAL = len(vals) + 5
+    cnt = [0] * MAXVAL
+    cur_ans = 0
+    ans = [0] * m
+
+    def add(pos):
+        nonlocal cur_ans
+        if cnt[a[pos]] == 0:
+            cur_ans += 1
+        cnt[a[pos]] += 1
+
+    def remove(pos):
+        nonlocal cur_ans
+        cnt[a[pos]] -= 1
+        if cnt[a[pos]] == 0:
+            cur_ans -= 1
+
+    # 初始化指针
+    L, R = 1, 0
+
+    # 处理查询
+    for l, r, idx in queries:
+        while L > l:
+            L -= 1
+            add(L)
+        while R < r:
+            R += 1
+            add(R)
+        while L < l:
+            remove(L)
+            L += 1
+        while R > r:
+            remove(R)
+            R -= 1
+
+        ans[idx] = cur_ans
+
+    # 输出
+    for x in ans:
+        print(x)
+
+solve()
+```
+
+应用一：区间众数
+----------------
+问题描述：询问区间中出现次数最多的数和出现次数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 50005;
+
+int n, m;
+int a[MAXN];
+int cnt[MAXN];           // 每个数出现的次数
+int tree[MAXN];          // 树状数组，记录出现次数为i的数的个数
+int maxcnt = 0;          // 当前最大出现次数
+
+struct Query {
+    int l, r, id;
+} q[MAXN];
+
+int block(int pos) {
+    return pos / sqrt(n);
+}
+
+bool cmp(const Query& a, const Query& b) {
+    int ba = block(a.l);
+    int bb = block(b.l);
+
+    if (ba != bb) return ba < bb;
+    if (ba & 1) return a.r < b.r;
+    else return a.r > b.r;
+}
+
+// 树状数组：单点更新
+void update(int pos, int val) {
+    while (pos < MAXN) {
+        tree[pos] += val;
+        pos += pos & (-pos);
+    }
+}
+
+// 树状数组：查询后缀最大值的位置
+int query_max() {
+    int pos = maxcnt;
+    while (pos > 0 && tree[pos] == 0) {
+        pos--;
+    }
+    return pos;
+}
+
+void add(int pos) {
+    update(cnt[a[pos]], -1);
+    cnt[a[pos]]++;
+    update(cnt[a[pos]], 1);
+    maxcnt = max(maxcnt, cnt[a[pos]]);
+}
+
+void del(int pos) {
+    update(cnt[a[pos]], -1);
+    cnt[a[pos]]--;
+    if (cnt[a[pos]] > 0) {
+        update(cnt[a[pos]], 1);
+    }
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+    }
+
+    for (int i = 1; i <= m; i++) {
+        cin >> q[i].l >> q[i].r;
+        q[i].id = i;
+    }
+
+    sort(q + 1, q + m + 1, cmp);
+
+    int L = 1, R = 0;
+
+    for (int i = 1; i <= m; i++) {
+        while (L > q[i].l) add(--L);
+        while (R < q[i].r) add(++R);
+        while (L < q[i].l) del(L++);
+        while (R > q[i].r) del(R--);
+
+        // 查询众数出现次数
+        while (tree[maxcnt] == 0) maxcnt--;
+        // 实际还需要记录具体是哪个数，这里简化处理
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+import math
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    a = [0] + list(map(int, input().split()))
+
+    queries = []
+    for i in range(m):
+        l, r = map(int, input().split())
+        queries.append((l, r, i))
+
+    block_size = int(math.sqrt(n))
+
+    def block(pos):
+        return pos // block_size
+
+    def mo_cmp(q):
+        l, r, idx = q
+        ba = block(l)
+        return (ba, r if ba % 2 == 1 else -r, idx)
+
+    queries.sort(key=mo_cmp)
+
+    # 记录每个数的出现次数
+    cnt = {}
+    maxcnt = 0
+
+    def add(pos):
+        nonlocal maxcnt
+        val = a[pos]
+        old_cnt = cnt.get(val, 0)
+        new_cnt = old_cnt + 1
+        cnt[val] = new_cnt
+        maxcnt = max(maxcnt, new_cnt)
+
+    def remove(pos):
+        nonlocal maxcnt
+        val = a[pos]
+        old_cnt = cnt[val]
+        new_cnt = old_cnt - 1
+        if new_cnt == 0:
+            del cnt[val]
+        else:
+            cnt[val] = new_cnt
+
+    L, R = 1, 0
+    ans = [0] * m
+
+    for l, r, idx in queries:
+        while L > l:
+            L -= 1
+            add(L)
+        while R < r:
+            R += 1
+            add(R)
+        while L < l:
+            remove(L)
+            L += 1
+        while R > r:
+            remove(R)
+            R -= 1
+
+        ans[idx] = maxcnt
+
+    for x in ans:
+        print(x)
+
+solve()
+```
+
+应用二：带修改的莫队（带修莫队）
+-------------------------------
+问题描述：数组支持单点修改，查询区间不同数的个数。
+
+需要增加时间维度，变成三维莫队。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 50005;
+const int MAXM = 50005;
+
+int n, m, q;
+int a[MAXN];
+int cnt[MAXN];
+int cur_ans = 0;
+
+// 修改操作
+struct Modify {
+    int pos, val;
+} modify[MAXN];
+
+// 查询操作
+struct Query {
+    int l, r, t, id;  // t是时间戳
+} query[MAXM];
+
+int block_size;
+int block(int pos) {
+    return pos / block_size;
+}
+
+// 带修莫队排序
+bool cmp(const Query& a, const Query& b) {
+    int ba = block(a.l);
+    int bb = block(b.l);
+
+    if (ba != bb) return ba < bb;
+
+    int bc = block(a.r);
+    int bd = block(b.r);
+    if (bc != bd) return bc < bd;
+
+    return a.t < b.t;
+}
+
+void add(int pos) {
+    if (cnt[a[pos]] == 0) cur_ans++;
+    cnt[a[pos]]++;
+}
+
+void del(int pos) {
+    cnt[a[pos]]--;
+    if (cnt[a[pos]] == 0) cur_ans--;
+}
+
+// 应用时间戳为t的修改
+void apply(int t, int flag) {
+    int pos = modify[t].pos;
+    int val = modify[t].val;
+
+    if (flag == 1) {  // 执行修改
+        if (L <= pos && pos <= R) {
+            del(pos);
+            a[pos] = val;
+            add(pos);
+        } else {
+            a[pos] = val;
+        }
+    } else {  // 撤销修改
+        if (L <= pos && pos <= R) {
+            del(pos);
+            a[pos] = val;
+            add(pos);
+        } else {
+            a[pos] = val;
+        }
+    }
+}
+
+int L = 1, R = 0, T = 0;
+int ans[MAXM];
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+    }
+
+    int modify_cnt = 0, query_cnt = 0;
+
+    for (int i = 1; i <= m; i++) {
+        char op;
+        cin >> op;
+
+        if (op == 'R') {
+            modify_cnt++;
+            cin >> modify[modify_cnt].pos >> modify[modify_cnt].val;
+        } else {
+            query_cnt++;
+            cin >> query[query_cnt].l >> query[query_cnt].r;
+            query[query_cnt].t = modify_cnt;
+            query[query_cnt].id = query_cnt;
+        }
+    }
+
+    block_size = pow(n, 2.0 / 3);
+    sort(query + 1, query + query_cnt + 1, cmp);
+
+    for (int i = 1; i <= query_cnt; i++) {
+        // 调整时间
+        while (T < query[i].t) {
+            T++;
+            apply(T, 1);
+        }
+        while (T > query[i].t) {
+            apply(T, 0);
+            T--;
+        }
+
+        // 调整区间
+        while (L > query[i].l) add(--L);
+        while (R < query[i].r) add(++R);
+        while (L < query[i].l) del(L++);
+        while (R > query[i].r) del(R--);
+
+        ans[query[i].id] = cur_ans;
+    }
+
+    for (int i = 1; i <= query_cnt; i++) {
+        cout << ans[i] << '\n';
+    }
+
+    return 0;
+}
+```
+
+应用三：树上莫队
+----------------
+问题描述：查询树上路径上不同颜色的个数。
+
+需要将树转化为欧拉序列，然后用莫队处理区间。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+vector<int> adj[MAXN];
+int color[MAXN];
+int depth[MAXN];
+int parent[MAXN];
+int st[MAXN];        // st[u]: 节点u的入栈时间
+int en[MAXN];        // en[u]: 节点u的出栈时间
+int euler[MAXN * 2]; // 欧拉序列
+int idx = 0;
+
+// LCA预处理
+int up[MAXN][20];
+
+void dfs(int u, int fa) {
+    st[u] = ++idx;
+    euler[idx] = u;
+    parent[u] = fa;
+    depth[u] = depth[fa] + 1;
+
+    up[u][0] = fa;
+    for (int j = 1; j < 20; j++) {
+        up[u][j] = up[up[u][j-1]][j-1];
+    }
+
+    for (int v : adj[u]) {
+        if (v != fa) {
+            dfs(v, u);
+        }
+    }
+
+    en[u] = ++idx;
+    euler[idx] = u;
+}
+
+int lca(int u, int v) {
+    if (depth[u] < depth[v]) swap(u, v);
+    int diff = depth[u] - depth[v];
+
+    for (int j = 0; j < 20; j++) {
+        if (diff & (1 << j)) {
+            u = up[u][j];
+        }
+    }
+
+    if (u == v) return u;
+
+    for (int j = 19; j >= 0; j--) {
+        if (up[u][j] != up[v][j]) {
+            u = up[u][j];
+            v = up[v][j];
+        }
+    }
+
+    return up[u][0];
+}
+
+struct Query {
+    int u, v, id;
+} q[MAXN];
+
+int block(int pos) {
+    return pos / sqrt(idx);
+}
+
+bool cmp(const Query& a, const Query& b) {
+    int bu = block(st[a.u]);
+    int bv = block(st[b.u]);
+
+    if (bu != bv) return bu < bv;
+    return st[a.v] < st[b.v];
+}
+
+int cnt[MAXN];
+int vis[MAXN];
+int cur_ans = 0;
+int ans[MAXN];
+
+void flip(int u) {
+    if (vis[u]) {
+        vis[u] = 0;
+        cnt[color[u]]--;
+        if (cnt[color[u]] == 0) cur_ans--;
+    } else {
+        vis[u] = 1;
+        if (cnt[color[u]] == 0) cur_ans++;
+        cnt[color[u]]++;
+    }
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    int n, m;
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        cin >> color[i];
+    }
+
+    for (int i = 1; i < n; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    dfs(1, 0);
+
+    for (int i = 1; i <= m; i++) {
+        cin >> q[i].u >> q[i].v;
+        q[i].id = i;
+    }
+
+    sort(q + 1, q + m + 1, cmp);
+
+    int l = 1, r = 0;
+
+    for (int i = 1; i <= m; i++) {
+        int u = q[i].u, v = q[i].v;
+        int anc = lca(u, v);
+
+        // 处理路径 u -> anc -> v
+        // 展开为 [st[u], st[v]] 区间，但需要特殊处理LCA
+        // 这里简化处理，实际实现需要更复杂
+    }
+
+    for (int i = 1; i <= m; i++) {
+        cout << ans[i] << '\n';
+    }
+
+    return 0;
+}
+```
+
+应用四：回滚莫队
+----------------
+问题描述：某些问题难以实现删除操作，只能用"撤销"来处理。
+
+对于这种问题，可以使用回滚莫队：
+1. 对于同一块的查询，R指针只向右移动，L指针回滚
+2. 跨块时重置L指针
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+int a[MAXN];
+int ans[MAXN];
+
+struct Query {
+    int l, r, id;
+} q[MAXN];
+
+int block_size, block_cnt;
+int block_id[MAXN];
+
+void init_block() {
+    block_size = sqrt(n);
+    block_cnt = (n - 1) / block_size + 1;
+
+    for (int i = 1; i <= n; i++) {
+        block_id[i] = (i - 1) / block_size + 1;
+    }
+}
+
+bool cmp(const Query& a, const Query& b) {
+    int ba = block_id[a.l];
+    int bb = block_id[b.l];
+
+    if (ba != bb) return ba < bb;
+    return a.r < b.r;
+}
+
+// 假设问题难以删除，用数组记录历史状态
+int cnt[MAXN];
+int maxcnt = 0;
+stack<pair<int*, int>> history;  // 用于回滚
+
+void save(int& pos) {
+    history.push({&pos, pos});
+}
+
+void rollback(int target_size) {
+    while (history.size() > target_size) {
+        auto [ptr, val] = history.top();
+        *ptr = val;
+        history.pop();
+    }
+}
+
+void add(int pos) {
+    save(cnt[a[pos]]);
+    save(maxcnt);
+    cnt[a[pos]]++;
+    maxcnt = max(maxcnt, cnt[a[pos]]);
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(0);
+
+    cin >> n >> m;
+
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+    }
+
+    for (int i = 1; i <= m; i++) {
+        cin >> q[i].l >> q[i].r;
+        q[i].id = i;
+    }
+
+    init_block();
+    sort(q + 1, q + m + 1, cmp);
+
+    int cur_block = 0;
+    int R = 0;
+
+    for (int i = 1; i <= m; i++) {
+        int bl = block_id[q[i].l];
+        int br = block_id[q[i].r];
+
+        if (bl != cur_block) {
+            // 新的块，重置
+            cur_block = bl;
+            R = bl * block_size;
+            memset(cnt, 0, sizeof(cnt));
+            maxcnt = 0;
+            while (!history.empty()) history.pop();
+        }
+
+        if (br == bl) {
+            // 同一块内暴力处理
+            for (int j = q[i].l; j <= q[i].r; j++) {
+                cnt[a[j]]++;
+            }
+            ans[q[i].id] = *max_element(cnt + 1, cnt + n + 1);
+            for (int j = q[i].l; j <= q[i].r; j++) {
+                cnt[a[j]]--;
+            }
+        } else {
+            // 跨块，R只向右移动
+            int save_point = history.size();
+
+            while (R < q[i].r) {
+                R++;
+                add(R);
+            }
+
+            int tmp_maxcnt = maxcnt;
+            int tmp_cnt[MAXN];
+            memcpy(tmp_cnt, cnt, sizeof(cnt));
+
+            // L从块右边界向左移动
+            for (int j = q[i].l; j <= bl * block_size && j <= n; j++) {
+                cnt[a[j]]++;
+                tmp_maxcnt = max(tmp_maxcnt, cnt[a[j]]);
+            }
+
+            ans[q[i].id] = tmp_maxcnt;
+
+            // 回滚L的修改
+            rollback(save_point);
+
+            // 恢复cnt数组的某些状态（如果需要）
+        }
+    }
+
+    for (int i = 1; i <= m; i++) {
+        cout << ans[i] << '\n';
+    }
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 小B的询问（洛谷P2709）：莫队模板题
+2. 数颜色（洛谷P1903）：带修莫队
+3. [国家集训队]数列（洛谷P4462）：莫队优化
+4. lxx的题目（洛谷P1494）：莫队+概率
+5. 巡逻（洛谷P3754）：树上莫队
+
+注意事项
+--------
+1. 块大小的选择：
+   - 经典莫队：√n
+   - 带修莫队：n^(2/3)
+   - 根据数据特点调整
+2. 奇偶排序优化可以减少常数
+3. 莫队只适用于离线查询
+4. add和del函数必须O(1)复杂度
+5. 注意指针移动顺序和边界条件
+6. 带修莫队需要注意修改的前后依赖关系
+7. 树上莫队需要熟练掌握LCA和欧拉序列
+
+复杂度分析
+----------
+- 经典莫队：O(n√m)
+- 带修莫队：O(n^(5/3))
+- 树上莫队：O(n√n)
+- 空间复杂度：O(n + m)
+
+莫队算法是处理区间查询问题的利器，掌握好排序和指针移动是关键。
+根据具体问题选择合适的莫队变种，可以高效解决很多复杂的查询问题。

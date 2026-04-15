@@ -1,0 +1,434 @@
+Kruskal算法
+===========
+
+算法概述
+--------
+Kruskal算法是求解最小生成树(MST, Minimum Spanning Tree)的经典算法,由Joseph Kruskal提出。该算法采用贪心策略,每次选择权值最小且不构成环的边,直到生成树包含n-1条边。
+
+核心思想
+--------
+1. 贪心策略:按边权从小到大排序
+2. 并查集:高效判断两个节点是否连通
+3. 避环:选择不连通的两个点的边
+4. 终止条件:找到n-1条边或遍历完所有边
+
+算法流程
+--------
+1. 将所有边按权值从小到大排序
+2. 初始化并查集,每个点自成集合
+3. 遍历排序后的边:
+   - 如果边连接的两个点不在同一集合
+   - 选择这条边加入MST
+   - 合并两个集合
+4. 重复步骤3直到找到n-1条边
+
+基础实现
+--------
+时间复杂度:O(m log m),空间复杂度:O(n+m)
+
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 5005;
+const int MAXM = 200005;
+
+int n, m;
+struct Edge {
+    int u, v, w;
+    bool operator<(const Edge& other) const {
+        return w < other.w;
+    }
+} edges[MAXM];
+
+int parent[MAXN];
+int rnk[MAXN];
+
+// 并查集初始化
+void init() {
+    for (int i = 1; i <= n; i++) {
+        parent[i] = i;
+        rnk[i] = 0;
+    }
+}
+
+// 查找根节点
+int find(int x) {
+    if (parent[x] != x) {
+        parent[x] = find(parent[x]);  // 路径压缩
+    }
+    return parent[x];
+}
+
+// 合并两个集合
+bool unite(int x, int y) {
+    x = find(x);
+    y = find(y);
+    if (x == y) return false;
+
+    // 按秩合并
+    if (rnk[x] < rnk[y]) swap(x, y);
+    parent[y] = x;
+    if (rnk[x] == rnk[y]) rnk[x]++;
+
+    return true;
+}
+
+int kruskal() {
+    init();
+
+    sort(edges + 1, edges + m + 1);
+
+    int mst_weight = 0;
+    int edge_count = 0;
+
+    for (int i = 1; i <= m; i++) {
+        int u = edges[i].u;
+        int v = edges[i].v;
+        int w = edges[i].w;
+
+        if (unite(u, v)) {
+            mst_weight += w;
+            edge_count++;
+
+            if (edge_count == n - 1) {
+                break;
+            }
+        }
+    }
+
+    if (edge_count != n - 1) {
+        return -1;  // 图不连通
+    }
+
+    return mst_weight;
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        cin >> edges[i].u >> edges[i].v >> edges[i].w;
+    }
+
+    int ans = kruskal();
+
+    if (ans == -1) {
+        cout << "No MST exists!\n";
+    } else {
+        cout << "MST weight: " << ans << "\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    edges = []
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        edges.append((w, u, v))
+
+    edges.sort()
+
+    parent = list(range(n + 1))
+    rnk = [0] * (n + 1)
+
+    def find(x):
+        if parent[x] != x:
+            parent[x] = find(parent[x])
+        return parent[x]
+
+    def unite(x, y):
+        x, y = find(x), find(y)
+        if x == y:
+            return False
+        if rnk[x] < rnk[y]:
+            x, y = y, x
+        parent[y] = x
+        if rnk[x] == rnk[y]:
+            rnk[x] += 1
+        return True
+
+    mst_weight = 0
+    edge_count = 0
+
+    for w, u, v in edges:
+        if unite(u, v):
+            mst_weight += w
+            edge_count += 1
+            if edge_count == n - 1:
+                break
+
+    if edge_count != n - 1:
+        print("No MST exists!")
+    else:
+        print(f"MST weight: {mst_weight}")
+
+solve()
+```
+
+记录MST的边
+----------
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 5005;
+const int MAXM = 200005;
+
+int n, m;
+struct Edge {
+    int u, v, w;
+    bool operator<(const Edge& other) const {
+        return w < other.w;
+    }
+} edges[MAXM];
+
+int parent[MAXN];
+vector<pair<int, int>> mst_edges;  // MST的边
+
+void init() {
+    for (int i = 1; i <= n; i++) {
+        parent[i] = i;
+    }
+}
+
+int find(int x) {
+    if (parent[x] != x) {
+        parent[x] = find(parent[x]);
+    }
+    return parent[x];
+}
+
+bool unite(int x, int y) {
+    x = find(x);
+    y = find(y);
+    if (x == y) return false;
+    parent[y] = x;
+    return true;
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        cin >> edges[i].u >> edges[i].v >> edges[i].w;
+    }
+
+    init();
+    sort(edges + 1, edges + m + 1);
+
+    int mst_weight = 0;
+    int edge_count = 0;
+
+    for (int i = 1; i <= m; i++) {
+        int u = edges[i].u;
+        int v = edges[i].v;
+        int w = edges[i].w;
+
+        if (unite(u, v)) {
+            mst_weight += w;
+            mst_edges.push_back({u, v});
+            edge_count++;
+
+            if (edge_count == n - 1) break;
+        }
+    }
+
+    if (edge_count != n - 1) {
+        cout << "No MST!\n";
+    } else {
+        cout << "MST weight: " << mst_weight << "\n";
+        cout << "MST edges:\n";
+        for (auto& e : mst_edges) {
+            cout << e.first << " - " << e.second << "\n";
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本:
+```python
+import sys
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    edges = []
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        edges.append((w, u, v))
+
+    edges.sort()
+
+    parent = list(range(n + 1))
+
+    def find(x):
+        if parent[x] != x:
+            parent[x] = find(parent[x])
+        return parent[x]
+
+    def unite(x, y):
+        x, y = find(x), find(y)
+        if x == y:
+            return False
+        parent[y] = x
+        return True
+
+    mst_weight = 0
+    mst_edges = []
+    edge_count = 0
+
+    for w, u, v in edges:
+        if unite(u, v):
+            mst_weight += w
+            mst_edges.append((u, v))
+            edge_count += 1
+            if edge_count == n - 1:
+                break
+
+    if edge_count != n - 1:
+        print("No MST!")
+    else:
+        print(f"MST weight: {mst_weight}")
+        print("MST edges:")
+        for u, v in mst_edges:
+            print(f"{u} - {v}")
+
+solve()
+```
+
+次小生成树
+---------
+C++版本:
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 505;
+const int MAXM = 100005;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+struct Edge {
+    int u, v, w;
+    bool used;
+    bool operator<(const Edge& other) const {
+        return w < other.w;
+    }
+} edges[MAXM];
+
+int parent[MAXN];
+int max_edge[MAXN][MAXN];  // max_edge[i][j]: i到j路径上最大边权
+
+void init() {
+    for (int i = 1; i <= n; i++) {
+        parent[i] = i;
+    }
+}
+
+int find(int x) {
+    if (parent[x] != x) {
+        parent[x] = find(parent[x]);
+    }
+    return parent[x];
+}
+
+bool unite(int x, int y) {
+    x = find(x);
+    y = find(y);
+    if (x == y) return false;
+    parent[y] = x;
+    return true;
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 1; i <= m; i++) {
+        cin >> edges[i].u >> edges[i].v >> edges[i].w;
+        edges[i].used = false;
+    }
+
+    // Kruskal求MST
+    init();
+    sort(edges + 1, edges + m + 1);
+
+    int mst_weight = 0;
+    for (int i = 1; i <= m; i++) {
+        if (unite(edges[i].u, edges[i].v)) {
+            mst_weight += edges[i].w;
+            edges[i].used = true;
+        }
+    }
+
+    cout << "MST weight: " << mst_weight << "\n";
+
+    // 求次小生成树
+    int second_mst = INF;
+
+    for (int i = 1; i <= m; i++) {
+        if (!edges[i].used) {
+            // 尝试用这条边替换MST中的一条边
+            init();
+
+            int tmp_weight = 0;
+            int edge_count = 0;
+
+            // 先加入这条边
+            unite(edges[i].u, edges[i].v);
+            tmp_weight += edges[i].w;
+            edge_count++;
+
+            // 再加其他边
+            for (int j = 1; j <= m; j++) {
+                if (i != j && unite(edges[j].u, edges[j].v)) {
+                    tmp_weight += edges[j].w;
+                    edge_count++;
+                    if (edge_count == n - 1) break;
+                }
+            }
+
+            if (edge_count == n - 1) {
+                second_mst = min(second_mst, tmp_weight);
+            }
+        }
+    }
+
+    if (second_mst == INF) {
+        cout << "No second MST!\n";
+    } else {
+        cout << "Second MST weight: " << second_mst << "\n";
+    }
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. 最小生成树(洛谷P3366): Kruskal模板题
+2. 最小生成树计数(洛谷P1550): 计算MST数量
+3. 次小生成树(洛谷P4180): 求次小生成树
+4. 还是畅通工程(洛谷P1546): Kruskal应用
+
+注意事项
+--------
+1. Kruskal适合稀疏图
+2. 需要并查集优化
+3. 边排序时间复杂度O(m log m)
+4. 稠密图建议使用Prim算法
+5. 注意判断图是否连通

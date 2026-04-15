@@ -1,0 +1,762 @@
+双向广度优先搜索（Bidirectional BFS）
+===================================
+
+算法概述
+--------
+双向BFS是一种优化策略，从起点和终点同时开始进行BFS，当两边的搜索相遇时，就找到了一条路径。
+这种方法的搜索空间呈指数级减少，对于对称的搜索树，双向BFS可以将搜索空间减少到原来的平方根级别。
+
+核心思想
+--------
+1. 同时从起点和终点开始BFS
+2. 每次选择节点较少的一边进行扩展
+3. 当两边的搜索区域相交时，找到最短路径
+4. 时间复杂度：O(b^(d/2))，其中b是分支因子，d是深度
+5. 空间复杂度：O(b^(d/2))
+6. 相比单向BFS的O(b^d)，双向BFS可以大幅提升效率
+
+基础模板：双向BFS求最短路
+------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<int> adj[MAXN];
+int dist_start[MAXN];   // 从起点开始的距离
+int dist_end[MAXN];     // 从终点开始的距离
+
+int bidirectional_bfs(int start, int end) {
+    memset(dist_start, -1, sizeof(dist_start));
+    memset(dist_end, -1, sizeof(dist_end));
+
+    queue<int> q_start, q_end;
+    q_start.push(start);
+    q_end.push(end);
+    dist_start[start] = 0;
+    dist_end[end] = 0;
+
+    int meet_node = -1;
+
+    while (!q_start.empty() && !q_end.empty()) {
+        // 选择节点较少的一边进行扩展
+        if (q_start.size() > q_end.size()) {
+            swap(q_start, q_end);
+            swap(dist_start, dist_end);
+        }
+
+        int u = q_start.front();
+        q_start.pop();
+
+        // 检查是否在另一边已经访问过
+        if (dist_end[u] != -1) {
+            meet_node = u;
+            break;
+        }
+
+        for (int v : adj[u]) {
+            if (dist_start[v] == -1) {
+                dist_start[v] = dist_start[u] + 1;
+                q_start.push(v);
+            }
+        }
+    }
+
+    if (meet_node != -1) {
+        return dist_start[meet_node] + dist_end[meet_node];
+    }
+    return -1;  // 无法到达
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    int shortest = bidirectional_bfs(start, end);
+    if (shortest != -1) {
+        cout << "最短路径长度: " << shortest << '\n';
+    } else {
+        cout << "无法到达终点\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import deque, defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    def bidirectional_bfs(start, end):
+        dist_start = [-1] * (n + 1)
+        dist_end = [-1] * (n + 1)
+
+        q_start = deque([start])
+        q_end = deque([end])
+        dist_start[start] = 0
+        dist_end[end] = 0
+
+        meet_node = -1
+
+        while q_start and q_end:
+            # 选择节点较少的一边进行扩展
+            if len(q_start) > len(q_end):
+                q_start, q_end = q_end, q_start
+                dist_start, dist_end = dist_end, dist_start
+
+            u = q_start.popleft()
+
+            # 检查是否在另一边已经访问过
+            if dist_end[u] != -1:
+                meet_node = u
+                break
+
+            for v in adj[u]:
+                if dist_start[v] == -1:
+                    dist_start[v] = dist_start[u] + 1
+                    q_start.append(v)
+
+        if meet_node != -1:
+            return dist_start[meet_node] + dist_end[meet_node]
+        return -1
+
+    start, end = map(int, input().split())
+    shortest = bidirectional_bfs(start, end)
+    if shortest != -1:
+        print(f"最短路径长度: {shortest}")
+    else:
+        print("无法到达终点")
+
+solve()
+```
+
+应用一：单词接龙
+--------------
+给定两个单词和一个单词列表，找出从beginWord到endWord的最短转换序列。
+每次只能改变一个字母，且转换后的单词必须在列表中。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class Solution {
+public:
+    int ladderLength(string beginWord, string endWord, vector<string>& wordList) {
+        unordered_set<string> dict(wordList.begin(), wordList.end());
+
+        if (dict.find(endWord) == dict.end()) {
+            return 0;
+        }
+
+        unordered_set<string> visited_start, visited_end;
+        queue<string> q_start, q_end;
+
+        q_start.push(beginWord);
+        q_end.push(endWord);
+        visited_start.insert(beginWord);
+        visited_end.insert(endWord);
+
+        int level = 1;
+
+        while (!q_start.empty() && !q_end.empty()) {
+            // 选择节点较少的一边进行扩展
+            if (q_start.size() > q_end.size()) {
+                swap(q_start, q_end);
+                swap(visited_start, visited_end);
+            }
+
+            int level_size = q_start.size();
+            level++;
+
+            for (int i = 0; i < level_size; i++) {
+                string word = q_start.front();
+                q_start.pop();
+
+                // 尝试改变每一个字符
+                for (int j = 0; j < word.size(); j++) {
+                    char original = word[j];
+                    for (char c = 'a'; c <= 'z'; c++) {
+                        if (c == original) continue;
+
+                        word[j] = c;
+
+                        // 检查是否在另一边已经访问过
+                        if (visited_end.find(word) != visited_end.end()) {
+                            return level;
+                        }
+
+                        if (dict.find(word) != dict.end() &&
+                            visited_start.find(word) == visited_start.end()) {
+                            visited_start.insert(word);
+                            q_start.push(word);
+                        }
+                    }
+                    word[j] = original;  // 恢复原字符
+                }
+            }
+        }
+
+        return 0;
+    }
+};
+
+int main() {
+    Solution sol;
+    string beginWord = "hit", endWord = "cog";
+    vector<string> wordList = {"hot", "dot", "dog", "lot", "log", "cog"};
+
+    int result = sol.ladderLength(beginWord, endWord, wordList);
+    cout << "最短转换序列长度: " << result << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from collections import deque, defaultdict
+
+class Solution:
+    def ladderLength(self, beginWord: str, endWord: str, wordList: list) -> int:
+        word_set = set(wordList)
+
+        if endWord not in word_set:
+            return 0
+
+        visited_start = {beginWord}
+        visited_end = {endWord}
+        queue_start = deque([beginWord])
+        queue_end = deque([endWord])
+
+        level = 1
+
+        while queue_start and queue_end:
+            # 选择节点较少的一边进行扩展
+            if len(queue_start) > len(queue_end):
+                queue_start, queue_end = queue_end, queue_start
+                visited_start, visited_end = visited_end, visited_start
+
+            level_size = len(queue_start)
+            level += 1
+
+            for _ in range(level_size):
+                word = queue_start.popleft()
+
+                # 尝试改变每一个字符
+                for i in range(len(word)):
+                    for c in 'abcdefghijklmnopqrstuvwxyz':
+                        if c == word[i]:
+                            continue
+
+                        new_word = word[:i] + c + word[i+1:]
+
+                        # 检查是否在另一边已经访问过
+                        if new_word in visited_end:
+                            return level
+
+                        if new_word in word_set and new_word not in visited_start:
+                            visited_start.add(new_word)
+                            queue_start.append(new_word)
+
+        return 0
+
+
+def main():
+    sol = Solution()
+    beginWord = "hit"
+    endWord = "cog"
+    wordList = ["hot", "dot", "dog", "lot", "log", "cog"]
+
+    result = sol.ladderLength(beginWord, endWord, wordList)
+    print(f"最短转换序列长度: {result}")
+
+if __name__ == "__main__":
+    main()
+```
+
+应用二：迷宫双向BFS
+-----------------
+在大型迷宫中，双向BFS可以显著提高搜索效率。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1005;
+
+int n, m;
+char maze[MAXN][MAXN];
+int dist_start[MAXN][MAXN];
+int dist_end[MAXN][MAXN];
+int dx[4] = {0, 0, 1, -1};
+int dy[4] = {1, -1, 0, 0};
+
+struct Point {
+    int x, y;
+};
+
+bool is_valid(int x, int y) {
+    return x >= 0 && x < n && y >= 0 && y < m && maze[x][y] != '#';
+}
+
+int bidirectional_bfs(Point start, Point end) {
+    memset(dist_start, -1, sizeof(dist_start));
+    memset(dist_end, -1, sizeof(dist_end));
+
+    queue<Point> q_start, q_end;
+    q_start.push(start);
+    q_end.push(end);
+    dist_start[start.x][start.y] = 0;
+    dist_end[end.x][end.y] = 0;
+
+    while (!q_start.empty() && !q_end.empty()) {
+        // 选择节点较少的一边进行扩展
+        if (q_start.size() > q_end.size()) {
+            swap(q_start, q_end);
+            swap(dist_start, dist_end);
+        }
+
+        Point u = q_start.front();
+        q_start.pop();
+
+        // 检查是否在另一边已经访问过
+        if (dist_end[u.x][u.y] != -1) {
+            return dist_start[u.x][u.y] + dist_end[u.x][u.y];
+        }
+
+        for (int i = 0; i < 4; i++) {
+            int nx = u.x + dx[i];
+            int ny = u.y + dy[i];
+
+            if (is_valid(nx, ny) && dist_start[nx][ny] == -1) {
+                dist_start[nx][ny] = dist_start[u.x][u.y] + 1;
+                q_start.push({nx, ny});
+            }
+        }
+    }
+
+    return -1;  // 无法到达
+}
+
+int main() {
+    cin >> n >> m;
+
+    Point start, end;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            cin >> maze[i][j];
+            if (maze[i][j] == 'S') {
+                start = {i, j};
+            } else if (maze[i][j] == 'E') {
+                end = {i, j};
+            }
+        }
+    }
+
+    int shortest = bidirectional_bfs(start, end);
+    if (shortest != -1) {
+        cout << "最短路径长度: " << shortest << '\n';
+    } else {
+        cout << "无法到达终点\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    maze = []
+    start = end = None
+    for i in range(n):
+        row = list(input().strip())
+        maze.append(row)
+        for j, ch in enumerate(row):
+            if ch == 'S':
+                start = (i, j)
+            elif ch == 'E':
+                end = (i, j)
+
+    def is_valid(x, y):
+        return 0 <= x < n and 0 <= y < m and maze[x][y] != '#'
+
+    def bidirectional_bfs(start, end):
+        dist_start = [[-1] * m for _ in range(n)]
+        dist_end = [[-1] * m for _ in range(n)]
+
+        q_start = deque([start])
+        q_end = deque([end])
+        dist_start[start[0]][start[1]] = 0
+        dist_end[end[0]][end[1]] = 0
+
+        dx = [0, 0, 1, -1]
+        dy = [1, -1, 0, 0]
+
+        while q_start and q_end:
+            # 选择节点较少的一边进行扩展
+            if len(q_start) > len(q_end):
+                q_start, q_end = q_end, q_start
+                dist_start, dist_end = dist_end, dist_start
+
+            x, y = q_start.popleft()
+
+            # 检查是否在另一边已经访问过
+            if dist_end[x][y] != -1:
+                return dist_start[x][y] + dist_end[x][y]
+
+            for i in range(4):
+                nx, ny = x + dx[i], y + dy[i]
+                if is_valid(nx, ny) and dist_start[nx][ny] == -1:
+                    dist_start[nx][ny] = dist_start[x][y] + 1
+                    q_start.append((nx, ny))
+
+        return -1
+
+    shortest = bidirectional_bfs(start, end)
+    if shortest != -1:
+        print(f"最短路径长度: {shortest}")
+    else:
+        print("无法到达终点")
+
+solve()
+```
+
+应用三：状态空间搜索
+------------------
+给定一个状态转换问题，使用双向BFS寻找最少操作次数。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 示例：翻杯子问题，将3个杯子从111变成000
+// 每次可以选择翻转其中一个杯子
+
+string flip(string state, int pos) {
+    state[pos] = (state[pos] == '0') ? '1' : '0';
+    return state;
+}
+
+int bidirectional_bfs_cups(string start, string end) {
+    if (start == end) return 0;
+
+    unordered_map<string, int> dist_start, dist_end;
+    queue<string> q_start, q_end;
+
+    q_start.push(start);
+    q_end.push(end);
+    dist_start[start] = 0;
+    dist_end[end] = 0;
+
+    while (!q_start.empty() && !q_end.empty()) {
+        // 选择节点较少的一边进行扩展
+        if (q_start.size() > q_end.size()) {
+            swap(q_start, q_end);
+            swap(dist_start, dist_end);
+        }
+
+        string state = q_start.front();
+        q_start.pop();
+
+        // 检查是否在另一边已经访问过
+        if (dist_end.find(state) != dist_end.end()) {
+            return dist_start[state] + dist_end[state];
+        }
+
+        // 尝试翻转每一个杯子
+        for (int i = 0; i < state.size(); i++) {
+            string next_state = flip(state, i);
+            if (dist_start.find(next_state) == dist_start.end()) {
+                dist_start[next_state] = dist_start[state] + 1;
+                q_start.push(next_state);
+            }
+        }
+    }
+
+    return -1;  // 无法到达
+}
+
+int main() {
+    string start = "111";
+    string end = "000";
+
+    int min_flips = bidirectional_bfs_cups(start, end);
+    if (min_flips != -1) {
+        cout << "最少翻转次数: " << min_flips << '\n';
+    } else {
+        cout << "无法转换\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from collections import deque
+
+def flip(state, pos):
+    state = list(state)
+    state[pos] = '1' if state[pos] == '0' else '0'
+    return ''.join(state)
+
+def bidirectional_bfs_cups(start, end):
+    if start == end:
+        return 0
+
+    dist_start = {start: 0}
+    dist_end = {end: 0}
+    q_start = deque([start])
+    q_end = deque([end])
+
+    while q_start and q_end:
+        # 选择节点较少的一边进行扩展
+        if len(q_start) > len(q_end):
+            q_start, q_end = q_end, q_start
+            dist_start, dist_end = dist_end, dist_start
+
+        state = q_start.popleft()
+
+        # 检查是否在另一边已经访问过
+        if state in dist_end:
+            return dist_start[state] + dist_end[state]
+
+        # 尝试翻转每一个杯子
+        for i in range(len(state)):
+            next_state = flip(state, i)
+            if next_state not in dist_start:
+                dist_start[next_state] = dist_start[state] + 1
+                q_start.append(next_state)
+
+    return -1
+
+def main():
+    start = "111"
+    end = "000"
+
+    min_flips = bidirectional_bfs_cups(start, end)
+    if min_flips != -1:
+        print(f"最少翻转次数: {min_flips}")
+    else:
+        print("无法转换")
+
+if __name__ == "__main__":
+    main()
+```
+
+应用四：最短路径问题（带约束）
+----------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+
+int n, m;
+vector<pair<int, int>> adj[MAXN];  // adj[u] = {(v, w), ...}
+int dist_start[MAXN], dist_end[MAXN];
+
+int bidirectional_bfs_weighted(int start, int end) {
+    memset(dist_start, 0x3f, sizeof(dist_start));
+    memset(dist_end, 0x3f, sizeof(dist_end));
+
+    dist_start[start] = 0;
+    dist_end[end] = 0;
+
+    priority_queue<pair<int, int>,
+                   vector<pair<int, int>>,
+                   greater<pair<int, int>>> pq_start, pq_end;
+
+    pq_start.push({0, start});
+    pq_end.push({0, end});
+
+    while (!pq_start.empty() && !pq_end.empty()) {
+        // 选择节点较少的一边进行扩展
+        if (pq_start.size() > pq_end.size()) {
+            swap(pq_start, pq_end);
+            swap(dist_start, dist_end);
+        }
+
+        auto [d, u] = pq_start.top();
+        pq_start.pop();
+
+        if (d > dist_start[u]) continue;
+
+        // 检查是否在另一边已经访问过
+        if (dist_end[u] != 0x3f3f3f3f) {
+            return dist_start[u] + dist_end[u];
+        }
+
+        for (auto& [v, w] : adj[u]) {
+            if (dist_start[u] + w < dist_start[v]) {
+                dist_start[v] = dist_start[u] + w;
+                pq_start.push({dist_start[v], v});
+            }
+        }
+    }
+
+    return -1;  // 无法到达
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int u, v, w;
+        cin >> u >> v >> w;
+        adj[u].push_back({v, w});
+        adj[v].push_back({u, w});
+    }
+
+    int start, end;
+    cin >> start >> end;
+
+    int shortest = bidirectional_bfs_weighted(start, end);
+    if (shortest != -1) {
+        cout << "最短路径长度: " << shortest << '\n';
+    } else {
+        cout << "无法到达终点\n";
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+import heapq
+from collections import defaultdict
+
+def solve():
+    input = sys.stdin.readline
+    n, m = map(int, input().split())
+
+    adj = defaultdict(list)
+    for _ in range(m):
+        u, v, w = map(int, input().split())
+        adj[u].append((v, w))
+        adj[v].append((u, w))
+
+    def bidirectional_bfs_weighted(start, end):
+        dist_start = [float('inf')] * (n + 1)
+        dist_end = [float('inf')] * (n + 1)
+
+        dist_start[start] = 0
+        dist_end[end] = 0
+
+        pq_start = [(0, start)]
+        pq_end = [(0, end)]
+
+        while pq_start and pq_end:
+            # 选择节点较少的一边进行扩展
+            if len(pq_start) > len(pq_end):
+                pq_start, pq_end = pq_end, pq_start
+                dist_start, dist_end = dist_end, dist_start
+
+            d, u = heapq.heappop(pq_start)
+
+            if d > dist_start[u]:
+                continue
+
+            # 检查是否在另一边已经访问过
+            if dist_end[u] != float('inf'):
+                return dist_start[u] + dist_end[u]
+
+            for v, w in adj[u]:
+                if dist_start[u] + w < dist_start[v]:
+                    dist_start[v] = dist_start[u] + w
+                    heapq.heappush(pq_start, (dist_start[v], v))
+
+        return -1
+
+    start, end = map(int, input().split())
+    shortest = bidirectional_bfs_weighted(start, end)
+    if shortest != -1:
+        print(f"最短路径长度: {shortest}")
+    else:
+        print("无法到达终点")
+
+solve()
+```
+
+典型例题
+--------
+1. 单词接龙（LeetCode127）：最短转换序列
+2. 最短路径问题（POJ1915）：骑士移动最少步数
+3. 八数码问题（双向BFS优化）：最少移动次数
+4. 迷宫最短路径（大型地图）：双向搜索优化
+
+注意事项
+--------
+1. 双向BFS的关键是每次选择节点较少的一边进行扩展
+2. 需要维护两个访问数组或哈希表来记录两边的访问情况
+3. 当两边搜索相遇时，路径长度等于两边距离之和
+4. 适用于起点和终点都明确的情况
+5. 对于非对称图或分支因子差异大的情况，效果可能不明显
+6. 交换两边时需要同时交换队列和访问数组
+7. 注意处理起点和终点相同的情况
+
+双向BFS vs 单向BFS
+------------------
+优点：
+- 搜索空间大幅减少（从O(b^d)到O(b^(d/2))）
+- 对于大型搜索空间，效率提升明显
+- 特别适合对称的搜索树
+
+缺点：
+- 实现较复杂，需要维护两个搜索方向
+- 需要额外的内存存储两边的访问信息
+- 对于非对称问题效果一般
+- 不适合只求可达性而不求最短路的情况
+
+时间复杂度总结
+--------------
+- 单向BFS：O(b^d)
+- 双向BFS：O(2 * b^(d/2)) ≈ O(b^(d/2))
+- 其中b是分支因子，d是解的深度
+
+适用场景
+--------
+1. 起点和终点都明确
+2. 状态空间巨大，单向BFS无法处理
+3. 搜索树相对对称
+4. 需要找到最短路径
+
+双向BFS是一种强大的优化技术，掌握它可以在处理大规模搜索问题时获得显著的性能提升。

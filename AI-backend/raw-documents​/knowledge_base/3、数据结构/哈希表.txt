@@ -1,0 +1,783 @@
+哈希表（Hash Table）
+====================
+
+算法概述
+--------
+哈希表是一种基于键值对存储的数据结构，通过哈希函数将键映射到存储位置。理想情况下，哈希表的查找、插入、删除操作都是O(1)时间复杂度。
+
+核心特点：
+1. 快速查找：理想情况下O(1)时间复杂度
+2. 键值对存储
+3. 通过哈希函数计算存储位置
+4. 需要处理哈希冲突
+
+核心思想
+--------
+1. 哈希函数：将键映射到数组索引
+2. 冲突处理：处理多个键映射到同一位置的情况
+3. 动态扩容：当装载因子过大时扩容
+4. 负载因子：元素个数/桶数量
+
+基础模板：手写哈希表
+------------------
+
+C++版本（开放寻址法）：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 200003;  // 取质数，减少冲突
+const int INF = 0x3f3f3f3f;
+
+int hashTable[MAXN];
+bool exists[MAXN];
+
+// 哈希函数
+int hashFunc(int x) {
+    return (x % MAXN + MAXN) % MAXN;
+}
+
+// 插入
+void insert(int x) {
+    int idx = hashFunc(x);
+
+    while (exists[idx] && hashTable[idx] != x) {
+        idx = (idx + 1) % MAXN;  // 线性探测
+    }
+
+    hashTable[idx] = x;
+    exists[idx] = true;
+}
+
+// 查找
+bool find(int x) {
+    int idx = hashFunc(x);
+
+    while (exists[idx]) {
+        if (hashTable[idx] == x) {
+            return true;
+        }
+        idx = (idx + 1) % MAXN;
+    }
+
+    return false;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    while (n--) {
+        char op;
+        int x;
+        cin >> op >> x;
+
+        if (op == 'I') {
+            insert(x);
+        } else {
+            if (find(x)) {
+                cout << "Yes" << endl;
+            } else {
+                cout << "No" << endl;
+            }
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class HashTable:
+    def __init__(self, size=200003):
+        self.size = size
+        self.table = [None] * size
+        self.exists = [False] * size
+
+    def hash_func(self, x):
+        """哈希函数"""
+        return (x % self.size + self.size) % self.size
+
+    def insert(self, x):
+        """插入元素"""
+        idx = self.hash_func(x)
+
+        while self.exists[idx] and self.table[idx] != x:
+            idx = (idx + 1) % self.size
+
+        self.table[idx] = x
+        self.exists[idx] = True
+
+    def find(self, x):
+        """查找元素"""
+        idx = self.hash_func(x)
+
+        while self.exists[idx]:
+            if self.table[idx] == x:
+                return True
+            idx = (idx + 1) % self.size
+
+        return False
+
+# 测试
+ht = HashTable()
+n = int(input())
+
+for _ in range(n):
+    parts = input().split()
+    op = parts[0]
+    x = int(parts[1])
+
+    if op == 'I':
+        ht.insert(x)
+    else:
+        print("Yes" if ht.find(x) else "No")
+```
+
+应用一：拉链法（链地址法）
+-------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100003;
+
+// 拉链法：每个位置挂一个链表
+list<int> hashTable[MAXN];
+
+// 哈希函数
+int hashFunc(int x) {
+    return (x % MAXN + MAXN) % MAXN;
+}
+
+// 插入
+void insert(int x) {
+    int idx = hashFunc(x);
+    hashTable[idx].push_back(x);
+}
+
+// 查找
+bool find(int x) {
+    int idx = hashFunc(x);
+
+    for (int val : hashTable[idx]) {
+        if (val == x) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// 删除
+void remove(int x) {
+    int idx = hashFunc(x);
+
+    for (auto it = hashTable[idx].begin(); it != hashTable[idx].end(); it++) {
+        if (*it == x) {
+            hashTable[idx].erase(it);
+            return;
+        }
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    while (n--) {
+        char op;
+        int x;
+        cin >> op >> x;
+
+        if (op == 'I') {
+            insert(x);
+        } else if (op == 'Q') {
+            cout << (find(x) ? "Yes" : "No") << endl;
+        } else if (op == 'D') {
+            remove(x);
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from collections import defaultdict
+
+class ChainingHashTable:
+    def __init__(self, size=100003):
+        self.size = size
+        self.table = defaultdict(list)
+
+    def hash_func(self, x):
+        """哈希函数"""
+        return (x % self.size + self.size) % self.size
+
+    def insert(self, x):
+        """插入元素"""
+        idx = self.hash_func(x)
+        if x not in self.table[idx]:
+            self.table[idx].append(x)
+
+    def find(self, x):
+        """查找元素"""
+        idx = self.hash_func(x)
+        return x in self.table[idx]
+
+    def remove(self, x):
+        """删除元素"""
+        idx = self.hash_func(x)
+        if x in self.table[idx]:
+            self.table[idx].remove(x)
+
+# 测试
+ht = ChainingHashTable()
+n = int(input())
+
+for _ in range(n):
+    parts = input().split()
+    op = parts[0]
+    x = int(parts[1])
+
+    if op == 'I':
+        ht.insert(x)
+    elif op == 'Q':
+        print("Yes" if ht.find(x) else "No")
+    elif op == 'D':
+        ht.remove(x)
+```
+
+应用二：字符串哈希
+----------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef unsigned long long ULL;
+
+const int P = 131;  // 进制，通常取131或13331
+const int N = 100005;
+
+ULL h[N];  // 存储字符串前缀哈希值
+ULL p[N];  // 存储P的幂次
+
+// 预处理
+void init(const string& s) {
+    int n = s.length();
+    p[0] = 1;
+    h[0] = 0;
+
+    for (int i = 1; i <= n; i++) {
+        p[i] = p[i-1] * P;
+        h[i] = h[i-1] * P + s[i-1];
+    }
+}
+
+// 获取子串[l, r]的哈希值（1-indexed）
+ULL getHash(int l, int r) {
+    return h[r] - h[l-1] * p[r-l+1];
+}
+
+int main() {
+    string s;
+    cin >> s;
+
+    init(s);
+
+    int n = s.length();
+
+    // 查询两子串是否相等
+    int q;
+    cin >> q;
+
+    while (q--) {
+        int l1, r1, l2, r2;
+        cin >> l1 >> r1 >> l2 >> r2;
+
+        if (getHash(l1, r1) == getHash(l2, r2)) {
+            cout << "相等" << endl;
+        } else {
+            cout << "不相等" << endl;
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class StringHash:
+    def __init__(self, s, P=131):
+        self.s = s
+        self.P = P
+        self.n = len(s)
+        self.h = [0] * (self.n + 1)
+        self.p = [1] * (self.n + 1)
+
+        # 预处理
+        for i in range(1, self.n + 1):
+            self.p[i] = self.p[i-1] * self.P
+            self.h[i] = self.h[i-1] * self.P + ord(s[i-1])
+
+    def get_hash(self, l, r):
+        """获取子串[l, r]的哈希值（1-indexed）"""
+        return self.h[r] - self.h[l-1] * self.p[r-l+1]
+
+# 测试
+s = input().strip()
+sh = StringHash(s)
+
+q = int(input())
+for _ in range(q):
+    l1, r1, l2, r2 = map(int, input().split())
+    if sh.get_hash(l1, r1) == sh.get_hash(l2, r2):
+        print("相等")
+    else:
+        print("不相等")
+```
+
+应用三：两数之和
+--------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> twoSum(vector<int>& nums, int target) {
+    unordered_map<int, int> mp;
+
+    for (int i = 0; i < nums.size(); i++) {
+        int complement = target - nums[i];
+
+        if (mp.find(complement) != mp.end()) {
+            return {mp[complement], i};
+        }
+
+        mp[nums[i]] = i;
+    }
+
+    return {};
+}
+
+int main() {
+    int n, target;
+    cin >> n >> target;
+
+    vector<int> nums(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nums[i];
+    }
+
+    vector<int> result = twoSum(nums, target);
+
+    if (!result.empty()) {
+        cout << result[0] << " " << result[1] << endl;
+    } else {
+        cout << "未找到" << endl;
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def two_sum(nums, target):
+    """找出两数之和等于target的下标"""
+    mp = {}
+
+    for i, num in enumerate(nums):
+        complement = target - num
+        if complement in mp:
+            return [mp[complement], i]
+        mp[num] = i
+
+    return []
+
+# 测试
+n, target = map(int, input().split())
+nums = list(map(int, input().split()))
+
+result = two_sum(nums, target)
+if result:
+    print(f"{result[0]} {result[1]}")
+else:
+    print("未找到")
+```
+
+应用四：哈希表去重
+----------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<int> removeDuplicates(vector<int>& nums) {
+    unordered_set<int> st;
+    vector<int> result;
+
+    for (int num : nums) {
+        if (st.find(num) == st.end()) {
+            st.insert(num);
+            result.push_back(num);
+        }
+    }
+
+    return result;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<int> nums(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nums[i];
+    }
+
+    vector<int> result = removeDuplicates(nums);
+
+    cout << "去重后: ";
+    for (int x : result) {
+        cout << x << " ";
+    }
+    cout << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def remove_duplicates(nums):
+    """去除重复元素"""
+    seen = set()
+    result = []
+
+    for num in nums:
+        if num not in seen:
+            seen.add(num)
+            result.append(num)
+
+    return result
+
+# 测试
+n = int(input())
+nums = list(map(int, input().split()))
+
+result = remove_duplicates(nums)
+print("去重后:", *result)
+```
+
+应用五：最长连续序列
+------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+int longestConsecutive(vector<int>& nums) {
+    unordered_set<int> st(nums.begin(), nums.end());
+    int longest = 0;
+
+    for (int num : st) {
+        // 如果num-1存在，说明num不是序列起点
+        if (st.find(num - 1) != st.end()) {
+            continue;
+        }
+
+        int currentNum = num;
+        int currentStreak = 1;
+
+        while (st.find(currentNum + 1) != st.end()) {
+            currentNum++;
+            currentStreak++;
+        }
+
+        longest = max(longest, currentStreak);
+    }
+
+    return longest;
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    vector<int> nums(n);
+    for (int i = 0; i < n; i++) {
+        cin >> nums[i];
+    }
+
+    cout << "最长连续序列长度: " << longestConsecutive(nums) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def longest_consecutive(nums):
+    """找出最长连续序列"""
+    num_set = set(nums)
+    longest = 0
+
+    for num in num_set:
+        # 如果num-1存在，说明num不是序列起点
+        if num - 1 in num_set:
+            continue
+
+        current_num = num
+        current_streak = 1
+
+        while current_num + 1 in num_set:
+            current_num += 1
+            current_streak += 1
+
+        longest = max(longest, current_streak)
+
+    return longest
+
+# 测试
+n = int(input())
+nums = list(map(int, input().split()))
+
+print(f"最长连续序列长度: {longest_consecutive(nums)}")
+```
+
+应用六：字母异位词分组
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+vector<vector<string>> groupAnagrams(vector<string>& strs) {
+    unordered_map<string, vector<string>> mp;
+
+    for (string s : strs) {
+        string key = s;
+        sort(key.begin(), key.end());
+        mp[key].push_back(s);
+    }
+
+    vector<vector<string>> result;
+    for (auto& [key, val] : mp) {
+        result.push_back(val);
+    }
+
+    return result;
+}
+
+int main() {
+    int n;
+    cin >> n;
+    cin.ignore();
+
+    vector<string> strs(n);
+    for (int i = 0; i < n; i++) {
+        getline(cin, strs[i]);
+    }
+
+    vector<vector<string>> result = groupAnagrams(strs);
+
+    for (auto& group : result) {
+        for (string& s : group) {
+            cout << s << " ";
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from collections import defaultdict
+
+def group_anagrams(strs):
+    """字母异位词分组"""
+    mp = defaultdict(list)
+
+    for s in strs:
+        key = ''.join(sorted(s))
+        mp[key].append(s)
+
+    return list(mp.values())
+
+# 测试
+n = int(input())
+strs = [input().strip() for _ in range(n)]
+
+result = group_anagrams(strs)
+for group in result:
+    print(' '.join(group))
+```
+
+应用七：LRU缓存（哈希表+双向链表）
+------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+class LRUCache {
+private:
+    struct DListNode {
+        int key, value;
+        DListNode *prev, *next;
+        DListNode(int k, int v) : key(k), value(v), prev(nullptr), next(nullptr) {}
+    };
+
+    int capacity;
+    unordered_map<int, DListNode*> mp;
+    DListNode *head, *tail;
+
+    void removeNode(DListNode* node) {
+        node->prev->next = node->next;
+        node->next->prev = node->prev;
+    }
+
+    void addToHead(DListNode* node) {
+        node->next = head->next;
+        node->prev = head;
+        head->next->prev = node;
+        head->next = node;
+    }
+
+public:
+    LRUCache(int cap) : capacity(cap) {
+        head = new DListNode(0, 0);
+        tail = new DListNode(0, 0);
+        head->next = tail;
+        tail->prev = head;
+    }
+
+    int get(int key) {
+        if (mp.find(key) == mp.end()) {
+            return -1;
+        }
+
+        DListNode* node = mp[key];
+        removeNode(node);
+        addToHead(node);
+
+        return node->value;
+    }
+
+    void put(int key, int value) {
+        if (mp.find(key) != mp.end()) {
+            DListNode* node = mp[key];
+            node->value = value;
+            removeNode(node);
+            addToHead(node);
+        } else {
+            if (mp.size() >= capacity) {
+                DListNode* last = tail->prev;
+                removeNode(last);
+                mp.erase(last->key);
+                delete last;
+            }
+
+            DListNode* newNode = new DListNode(key, value);
+            mp[key] = newNode;
+            addToHead(newNode);
+        }
+    }
+};
+
+int main() {
+    LRUCache cache(2);
+
+    cache.put(1, 1);
+    cache.put(2, 2);
+    cout << cache.get(1) << endl;  // 1
+    cache.put(3, 3);
+    cout << cache.get(2) << endl;  // -1
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+from collections import OrderedDict
+
+class LRUCache:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.cache = OrderedDict()
+
+    def get(self, key):
+        """获取值"""
+        if key not in self.cache:
+            return -1
+
+        # 移到末尾（表示最近使用）
+        self.cache.move_to_end(key)
+        return self.cache[key]
+
+    def put(self, key, value):
+        """插入值"""
+        if key in self.cache:
+            # 更新值并移到末尾
+            self.cache.move_to_end(key)
+        self.cache[key] = value
+
+        # 超过容量，删除最久未使用的
+        if len(self.cache) > self.capacity:
+            self.cache.popitem(last=False)
+
+# 测试
+cache = LRUCache(2)
+cache.put(1, 1)
+cache.put(2, 2)
+print(cache.get(1))  # 1
+cache.put(3, 3)
+print(cache.get(2))  # -1
+```
+
+典型例题
+--------
+1. 两数之和（LeetCode 1）：哈希表基础应用
+2. 最长连续序列（LeetCode 128）：哈希表查找
+3. 字母异位词分组（LeetCode 49）：哈希表分组
+4. LRU缓存（LeetCode 146）：哈希表+双向链表
+5. 两数之和II（LeetCode 167）：有序数组+双指针
+6. 快乐数（LeetCode 202）：哈希表检测循环
+7. 字符串中的第一个唯一字符（LeetCode 387）：哈希表计数
+8. 四数相加II（LeetCode 454）：哈希表优化
+
+注意事项
+--------
+1. 选择好的哈希函数很重要
+2. 装载因子过大时需要扩容
+3. 注意处理负数的哈希值
+4. C++中使用unordered_map/map，Python中使用dict/set
+5. 字符串哈希要注意进制选择和溢出处理
+6. 冲突处理方法：开放寻址法、拉链法
+7. 哈希表在平均情况下是O(1)，最坏情况是O(n)
+
+时间复杂度总结
+--------------
+- 插入操作：平均O(1)，最坏O(n)
+- 删除操作：平均O(1)，最坏O(n)
+- 查找操作：平均O(1)，最坏O(n)
+- 空间复杂度：O(n)
+
+哈希表是实际应用中最常用的数据结构之一，掌握其原理和实现非常重要。

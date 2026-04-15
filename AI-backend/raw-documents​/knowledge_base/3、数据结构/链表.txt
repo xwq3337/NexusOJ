@@ -1,0 +1,1189 @@
+链表（Linked List）
+====================
+
+算法概述
+--------
+链表是一种线性数据结构，通过指针将零散的内存块连接起来。与数组不同，链表不要求内存连续，可以动态地分配和释放内存。
+
+核心特点：
+1. 非连续内存存储
+2. 动态大小，无需预先分配
+3. 插入和删除操作效率高(O(1))
+4. 随机访问效率低(O(n))
+
+核心思想
+--------
+1. 每个节点包含数据域和指针域
+2. 头节点指针指向第一个节点
+3. 最后一个节点的指针指向NULL
+4. 通过指针将节点串联起来
+
+基础模板：单链表实现
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 链表节点定义
+struct ListNode {
+    int val;
+    ListNode *next;
+    ListNode(int x) : val(x), next(nullptr) {}
+};
+
+class LinkedList {
+private:
+    ListNode *head;   // 头节点
+    int size;         // 链表大小
+
+public:
+    LinkedList() : head(nullptr), size(0) {}
+
+    // 在链表头部插入节点
+    void insertAtHead(int val) {
+        ListNode *newNode = new ListNode(val);
+        newNode->next = head;
+        head = newNode;
+        size++;
+    }
+
+    // 在链表尾部插入节点
+    void insertAtTail(int val) {
+        ListNode *newNode = new ListNode(val);
+
+        if (head == nullptr) {
+            head = newNode;
+        } else {
+            ListNode *cur = head;
+            while (cur->next != nullptr) {
+                cur = cur->next;
+            }
+            cur->next = newNode;
+        }
+        size++;
+    }
+
+    // 删除指定值的节点
+    void deleteNode(int val) {
+        if (head == nullptr) return;
+
+        if (head->val == val) {
+            ListNode *temp = head;
+            head = head->next;
+            delete temp;
+            size--;
+            return;
+        }
+
+        ListNode *cur = head;
+        while (cur->next != nullptr && cur->next->val != val) {
+            cur = cur->next;
+        }
+
+        if (cur->next != nullptr) {
+            ListNode *temp = cur->next;
+            cur->next = cur->next->next;
+            delete temp;
+            size--;
+        }
+    }
+
+    // 查找节点
+    bool search(int val) {
+        ListNode *cur = head;
+        while (cur != nullptr) {
+            if (cur->val == val) return true;
+            cur = cur->next;
+        }
+        return false;
+    }
+
+    // 打印链表
+    void print() {
+        ListNode *cur = head;
+        while (cur != nullptr) {
+            cout << cur->val << " -> ";
+            cur = cur->next;
+        }
+        cout << "NULL" << endl;
+    }
+
+    // 获取链表大小
+    int getSize() {
+        return size;
+    }
+};
+
+int main() {
+    LinkedList list;
+
+    list.insertAtTail(1);
+    list.insertAtTail(2);
+    list.insertAtTail(3);
+    list.insertAtHead(0);
+
+    list.print();  // 0 -> 1 -> 2 -> 3 -> NULL
+
+    list.deleteNode(2);
+    list.print();  // 0 -> 1 -> 3 -> NULL
+
+    cout << "查找1: " << (list.search(1) ? "找到" : "未找到") << endl;
+    cout << "链表大小: " << list.getSize() << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class ListNode:
+    """链表节点"""
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+class LinkedList:
+    def __init__(self):
+        self.head = None
+        self.size = 0
+
+    def insert_at_head(self, val):
+        """在链表头部插入节点"""
+        new_node = ListNode(val)
+        new_node.next = self.head
+        self.head = new_node
+        self.size += 1
+
+    def insert_at_tail(self, val):
+        """在链表尾部插入节点"""
+        new_node = ListNode(val)
+        if self.head is None:
+            self.head = new_node
+        else:
+            cur = self.head
+            while cur.next is not None:
+                cur = cur.next
+            cur.next = new_node
+        self.size += 1
+
+    def delete_node(self, val):
+        """删除指定值的节点"""
+        if self.head is None:
+            return
+
+        if self.head.val == val:
+            self.head = self.head.next
+            self.size -= 1
+            return
+
+        cur = self.head
+        while cur.next is not None and cur.next.val != val:
+            cur = cur.next
+
+        if cur.next is not None:
+            cur.next = cur.next.next
+            self.size -= 1
+
+    def search(self, val):
+        """查找节点"""
+        cur = self.head
+        while cur is not None:
+            if cur.val == val:
+                return True
+            cur = cur.next
+        return False
+
+    def print_list(self):
+        """打印链表"""
+        cur = self.head
+        while cur is not None:
+            print(f"{cur.val} -> ", end='')
+            cur = cur.next
+        print("NULL")
+
+    def get_size(self):
+        """获取链表大小"""
+        return self.size
+
+# 测试
+lst = LinkedList()
+lst.insert_at_tail(1)
+lst.insert_at_tail(2)
+lst.insert_at_tail(3)
+lst.insert_at_head(0)
+
+lst.print_list()  # 0 -> 1 -> 2 -> 3 -> NULL
+
+lst.delete_node(2)
+lst.print_list()  # 0 -> 1 -> 3 -> NULL
+
+print(f"查找1: {'找到' if lst.search(1) else '未找到'}")
+print(f"链表大小: {lst.get_size()}")
+```
+
+应用一：双链表
+--------------
+双链表的每个节点有两个指针，分别指向前驱和后继。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+// 双链表节点定义
+struct DoublyListNode {
+    int val;
+    DoublyListNode *prev;
+    DoublyListNode *next;
+    DoublyListNode(int x) : val(x), prev(nullptr), next(nullptr) {}
+};
+
+class DoublyLinkedList {
+private:
+    DoublyListNode *head;
+    DoublyListNode *tail;
+    int size;
+
+public:
+    DoublyLinkedList() : head(nullptr), tail(nullptr), size(0) {}
+
+    // 在头部插入
+    void insertAtHead(int val) {
+        DoublyListNode *newNode = new DoublyListNode(val);
+        if (head == nullptr) {
+            head = tail = newNode;
+        } else {
+            newNode->next = head;
+            head->prev = newNode;
+            head = newNode;
+        }
+        size++;
+    }
+
+    // 在尾部插入
+    void insertAtTail(int val) {
+        DoublyListNode *newNode = new DoublyListNode(val);
+        if (tail == nullptr) {
+            head = tail = newNode;
+        } else {
+            tail->next = newNode;
+            newNode->prev = tail;
+            tail = newNode;
+        }
+        size++;
+    }
+
+    // 删除节点
+    void deleteNode(DoublyListNode *node) {
+        if (node == nullptr) return;
+
+        if (node->prev != nullptr) {
+            node->prev->next = node->next;
+        } else {
+            head = node->next;
+        }
+
+        if (node->next != nullptr) {
+            node->next->prev = node->prev;
+        } else {
+            tail = node->prev;
+        }
+
+        delete node;
+        size--;
+    }
+
+    // 正向打印
+    void printForward() {
+        DoublyListNode *cur = head;
+        while (cur != nullptr) {
+            cout << cur->val << " <-> ";
+            cur = cur->next;
+        }
+        cout << "NULL" << endl;
+    }
+
+    // 反向打印
+    void printBackward() {
+        DoublyListNode *cur = tail;
+        while (cur != nullptr) {
+            cout << cur->val << " <-> ";
+            cur = cur->prev;
+        }
+        cout << "NULL" << endl;
+    }
+};
+
+int main() {
+    DoublyLinkedList list;
+
+    list.insertAtTail(1);
+    list.insertAtTail(2);
+    list.insertAtTail(3);
+    list.insertAtHead(0);
+
+    list.printForward();   // 0 <-> 1 <-> 2 <-> 3 <-> NULL
+    list.printBackward();  // 3 <-> 2 <-> 1 <-> 0 <-> NULL
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class DoublyListNode:
+    """双链表节点"""
+    def __init__(self, val=0, prev=None, next=None):
+        self.val = val
+        self.prev = prev
+        self.next = next
+
+class DoublyLinkedList:
+    def __init__(self):
+        self.head = None
+        self.tail = None
+        self.size = 0
+
+    def insert_at_head(self, val):
+        """在头部插入"""
+        new_node = DoublyListNode(val)
+        if self.head is None:
+            self.head = self.tail = new_node
+        else:
+            new_node.next = self.head
+            self.head.prev = new_node
+            self.head = new_node
+        self.size += 1
+
+    def insert_at_tail(self, val):
+        """在尾部插入"""
+        new_node = DoublyListNode(val)
+        if self.tail is None:
+            self.head = self.tail = new_node
+        else:
+            self.tail.next = new_node
+            new_node.prev = self.tail
+            self.tail = new_node
+        self.size += 1
+
+    def delete_node(self, node):
+        """删除节点"""
+        if node is None:
+            return
+
+        if node.prev is not None:
+            node.prev.next = node.next
+        else:
+            self.head = node.next
+
+        if node.next is not None:
+            node.next.prev = node.prev
+        else:
+            self.tail = node.prev
+
+        self.size -= 1
+
+    def print_forward(self):
+        """正向打印"""
+        cur = self.head
+        while cur is not None:
+            print(f"{cur.val} <-> ", end='')
+            cur = cur.next
+        print("NULL")
+
+    def print_backward(self):
+        """反向打印"""
+        cur = self.tail
+        while cur is not None:
+            print(f"{cur.val} <-> ", end='')
+            cur = cur.prev
+        print("NULL")
+
+# 测试
+lst = DoublyLinkedList()
+lst.insert_at_tail(1)
+lst.insert_at_tail(2)
+lst.insert_at_tail(3)
+lst.insert_at_head(0)
+
+lst.print_forward()   # 0 <-> 1 <-> 2 <-> 3 <-> NULL
+lst.print_backward()  # 3 <-> 2 <-> 1 <-> 0 <-> NULL
+```
+
+应用二：反转链表
+--------------
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val;
+    ListNode *next;
+    ListNode(int x) : val(x), next(nullptr) {}
+};
+
+// 迭代法反转链表
+ListNode* reverseList(ListNode* head) {
+    ListNode *prev = nullptr;
+    ListNode *cur = head;
+
+    while (cur != nullptr) {
+        ListNode *next = cur->next;
+        cur->next = prev;
+        prev = cur;
+        cur = next;
+    }
+
+    return prev;
+}
+
+// 递归法反转链表
+ListNode* reverseListRecursive(ListNode* head) {
+    if (head == nullptr || head->next == nullptr) {
+        return head;
+    }
+
+    ListNode *newHead = reverseListRecursive(head->next);
+    head->next->next = head;
+    head->next = nullptr;
+
+    return newHead;
+}
+
+// 打印链表
+void printList(ListNode *head) {
+    while (head != nullptr) {
+        cout << head->val << " -> ";
+        head = head->next;
+    }
+    cout << "NULL" << endl;
+}
+
+int main() {
+    ListNode *head = new ListNode(1);
+    head->next = new ListNode(2);
+    head->next->next = new ListNode(3);
+    head->next->next->next = new ListNode(4);
+
+    cout << "原链表: ";
+    printList(head);
+
+    head = reverseList(head);
+    cout << "反转后: ";
+    printList(head);
+
+    head = reverseListRecursive(head);
+    cout << "再次反转: ";
+    printList(head);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+def reverse_list(head):
+    """迭代法反转链表"""
+    prev = None
+    cur = head
+
+    while cur is not None:
+        next_node = cur.next
+        cur.next = prev
+        prev = cur
+        cur = next_node
+
+    return prev
+
+def reverse_list_recursive(head):
+    """递归法反转链表"""
+    if head is None or head.next is None:
+        return head
+
+    new_head = reverse_list_recursive(head.next)
+    head.next.next = head
+    head.next = None
+
+    return new_head
+
+def print_list(head):
+    """打印链表"""
+    while head is not None:
+        print(f"{head.val} -> ", end='')
+        head = head.next
+    print("NULL")
+
+# 测试
+head = ListNode(1)
+head.next = ListNode(2)
+head.next.next = ListNode(3)
+head.next.next.next = ListNode(4)
+
+print("原链表: ", end='')
+print_list(head)
+
+head = reverse_list(head)
+print("反转后: ", end='')
+print_list(head)
+
+head = reverse_list_recursive(head)
+print("再次反转: ", end='')
+print_list(head)
+```
+
+应用三：检测链表是否有环
+----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val;
+    ListNode *next;
+    ListNode(int x) : val(x), next(nullptr) {}
+};
+
+// 快慢指针法检测环
+bool hasCycle(ListNode *head) {
+    if (head == nullptr || head->next == nullptr) {
+        return false;
+    }
+
+    ListNode *slow = head;
+    ListNode *fast = head;
+
+    while (fast != nullptr && fast->next != nullptr) {
+        slow = slow->next;
+        fast = fast->next->next;
+
+        if (slow == fast) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// 找到环的入口节点
+ListNode *detectCycle(ListNode *head) {
+    if (head == nullptr || head->next == nullptr) {
+        return nullptr;
+    }
+
+    ListNode *slow = head;
+    ListNode *fast = head;
+
+    while (fast != nullptr && fast->next != nullptr) {
+        slow = slow->next;
+        fast = fast->next->next;
+
+        if (slow == fast) {
+            // 有环，找入口
+            slow = head;
+            while (slow != fast) {
+                slow = slow->next;
+                fast = fast->next;
+            }
+            return slow;
+        }
+    }
+
+    return nullptr;
+}
+
+int main() {
+    ListNode *head = new ListNode(1);
+    head->next = new ListNode(2);
+    head->next->next = new ListNode(3);
+    head->next->next->next = new ListNode(4);
+    head->next->next->next->next = head->next;  // 创建环
+
+    if (hasCycle(head)) {
+        cout << "链表有环" << endl;
+
+        ListNode *entry = detectCycle(head);
+        if (entry != nullptr) {
+            cout << "环的入口节点值: " << entry->val << endl;
+        }
+    } else {
+        cout << "链表无环" << endl;
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+def has_cycle(head):
+    """快慢指针法检测环"""
+    if head is None or head.next is None:
+        return False
+
+    slow = head
+    fast = head
+
+    while fast is not None and fast.next is not None:
+        slow = slow.next
+        fast = fast.next.next
+
+        if slow == fast:
+            return True
+
+    return False
+
+def detect_cycle(head):
+    """找到环的入口节点"""
+    if head is None or head.next is None:
+        return None
+
+    slow = head
+    fast = head
+
+    while fast is not None and fast.next is not None:
+        slow = slow.next
+        fast = fast.next.next
+
+        if slow == fast:
+            # 有环，找入口
+            slow = head
+            while slow != fast:
+                slow = slow.next
+                fast = fast.next
+            return slow
+
+    return None
+
+# 测试
+head = ListNode(1)
+head.next = ListNode(2)
+head.next.next = ListNode(3)
+head.next.next.next = ListNode(4)
+head.next.next.next.next = head.next  # 创建环
+
+if has_cycle(head):
+    print("链表有环")
+    entry = detect_cycle(head)
+    if entry is not None:
+        print(f"环的入口节点值: {entry.val}")
+else:
+    print("链表无环")
+```
+
+应用四：合并两个有序链表
+----------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val;
+    ListNode *next;
+    ListNode(int x) : val(x), next(nullptr) {}
+};
+
+// 迭代法合并
+ListNode* mergeTwoLists(ListNode* l1, ListNode* l2) {
+    ListNode *dummy = new ListNode(0);
+    ListNode *cur = dummy;
+
+    while (l1 != nullptr && l2 != nullptr) {
+        if (l1->val < l2->val) {
+            cur->next = l1;
+            l1 = l1->next;
+        } else {
+            cur->next = l2;
+            l2 = l2->next;
+        }
+        cur = cur->next;
+    }
+
+    cur->next = (l1 != nullptr) ? l1 : l2;
+
+    ListNode *result = dummy->next;
+    delete dummy;
+    return result;
+}
+
+// 递归法合并
+ListNode* mergeTwoListsRecursive(ListNode* l1, ListNode* l2) {
+    if (l1 == nullptr) return l2;
+    if (l2 == nullptr) return l1;
+
+    if (l1->val < l2->val) {
+        l1->next = mergeTwoListsRecursive(l1->next, l2);
+        return l1;
+    } else {
+        l2->next = mergeTwoListsRecursive(l1, l2->next);
+        return l2;
+    }
+}
+
+void printList(ListNode *head) {
+    while (head != nullptr) {
+        cout << head->val << " -> ";
+        head = head->next;
+    }
+    cout << "NULL" << endl;
+}
+
+int main() {
+    ListNode *l1 = new ListNode(1);
+    l1->next = new ListNode(3);
+    l1->next->next = new ListNode(5);
+
+    ListNode *l2 = new ListNode(2);
+    l2->next = new ListNode(4);
+    l2->next->next = new ListNode(6);
+
+    cout << "链表1: ";
+    printList(l1);
+    cout << "链表2: ";
+    printList(l2);
+
+    ListNode *merged = mergeTwoLists(l1, l2);
+    cout << "合并后: ";
+    printList(merged);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+def merge_two_lists(l1, l2):
+    """迭代法合并两个有序链表"""
+    dummy = ListNode(0)
+    cur = dummy
+
+    while l1 is not None and l2 is not None:
+        if l1.val < l2.val:
+            cur.next = l1
+            l1 = l1.next
+        else:
+            cur.next = l2
+            l2 = l2.next
+        cur = cur.next
+
+    cur.next = l1 if l1 is not None else l2
+    return dummy.next
+
+def merge_two_lists_recursive(l1, l2):
+    """递归法合并两个有序链表"""
+    if l1 is None:
+        return l2
+    if l2 is None:
+        return l1
+
+    if l1.val < l2.val:
+        l1.next = merge_two_lists_recursive(l1.next, l2)
+        return l1
+    else:
+        l2.next = merge_two_lists_recursive(l1, l2.next)
+        return l2
+
+def print_list(head):
+    """打印链表"""
+    while head is not None:
+        print(f"{head.val} -> ", end='')
+        head = head.next
+    print("NULL")
+
+# 测试
+l1 = ListNode(1)
+l1.next = ListNode(3)
+l1.next.next = ListNode(5)
+
+l2 = ListNode(2)
+l2.next = ListNode(4)
+l2.next.next = ListNode(6)
+
+print("链表1: ", end='')
+print_list(l1)
+print("链表2: ", end='')
+print_list(l2)
+
+merged = merge_two_lists(l1, l2)
+print("合并后: ", end='')
+print_list(merged)
+```
+
+应用五：删除链表的倒数第N个节点
+------------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val;
+    ListNode *next;
+    ListNode(int x) : val(x), next(nullptr) {}
+};
+
+ListNode* removeNthFromEnd(ListNode* head, int n) {
+    ListNode *dummy = new ListNode(0);
+    dummy->next = head;
+
+    ListNode *fast = dummy;
+    ListNode *slow = dummy;
+
+    // fast先走n+1步
+    for (int i = 0; i <= n; i++) {
+        fast = fast->next;
+    }
+
+    // fast和slow同时走，直到fast为空
+    while (fast != nullptr) {
+        fast = fast->next;
+        slow = slow->next;
+    }
+
+    // 删除slow的下一个节点
+    ListNode *toDelete = slow->next;
+    slow->next = slow->next->next;
+    delete toDelete;
+
+    ListNode *result = dummy->next;
+    delete dummy;
+    return result;
+}
+
+void printList(ListNode *head) {
+    while (head != nullptr) {
+        cout << head->val << " -> ";
+        head = head->next;
+    }
+    cout << "NULL" << endl;
+}
+
+int main() {
+    ListNode *head = new ListNode(1);
+    head->next = new ListNode(2);
+    head->next->next = new ListNode(3);
+    head->next->next->next = new ListNode(4);
+    head->next->next->next->next = new ListNode(5);
+
+    cout << "原链表: ";
+    printList(head);
+
+    int n = 2;
+    head = removeNthFromEnd(head, n);
+
+    cout << "删除倒数第" << n << "个节点后: ";
+    printList(head);
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+def remove_nth_from_end(head, n):
+    """删除链表的倒数第N个节点"""
+    dummy = ListNode(0)
+    dummy.next = head
+
+    fast = dummy
+    slow = dummy
+
+    # fast先走n+1步
+    for _ in range(n + 1):
+        fast = fast.next
+
+    # fast和slow同时走
+    while fast is not None:
+        fast = fast.next
+        slow = slow.next
+
+    # 删除slow的下一个节点
+    slow.next = slow.next.next
+
+    return dummy.next
+
+def print_list(head):
+    """打印链表"""
+    while head is not None:
+        print(f"{head.val} -> ", end='')
+        head = head.next
+    print("NULL")
+
+# 测试
+head = ListNode(1)
+head.next = ListNode(2)
+head.next.next = ListNode(3)
+head.next.next.next = ListNode(4)
+head.next.next.next.next = ListNode(5)
+
+print("原链表: ", end='')
+print_list(head)
+
+n = 2
+head = remove_nth_from_end(head, n)
+print(f"删除倒数第{n}个节点后: ", end='')
+print_list(head)
+```
+
+应用六：链表的中点节点
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val;
+    ListNode *next;
+    ListNode(int x) : val(x), next(nullptr) {}
+};
+
+// 快慢指针找中点
+ListNode* findMiddle(ListNode* head) {
+    if (head == nullptr) return nullptr;
+
+    ListNode *slow = head;
+    ListNode *fast = head;
+
+    while (fast->next != nullptr && fast->next->next != nullptr) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+
+    return slow;
+}
+
+int main() {
+    ListNode *head = new ListNode(1);
+    head->next = new ListNode(2);
+    head->next->next = new ListNode(3);
+    head->next->next->next = new ListNode(4);
+    head->next->next->next->next = new ListNode(5);
+
+    ListNode *middle = findMiddle(head);
+    if (middle != nullptr) {
+        cout << "链表中点: " << middle->val << endl;  // 3
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+def find_middle(head):
+    """快慢指针找中点"""
+    if head is None:
+        return None
+
+    slow = head
+    fast = head
+
+    while fast.next is not None and fast.next.next is not None:
+        slow = slow.next
+        fast = fast.next.next
+
+    return slow
+
+# 测试
+head = ListNode(1)
+head.next = ListNode(2)
+head.next.next = ListNode(3)
+head.next.next.next = ListNode(4)
+head.next.next.next.next = ListNode(5)
+
+middle = find_middle(head)
+if middle is not None:
+    print(f"链表中点: {middle->val}")  # 3
+```
+
+应用七：判断回文链表
+------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+struct ListNode {
+    int val;
+    ListNode *next;
+    ListNode(int x) : val(x), next(nullptr) {}
+};
+
+bool isPalindrome(ListNode* head) {
+    if (head == nullptr || head->next == nullptr) {
+        return true;
+    }
+
+    // 1. 找到中点
+    ListNode *slow = head;
+    ListNode *fast = head;
+
+    while (fast->next != nullptr && fast->next->next != nullptr) {
+        slow = slow->next;
+        fast = fast->next->next;
+    }
+
+    // 2. 反转后半部分
+    ListNode *prev = nullptr;
+    ListNode *cur = slow->next;
+
+    while (cur != nullptr) {
+        ListNode *next = cur->next;
+        cur->next = prev;
+        prev = cur;
+        cur = next;
+    }
+
+    // 3. 比较前后两部分
+    ListNode *p1 = head;
+    ListNode *p2 = prev;
+
+    bool result = true;
+    while (p2 != nullptr) {
+        if (p1->val != p2->val) {
+            result = false;
+            break;
+        }
+        p1 = p1->next;
+        p2 = p2->next;
+    }
+
+    return result;
+}
+
+int main() {
+    ListNode *head = new ListNode(1);
+    head->next = new ListNode(2);
+    head->next->next = new ListNode(2);
+    head->next->next->next = new ListNode(1);
+
+    if (isPalindrome(head)) {
+        cout << "是回文链表" << endl;
+    } else {
+        cout << "不是回文链表" << endl;
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+
+def is_palindrome(head):
+    """判断链表是否为回文"""
+    if head is None or head.next is None:
+        return True
+
+    # 1. 找到中点
+    slow = head
+    fast = head
+
+    while fast.next is not None and fast.next.next is not None:
+        slow = slow.next
+        fast = fast.next.next
+
+    # 2. 反转后半部分
+    prev = None
+    cur = slow.next
+
+    while cur is not None:
+        next_node = cur.next
+        cur.next = prev
+        prev = cur
+        cur = next_node
+
+    # 3. 比较前后两部分
+    p1 = head
+    p2 = prev
+
+    while p2 is not None:
+        if p1.val != p2.val:
+            return False
+        p1 = p1.next
+        p2 = p2.next
+
+    return True
+
+# 测试
+head = ListNode(1)
+head.next = ListNode(2)
+head.next.next = ListNode(2)
+head.next.next.next = ListNode(1)
+
+if is_palindrome(head):
+    print("是回文链表")
+else:
+    print("不是回文链表")
+```
+
+典型例题
+--------
+1. 反转链表（LeetCode 206）：基础反转操作
+2. 合并两个有序链表（LeetCode 21）：双指针合并
+3. 环形链表（LeetCode 141）：快慢指针检测环
+4. 环形链表II（LeetCode 142）：找环的入口
+5. 删除链表的倒数第N个节点（LeetCode 19）：双指针
+6. 回文链表（LeetCode 234）：反转+比较
+7. 相交链表（LeetCode 160）：找交点
+8. 排序链表（LeetCode 148）：链表归并排序
+
+注意事项
+--------
+1. 注意处理空指针和边界情况
+2. 删除节点时要保存前驱节点
+3. 使用哑节点(dummy node)简化头节点处理
+4. 快慢指针是链表的常用技巧
+5. 反转链表是很多题目的基础操作
+6. 注意内存管理，避免内存泄漏
+7. Python中要注意引用传递和对象复制
+
+时间复杂度总结
+--------------
+- 插入操作：O(1)（如果已知位置）
+- 删除操作：O(1)（如果已知位置）
+- 查找操作：O(n)
+- 反转链表：O(n)
+- 检测环：O(n)
+- 空间复杂度：O(1)（不考虑递归栈）
+
+链表是动态数据结构的基础，理解链表的操作对学习树、图等复杂数据结构很有帮助。

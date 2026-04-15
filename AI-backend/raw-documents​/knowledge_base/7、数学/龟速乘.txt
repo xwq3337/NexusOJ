@@ -1,0 +1,532 @@
+龟速乘（快速乘，防止溢出）
+========================
+
+算法概述
+--------
+龟速乘是一种用于计算大数乘法取模的算法，主要用于防止乘法溢出。
+当两个数相乘可能超过数据类型的表示范围时，我们使用类似快速幂的思想，
+将乘法转化为多次加法操作，从而在O(log n)时间内安全地计算乘法取模。
+
+核心思想
+--------
+1. 问题：计算 (a × b) % mod，其中a × b可能溢出
+2. 解决：利用二进制拆分，将乘法转化为加法
+3. 原理：a × b = a × (2^k1 + 2^k2 + ...) = a × 2^k1 + a × 2^k2 + ...
+4. 类比：与快速幂的思想类似，但将乘法替换为加法
+
+基础模板：龟速乘
+----------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+// 方法1：基础递归版本
+ll mul_mod(ll a, ll b, ll mod) {
+    if (b == 0) return 0;
+    ll res = mul_mod(a, b >> 1, mod);
+    res = (res + res) % mod;
+    if (b & 1) res = (res + a) % mod;
+    return res;
+}
+
+// 方法2：迭代版本（推荐）
+ll mul_mod_iter(ll a, ll b, ll mod) {
+    ll res = 0;
+    while (b > 0) {
+        if (b & 1) {
+            res = (res + a) % mod;
+        }
+        a = (a + a) % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 方法3：使用__int128（仅限支持__int128的编译器）
+ll mul_mod_int128(ll a, ll b, ll mod) {
+    return (__int128)a * b % mod;
+}
+
+// 方法4：long double优化版本（利用浮点数取整）
+ll mul_mod_ld(ll a, ll b, ll mod) {
+    ll d = (ll)((long double)a * b / mod + 0.5);
+    ll res = a * b - d * mod;
+    if (res < 0) res += mod;
+    return res;
+}
+
+int main() {
+    ll a, b, mod;
+    cin >> a >> b >> mod;
+
+    cout << mul_mod(a, b, mod) << '\n';
+    cout << mul_mod_iter(a, b, mod) << '\n';
+    cout << mul_mod_int128(a, b, mod) << '\n';
+    cout << mul_mod_ld(a, b, mod) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def mul_mod(a: int, b: int, mod: int) -> int:
+    """龟速乘：计算(a * b) % mod"""
+    res = 0
+    while b > 0:
+        if b & 1:
+            res = (res + a) % mod
+        a = (a + a) % mod
+        b >>= 1
+    return res
+
+def mul_mod_rec(a: int, b: int, mod: int) -> int:
+    """递归版本"""
+    if b == 0:
+        return 0
+    res = mul_mod_rec(a, b >> 1, mod)
+    res = (res + res) % mod
+    if b & 1:
+        res = (res + a) % mod
+    return res
+
+# 测试
+if __name__ == "__main__":
+    a, b, mod = map(int, input().split())
+    print(mul_mod(a, b, mod))
+    print(mul_mod_rec(a, b, mod))
+    print((a * b) % mod)  # Python可以直接计算，用于验证
+```
+
+算法详解
+--------
+让我们通过一个例子理解龟速乘的过程：
+
+计算：123 × 456 % 1000
+
+b = 456 的二进制表示：111001000
+
+步骤：
+1. b = 111001000，最低位为0，res不变
+   a = 123 × 2 = 246，b右移
+
+2. b = 11100100，最低位为0，res不变
+   a = 246 × 2 = 492，b右移
+
+3. b = 1110010，最低位为0，res不变
+   a = 492 × 2 = 984，b右移
+
+4. b = 111001，最低位为1，res = (0 + 984) % 1000 = 984
+   a = 984 × 2 = 1968 % 1000 = 968，b右移
+
+5. b = 11100，最低位为0，res不变
+   a = 968 × 2 = 1936 % 1000 = 936，b右移
+
+6. b = 1110，最低位为0，res不变
+   a = 936 × 2 = 1872 % 1000 = 872，b右移
+
+7. b = 111，最低位为1，res = (984 + 872) % 1000 = 1856 % 1000 = 856
+   a = 872 × 2 = 1744 % 1000 = 744，b右移
+
+8. b = 11，最低位为1，res = (856 + 744) % 1000 = 1600 % 1000 = 600
+   a = 744 × 2 = 1488 % 1000 = 488，b右移
+
+9. b = 1，最低位为1，res = (600 + 488) % 1000 = 1088 % 1000 = 88
+   a = 488 × 2 = 976，b右移
+
+10. b = 0，结束
+
+最终结果：88
+
+验证：123 × 456 = 56088，56088 % 1000 = 88 ✓
+
+应用场景
+--------
+1. 模数很大时（mod > 10^9），防止乘法溢出
+2. 矩阵快速幂中，矩阵元素相乘可能溢出
+3. 快速幂中，底数和指数都可能很大时
+4. 计算组合数C(n, m)时的乘法运算
+5. RSA加密算法中的模幂运算
+
+应用一：矩阵快速幂中的龟速乘
+---------------------------
+在矩阵快速幂中，如果矩阵元素和模数都很大，乘法容易溢出。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+const int MAXN = 105;
+ll mod;
+
+struct Matrix {
+    ll mat[MAXN][MAXN];
+    int n, m;
+
+    Matrix(int n, int m) : n(n), m(m) {
+        memset(mat, 0, sizeof(mat));
+    }
+
+    ll* operator[](int i) {
+        return mat[i];
+    }
+
+    // 使用龟速乘的矩阵乘法
+    Matrix operator*(const Matrix& other) const {
+        Matrix res(n, other.m);
+        for (int i = 0; i < n; i++) {
+            for (int k = 0; k < m; k++) {
+                if (mat[i][k] == 0) continue;
+                for (int j = 0; j < other.m; j++) {
+                    // 使用龟速乘
+                    ll temp = mat[i][k];
+                    ll val = other.mat[k][j];
+                    ll mul = 0;
+                    while (val > 0) {
+                        if (val & 1) {
+                            mul = (mul + temp) % mod;
+                        }
+                        temp = (temp + temp) % mod;
+                        val >>= 1;
+                    }
+                    res.mat[i][j] = (res.mat[i][j] + mul) % mod;
+                }
+            }
+        }
+        return res;
+    }
+};
+
+Matrix matrix_pow(Matrix a, ll b) {
+    int n = a.n;
+    Matrix res(n, n);
+    for (int i = 0; i < n; i++) {
+        res.mat[i][i] = 1;
+    }
+    while (b > 0) {
+        if (b & 1) res = res * a;
+        a = a * a;
+        b >>= 1;
+    }
+    return res;
+}
+
+int main() {
+    ll n, k;
+    cin >> n >> k >> mod;
+
+    Matrix a(n, n);
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            cin >> a.mat[i][j];
+        }
+    }
+
+    Matrix ans = matrix_pow(a, k);
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            cout << ans.mat[i][j] << " \n"[j == n - 1];
+        }
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def mul_mod(a: int, b: int, mod: int) -> int:
+    """龟速乘"""
+    res = 0
+    while b > 0:
+        if b & 1:
+            res = (res + a) % mod
+        a = (a + a) % mod
+        b >>= 1
+    return res
+
+def matrix_mul(A, B, mod):
+    """矩阵乘法，使用龟速乘"""
+    n = len(A)
+    m = len(B[0])
+    p = len(B)
+    C = [[0] * m for _ in range(n)]
+    for i in range(n):
+        for k in range(p):
+            if A[i][k] == 0:
+                continue
+            for j in range(m):
+                C[i][j] = (C[i][j] + mul_mod(A[i][k], B[k][j], mod)) % mod
+    return C
+
+def matrix_pow(A, k, mod):
+    """矩阵快速幂"""
+    n = len(A)
+    # 单位矩阵
+    result = [[0] * n for _ in range(n)]
+    for i in range(n):
+        result[i][i] = 1
+
+    base = A
+    while k > 0:
+        if k & 1:
+            result = matrix_mul(result, base, mod)
+        base = matrix_mul(base, base, mod)
+        k >>= 1
+
+    return result
+
+def solve():
+    n, k, mod = map(int, input().split())
+    A = []
+    for _ in range(n):
+        row = list(map(int, input().split()))
+        A.append(row)
+
+    ans = matrix_pow(A, k, mod)
+
+    for row in ans:
+        print(' '.join(map(str, row)))
+
+solve()
+```
+
+应用二：快速幂中的龟速乘
+-------------------------
+当模数很大时（mod接近2^63），快速幂中的乘法也需要用龟速乘。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+ll mod;
+
+// 龟速乘
+ll mul(ll a, ll b) {
+    ll res = 0;
+    while (b > 0) {
+        if (b & 1) res = (res + a) % mod;
+        a = (a + a) % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 快速幂（使用龟速乘）
+ll pow_mod(ll a, ll b) {
+    ll res = 1;
+    while (b > 0) {
+        if (b & 1) res = mul(res, a);
+        a = mul(a, a);
+        b >>= 1;
+    }
+    return res;
+}
+
+int main() {
+    ll a, b;
+    cin >> a >> b >> mod;
+
+    cout << pow_mod(a, b) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def mul(a: int, b: int, mod: int) -> int:
+    """龟速乘"""
+    res = 0
+    while b > 0:
+        if b & 1:
+            res = (res + a) % mod
+        a = (a + a) % mod
+        b >>= 1
+    return res
+
+def pow_mod(a: int, b: int, mod: int) -> int:
+    """快速幂（使用龟速乘）"""
+    res = 1
+    while b > 0:
+        if b & 1:
+            res = mul(res, a, mod)
+        a = mul(a, a, mod)
+        b >>= 1
+    return res
+
+def solve():
+    a, b, mod = map(int, input().split())
+    print(pow_mod(a, b, mod))
+
+solve()
+```
+
+应用三：组合数计算
+----------------
+计算C(n, m) % p时，需要多次乘法，使用龟速乘防止溢出。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+
+ll mod;
+
+// 龟速乘
+ll mul(ll a, ll b) {
+    ll res = 0;
+    while (b > 0) {
+        if (b & 1) res = (res + a) % mod;
+        a = (a + a) % mod;
+        b >>= 1;
+    }
+    return res;
+}
+
+// 快速幂
+ll pow_mod(ll a, ll b) {
+    ll res = 1;
+    while (b > 0) {
+        if (b & 1) res = mul(res, a);
+        a = mul(a, a);
+        b >>= 1;
+    }
+    return res;
+}
+
+// 计算阶乘
+ll factorial(ll n) {
+    ll res = 1;
+    for (ll i = 2; i <= n; i++) {
+        res = mul(res, i);
+    }
+    return res;
+}
+
+// 计算C(n, m) = n! / (m! * (n-m)!)
+ll comb(ll n, ll m) {
+    if (m > n) return 0;
+    ll fz = factorial(n);           // 分子：n!
+    ll fm1 = factorial(m);          // 分母：m!
+    ll fm2 = factorial(n - m);      // 分母：(n-m)!
+    ll fm = mul(fm1, fm2);          // 分母乘积
+    // 使用费马小定理求逆元：fm^(mod-2)
+    ll inv = pow_mod(fm, mod - 2);
+    return mul(fz, inv);
+}
+
+int main() {
+    ll n, m;
+    cin >> n >> m >> mod;
+
+    cout << comb(n, m) << '\n';
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def mul(a: int, b: int, mod: int) -> int:
+    """龟速乘"""
+    res = 0
+    while b > 0:
+        if b & 1:
+            res = (res + a) % mod
+        a = (a + a) % mod
+        b >>= 1
+    return res
+
+def pow_mod(a: int, b: int, mod: int) -> int:
+    """快速幂"""
+    res = 1
+    while b > 0:
+        if b & 1:
+            res = mul(res, a, mod)
+        a = mul(a, a, mod)
+        b >>= 1
+    return res
+
+def factorial(n: int, mod: int) -> int:
+    """计算阶乘"""
+    res = 1
+    for i in range(2, n + 1):
+        res = mul(res, i, mod)
+    return res
+
+def comb(n: int, m: int, mod: int) -> int:
+    """计算组合数C(n, m)"""
+    if m > n:
+        return 0
+    fz = factorial(n, mod)
+    fm1 = factorial(m, mod)
+    fm2 = factorial(n - m, mod)
+    fm = mul(fm1, fm2, mod)
+    inv = pow_mod(fm, mod - 2, mod)  # 费马小定理求逆元
+    return mul(fz, inv, mod)
+
+def solve():
+    n, m, mod = map(int, input().split())
+    print(comb(n, m, mod))
+
+solve()
+```
+
+典型例题
+--------
+1. 【模板】龟速乘（洛谷P1226）：计算a^b mod p，使用龟速乘防止溢出
+2. 【模板】矩阵快速幂（洛谷P3390）：矩阵元素很大时使用龟速乘
+3. 【模板】组合数（洛谷P3807）：计算C(n, m) mod p
+4. 快速幂（洛谷P1226）：大数幂运算
+
+注意事项
+--------
+1. 何时使用龟速乘：
+   - 当模数 mod > 10^9 时
+   - 当两个数相乘可能超过 long long 范围时
+   - 题目明确提示需要防止溢出时
+
+2. 不同实现的选择：
+   - 递归版本：代码简洁，但可能栈溢出
+   - 迭代版本：推荐使用，稳定高效
+   - __int128版本：最快速，但需要编译器支持
+   - long double版本：利用浮点数，速度快但可能有精度问题
+
+3. 性能对比：
+   - __int128：最快，直接硬件支持
+   - long double：较快，但可能有精度误差
+   - 迭代龟速乘：较慢，时间复杂度O(log b)
+   - 递归龟速乘：最慢，且可能栈溢出
+
+4. 常见错误：
+   - 忘记取模导致溢出
+   - 符号问题：注意处理负数情况
+   - 边界条件：b = 0 时要正确返回
+
+5. 优化技巧：
+   - 如果a >= mod，可以先a %= mod
+   - 如果编译器支持__int128，优先使用
+   - 在多次调用时，可以考虑内联函数
+
+时间复杂度总结
+--------------
+- 时间复杂度：O(log b)，b是乘数
+- 空间复杂度：O(1)
+- 相比直接乘法：约慢30-50倍（在无溢出情况下）
+
+龟速乘虽然名字里有"龟速"，但它是处理大数乘法的必备技巧，
+在算法竞赛中经常与快速幂、矩阵快速幂等算法配合使用。

@@ -1,0 +1,868 @@
+状压DP（State Compression Dynamic Programming）
+=============================================
+
+算法概述
+--------
+状压DP（状态压缩动态规划）是一种利用二进制位来表示状态的动态规划技术。当问题的状态数量较少（通常n ≤ 20）时，可以用一个整数的二进制位来表示状态，从而将多维状态压缩到一维。
+
+状压DP的特点：
+1. 用二进制位表示状态，每个位表示某个元素是否被选择
+2. 状态转移通常通过位运算实现
+3. 适用于状态数量较少的组合问题
+
+核心思想
+--------
+1. 状态表示：用整数的二进制位表示状态，第i位为1表示选择第i个元素
+2. 状态转移：通过位运算（与、或、异或等）实现状态转移
+3. 预处理：预处理合法状态，减少状态数量
+4. 记忆化：使用数组记录已经计算过的状态
+
+常用位运算技巧
+--------------
+1. 判断第i位是否为1：(state >> i) & 1
+2. 将第i位置1：state | (1 << i)
+3. 将第i位置0：state & ~(1 << i)
+4. 翻转第i位：state ^ (1 << i)
+5. 获取最低位的1：state & (-state)
+6. 去掉最低位的1：state & (state - 1)
+7. 遍历所有子集：for (int sub = state; sub; sub = (sub - 1) & state)
+8. 统计1的个数：__builtin_popcount(state)（C++）
+
+一、基础模板：旅行商问题（TSP）
+-------------------------------
+
+问题描述：
+给定n个城市和城市之间的距离，从某个城市出发，经过所有城市恰好一次后返回起点，求最短路径长度。
+
+状态定义：
+dp[state][i]：当前访问状态为state，当前在城市i的最短路径长度
+state的二进制位表示城市是否被访问过
+
+状态转移：
+dp[state | (1 << j)][j] = min(dp[state][i] + dist[i][j])
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 20;
+const int INF = 0x3f3f3f3f;
+
+int n;
+int dist[MAXN][MAXN];
+int dp[1 << MAXN][MAXN];  // dp[state][i]: 状态state，当前在i的最短距离
+
+int main() {
+    cin >> n;
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            cin >> dist[i][j];
+        }
+    }
+
+    // 初始化
+    memset(dp, 0x3f, sizeof(dp));
+    dp[1][0] = 0;  // 从城市0出发，状态为1（只有第0位为1）
+
+    // DP
+    for (int state = 1; state < (1 << n); state++) {
+        for (int i = 0; i < n; i++) {
+            if ((state >> i) & 1) {  // 城市i被访问过
+                for (int j = 0; j < n; j++) {
+                    if (!((state >> j) & 1)) {  // 城市j未被访问
+                        int new_state = state | (1 << j);
+                        dp[new_state][j] = min(dp[new_state][j],
+                                              dp[state][i] + dist[i][j]);
+                    }
+                }
+            }
+        }
+    }
+
+    // 返回起点的距离
+    int ans = INF;
+    int full_state = (1 << n) - 1;
+    for (int i = 1; i < n; i++) {
+        ans = min(ans, dp[full_state][i] + dist[i][0]);
+    }
+
+    cout << ans << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def solve():
+    INF = float('inf')
+
+    n = int(input())
+    dist = []
+    for _ in range(n):
+        dist.append(list(map(int, input().split())))
+
+    # dp[state][i]: 状态state，当前在i的最短距离
+    dp = [[INF] * n for _ in range(1 << n)]
+    dp[1][0] = 0  # 从城市0出发
+
+    # DP
+    for state in range(1 << n):
+        for i in range(n):
+            if (state >> i) & 1:  # 城市i被访问过
+                for j in range(n):
+                    if not ((state >> j) & 1):  # 城市j未被访问
+                        new_state = state | (1 << j)
+                        dp[new_state][j] = min(dp[new_state][j],
+                                              dp[state][i] + dist[i][j])
+
+    # 返回起点的距离
+    ans = INF
+    full_state = (1 << n) - 1
+    for i in range(1, n):
+        ans = min(ans, dp[full_state][i] + dist[i][0])
+
+    print(ans)
+
+solve()
+```
+
+二、应用一：国王放置（棋盘覆盖）
+----------------------------
+
+问题描述：
+在n×n的棋盘上放置国王，使得国王之间互不攻击（国王不能相邻），求最大放置数量。
+
+状态定义：
+dp[i][state]：第i行状态为state时，前i行的最大国王数量
+
+状态转移：
+dp[i][state] = max(dp[i-1][pre_state] + count[state])，其中state和pre_state都合法且不相容
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 10;
+const int MAXS = 1 << MAXN;
+
+int n;
+int dp[MAXN][MAXS];  // dp[i][state]: 第i行状态为state的最大国王数
+int count[MAXS];     // count[state]: 状态state中1的个数
+vector<int> valid_states;  // 合法状态
+
+bool check(int state) {
+    // 检查状态是否合法（没有相邻的1）
+    if (state & (state << 1)) return false;  // 水平方向
+    if (state & (state >> 1)) return false;
+    return true;
+}
+
+bool compatible(int state1, int state2) {
+    // 检查两个状态是否相容（垂直和斜向不相邻）
+    if (state1 & state2) return false;  // 垂直方向
+    if (state1 & (state2 << 1)) return false;  // 左斜
+    if (state1 & (state2 >> 1)) return false;  // 右斜
+    return true;
+}
+
+int main() {
+    cin >> n;
+
+    // 预处理所有合法状态
+    for (int state = 0; state < (1 << n); state++) {
+        if (check(state)) {
+            valid_states.push_back(state);
+            count[state] = __builtin_popcount(state);
+        }
+    }
+
+    // 初始化
+    memset(dp, 0, sizeof(dp));
+
+    // 第一行
+    for (int state : valid_states) {
+        dp[0][state] = count[state];
+    }
+
+    // DP
+    for (int i = 1; i < n; i++) {
+        for (int state : valid_states) {
+            for (int pre_state : valid_states) {
+                if (compatible(state, pre_state)) {
+                    dp[i][state] = max(dp[i][state],
+                                      dp[i-1][pre_state] + count[state]);
+                }
+            }
+        }
+    }
+
+    // 答案
+    int ans = 0;
+    for (int state : valid_states) {
+        ans = max(ans, dp[n-1][state]);
+    }
+
+    cout << ans << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def solve():
+    n = int(input())
+
+    def count_ones(x):
+        return bin(x).count('1')
+
+    def check(state):
+        # 检查状态是否合法（没有相邻的1）
+        if state & (state << 1):
+            return False
+        if state & (state >> 1):
+            return False
+        return True
+
+    def compatible(state1, state2):
+        # 检查两个状态是否相容
+        if state1 & state2:
+            return False
+        if state1 & (state2 << 1):
+            return False
+        if state1 & (state2 >> 1):
+            return False
+        return True
+
+    # 预处理所有合法状态
+    valid_states = []
+    count = {}
+    for state in range(1 << n):
+        if check(state):
+            valid_states.append(state)
+            count[state] = count_ones(state)
+
+    # dp[i][state]: 第i行状态为state的最大国王数
+    dp = [[0] * (1 << n) for _ in range(n)]
+
+    # 第一行
+    for state in valid_states:
+        dp[0][state] = count[state]
+
+    # DP
+    for i in range(1, n):
+        for state in valid_states:
+            for pre_state in valid_states:
+                if compatible(state, pre_state):
+                    dp[i][state] = max(dp[i][state],
+                                      dp[i-1][pre_state] + count[state])
+
+    # 答案
+    ans = max(dp[n-1][state] for state in valid_states)
+    print(ans)
+
+solve()
+```
+
+三、应用二：哈密顿路径
+--------------------
+
+问题描述：
+给定一张有向图，求是否存在哈密顿路径（经过每个节点恰好一次的路径）。
+
+状态定义：
+dp[state][i]：是否存在一条路径，访问状态为state，当前在节点i
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 20;
+
+int n, m;
+bool adj[MAXN][MAXN];
+bool dp[1 << MAXN][MAXN];
+
+int main() {
+    cin >> n >> m;
+
+    memset(adj, false, sizeof(adj));
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u][v] = true;
+        adj[v][u] = true;
+    }
+
+    // 初始化
+    memset(dp, false, sizeof(dp));
+
+    // 从每个节点出发
+    for (int i = 0; i < n; i++) {
+        dp[1 << i][i] = true;
+    }
+
+    // DP
+    for (int state = 1; state < (1 << n); state++) {
+        for (int i = 0; i < n; i++) {
+            if ((state >> i) & 1 && dp[state][i]) {
+                for (int j = 0; j < n; j++) {
+                    if (!((state >> j) & 1) && adj[i][j]) {
+                        dp[state | (1 << j)][j] = true;
+                    }
+                }
+            }
+        }
+    }
+
+    // 检查是否存在哈密顿路径
+    int full_state = (1 << n) - 1;
+    bool has_hamiltonian = false;
+    for (int i = 0; i < n; i++) {
+        if (dp[full_state][i]) {
+            has_hamiltonian = true;
+            break;
+        }
+    }
+
+    cout << (has_hamiltonian ? "Yes" : "No") << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def solve():
+    n, m = map(int, input().split())
+
+    adj = [[False] * n for _ in range(n)]
+    for _ in range(m):
+        u, v = map(int, input().split())
+        adj[u][v] = True
+        adj[v][u] = True
+
+    # dp[state][i]: 是否存在一条路径，访问状态为state，当前在节点i
+    dp = [[False] * n for _ in range(1 << n)]
+
+    # 从每个节点出发
+    for i in range(n):
+        dp[1 << i][i] = True
+
+    # DP
+    for state in range(1 << n):
+        for i in range(n):
+            if (state >> i) & 1 and dp[state][i]:
+                for j in range(n):
+                    if not ((state >> j) & 1) and adj[i][j]:
+                        dp[state | (1 << j)][j] = True
+
+    # 检查是否存在哈密顿路径
+    full_state = (1 << n) - 1
+    has_hamiltonian = any(dp[full_state][i] for i in range(n))
+
+    print("Yes" if has_hamiltonian else "No")
+
+solve()
+```
+
+四、应用三：最小权完美匹配
+------------------------
+
+问题描述：
+给定一个完全二分图，求最小权完美匹配。
+
+状态定义：
+dp[state]：右侧节点状态为state时的最小匹配权值
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 20;
+const int INF = 0x3f3f3f3f;
+
+int n;
+int weight[MAXN][MAXN];  // weight[i][j]: 左侧i到右侧j的边权
+int dp[1 << MAXN];       // dp[state]: 右侧状态为state的最小权值
+
+int main() {
+    cin >> n;
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            cin >> weight[i][j];
+        }
+    }
+
+    // 初始化
+    memset(dp, 0x3f, sizeof(dp));
+    dp[0] = 0;
+
+    // DP
+    for (int state = 0; state < (1 << n); state++) {
+        int i = __builtin_popcount(state);  // 当前匹配的左侧节点
+
+        for (int j = 0; j < n; j++) {
+            if (!((state >> j) & 1)) {  // 右侧节点j未被匹配
+                int new_state = state | (1 << j);
+                dp[new_state] = min(dp[new_state], dp[state] + weight[i][j]);
+            }
+        }
+    }
+
+    cout << dp[(1 << n) - 1] << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def solve():
+    INF = float('inf')
+
+    n = int(input())
+
+    weight = []
+    for _ in range(n):
+        weight.append(list(map(int, input().split())))
+
+    # dp[state]: 右侧状态为state的最小权值
+    dp = [INF] * (1 << n)
+    dp[0] = 0
+
+    def count_ones(x):
+        return bin(x).count('1')
+
+    # DP
+    for state in range(1 << n):
+        i = count_ones(state)  # 当前匹配的左侧节点
+
+        for j in range(n):
+            if not ((state >> j) & 1):  # 右侧节点j未被匹配
+                new_state = state | (1 << j)
+                dp[new_state] = min(dp[new_state], dp[state] + weight[i][j])
+
+    print(dp[(1 << n) - 1])
+
+solve()
+```
+
+五、应用四：集合覆盖
+------------------
+
+问题描述：
+给定n个集合，每个集合包含一些元素，求选择最少数量的集合，使得所有元素都被覆盖。
+
+状态定义：
+dp[state]：覆盖元素状态为state所需的最少集合数量
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 20;
+const int INF = 0x3f3f3f3f;
+
+int n, m;
+int sets[MAXN];     // sets[i]: 第i个集合的元素状态
+int dp[1 << MAXN];  // dp[state]: 覆盖状态state的最少集合数
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < m; i++) {
+        int k;
+        cin >> k;
+        sets[i] = 0;
+        for (int j = 0; j < k; j++) {
+            int x;
+            cin >> x;
+            x--;  // 转换为0-indexed
+            sets[i] |= (1 << x);
+        }
+    }
+
+    // 初始化
+    memset(dp, 0x3f, sizeof(dp));
+    dp[0] = 0;
+
+    // DP
+    for (int state = 0; state < (1 << n); state++) {
+        if (dp[state] == INF) continue;
+
+        for (int i = 0; i < m; i++) {
+            int new_state = state | sets[i];
+            dp[new_state] = min(dp[new_state], dp[state] + 1);
+        }
+    }
+
+    int full_state = (1 << n) - 1;
+    cout << (dp[full_state] == INF ? -1 : dp[full_state]) << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def solve():
+    INF = float('inf')
+
+    n, m = map(int, input().split())
+
+    sets = []
+    for _ in range(m):
+        k = int(input())
+        elements = list(map(int, input().split()))
+        state = 0
+        for x in elements:
+            state |= 1 << (x - 1)  # 转换为0-indexed
+        sets.append(state)
+
+    # dp[state]: 覆盖状态state的最少集合数
+    dp = [INF] * (1 << n)
+    dp[0] = 0
+
+    # DP
+    for state in range(1 << n):
+        if dp[state] == INF:
+            continue
+
+        for i in range(m):
+            new_state = state | sets[i]
+            dp[new_state] = min(dp[new_state], dp[state] + 1)
+
+    full_state = (1 << n) - 1
+    result = dp[full_state] if dp[full_state] != INF else -1
+    print(result)
+
+solve()
+```
+
+六、应用五：最短哈密顿路径
+------------------------
+
+问题描述：
+给定一张带权完全图，求从起点0经过所有节点恰好一次到达终点的最短路径长度。
+
+状态定义：
+dp[state][i]：从起点出发，访问状态为state，当前在节点i的最短路径长度
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 20;
+const int INF = 0x3f3f3f3f;
+
+int n;
+int dist[MAXN][MAXN];
+int dp[1 << MAXN][MAXN];
+
+int main() {
+    cin >> n;
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            cin >> dist[i][j];
+        }
+    }
+
+    // 初始化
+    memset(dp, 0x3f, sizeof(dp));
+    dp[1][0] = 0;  // 从节点0出发
+
+    // DP
+    for (int state = 1; state < (1 << n); state++) {
+        for (int i = 0; i < n; i++) {
+            if ((state >> i) & 1) {
+                for (int j = 0; j < n; j++) {
+                    if (!((state >> j) & 1)) {
+                        int new_state = state | (1 << j);
+                        dp[new_state][j] = min(dp[new_state][j],
+                                              dp[state][i] + dist[i][j]);
+                    }
+                }
+            }
+        }
+    }
+
+    int full_state = (1 << n) - 1;
+    cout << dp[full_state][n-1] << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def solve():
+    INF = float('inf')
+
+    n = int(input())
+
+    dist = []
+    for _ in range(n):
+        dist.append(list(map(int, input().split())))
+
+    # dp[state][i]: 从起点出发，访问状态为state，当前在节点i的最短路径长度
+    dp = [[INF] * n for _ in range(1 << n)]
+    dp[1][0] = 0  # 从节点0出发
+
+    # DP
+    for state in range(1 << n):
+        for i in range(n):
+            if (state >> i) & 1:
+                for j in range(n):
+                    if not ((state >> j) & 1):
+                        new_state = state | (1 << j)
+                        dp[new_state][j] = min(dp[new_state][j],
+                                              dp[state][i] + dist[i][j])
+
+    full_state = (1 << n) - 1
+    print(dp[full_state][n-1])
+
+solve()
+```
+
+七、应用六：炮兵阵地（经典状压DP）
+------------------------------
+
+问题描述：
+在n×m的地图上放置炮兵，炮兵的攻击范围为上下左右两格，求最多能放置多少炮兵。
+
+状态定义：
+dp[i][state1][state2]：第i行状态为state1，第i-1行状态为state2时的最大炮兵数
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 105;
+const int MAXM = 10;
+const int MAXS = 1 << MAXM;
+
+int n, m;
+char grid[MAXN][MAXM];
+int dp[MAXN][MAXS][MAXS];
+int count[MAXS];
+vector<int> valid_states;
+
+bool check(int state, int row) {
+    // 检查状态是否与地图兼容
+    for (int j = 0; j < m; j++) {
+        if ((state >> j) & 1) {
+            if (grid[row][j] == 'H') return false;
+        }
+    }
+    return true;
+}
+
+bool compatible(int state) {
+    // 检查状态内部是否合法（炮兵之间不相邻）
+    if (state & (state << 1)) return false;
+    if (state & (state << 2)) return false;
+    return true;
+}
+
+bool compatible_rows(int state1, int state2) {
+    // 检查两行是否相容
+    if (state1 & state2) return false;
+    return true;
+}
+
+int main() {
+    cin >> n >> m;
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            cin >> grid[i][j];
+        }
+    }
+
+    // 预处理合法状态
+    for (int state = 0; state < (1 << m); state++) {
+        if (compatible(state)) {
+            valid_states.push_back(state);
+            count[state] = __builtin_popcount(state);
+        }
+    }
+
+    // 初始化
+    memset(dp, -1, sizeof(dp));
+
+    // 第一行
+    for (int state : valid_states) {
+        if (check(state, 0)) {
+            dp[0][state][0] = count[state];
+        }
+    }
+
+    // 第二行
+    for (int state : valid_states) {
+        if (check(state, 1)) {
+            for (int pre_state : valid_states) {
+                if (dp[0][pre_state][0] != -1 && compatible_rows(state, pre_state)) {
+                    dp[1][state][pre_state] = max(dp[1][state][pre_state],
+                                                   dp[0][pre_state][0] + count[state]);
+                }
+            }
+        }
+    }
+
+    // DP
+    for (int i = 2; i < n; i++) {
+        for (int state : valid_states) {
+            if (!check(state, i)) continue;
+
+            for (int pre_state1 : valid_states) {
+                if (!compatible_rows(state, pre_state1)) continue;
+
+                for (int pre_state2 : valid_states) {
+                    if (dp[i-1][pre_state1][pre_state2] == -1) continue;
+                    if (!compatible_rows(pre_state1, pre_state2)) continue;
+
+                    dp[i][state][pre_state1] = max(dp[i][state][pre_state1],
+                                                     dp[i-1][pre_state1][pre_state2] + count[state]);
+                }
+            }
+        }
+    }
+
+    // 答案
+    int ans = 0;
+    for (int state : valid_states) {
+        for (int pre_state : valid_states) {
+            ans = max(ans, dp[n-1][state][pre_state]);
+        }
+    }
+
+    cout << ans << endl;
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+def solve():
+    n, m = map(int, input().split())
+
+    grid = []
+    for _ in range(n):
+        grid.append(input().strip())
+
+    def count_ones(x):
+        return bin(x).count('1')
+
+    def check(state, row):
+        # 检查状态是否与地图兼容
+        for j in range(m):
+            if (state >> j) & 1 and grid[row][j] == 'H':
+                return False
+        return True
+
+    def compatible(state):
+        # 检查状态内部是否合法
+        if state & (state << 1):
+            return False
+        if state & (state << 2):
+            return False
+        return True
+
+    def compatible_rows(state1, state2):
+        # 检查两行是否相容
+        return not (state1 & state2)
+
+    # 预处理合法状态
+    valid_states = []
+    count = {}
+    for state in range(1 << m):
+        if compatible(state):
+            valid_states.append(state)
+            count[state] = count_ones(state)
+
+    # dp[i][state1][state2]: 第i行状态为state1，第i-1行状态为state2
+    dp = [[[-1] * (1 << m) for _ in range(1 << m)] for __ in range(n)]
+
+    # 第一行
+    for state in valid_states:
+        if check(state, 0):
+            dp[0][state][0] = count[state]
+
+    # 第二行
+    for state in valid_states:
+        if check(state, 1):
+            for pre_state in valid_states:
+                if dp[0][pre_state][0] != -1 and compatible_rows(state, pre_state):
+                    dp[1][state][pre_state] = max(dp[1][state][pre_state],
+                                                   dp[0][pre_state][0] + count[state])
+
+    # DP
+    for i in range(2, n):
+        for state in valid_states:
+            if not check(state, i):
+                continue
+
+            for pre_state1 in valid_states:
+                if not compatible_rows(state, pre_state1):
+                    continue
+
+                for pre_state2 in valid_states:
+                    if dp[i-1][pre_state1][pre_state2] == -1:
+                        continue
+                    if not compatible_rows(pre_state1, pre_state2):
+                        continue
+
+                    dp[i][state][pre_state1] = max(dp[i][state][pre_state1],
+                                                     dp[i-1][pre_state1][pre_state2] + count[state])
+
+    # 答案
+    ans = 0
+    for state in valid_states:
+        for pre_state in valid_states:
+            ans = max(ans, dp[n-1][state][pre_state])
+
+    print(ans)
+
+solve()
+```
+
+典型例题
+--------
+1. 旅行商问题（洛谷P1171）：经典TSP问题
+2. 国王放置（洛谷P1896）：棋盘覆盖问题
+3. 炮兵阵地（洛谷P2704）：经典状压DP
+4. 愤怒的小鸟（洛谷P2831）：状压DP优化
+5. 最短哈密顿路径（洛谷P1433）：哈密顿路径问题
+6. 集合覆盖（洛谷P2716）：集合覆盖问题
+7. 吃奶酪（洛谷P1433）：状压DP变体
+
+注意事项
+--------
+1. 状态数量：当n > 20时，状态数量过大，不适合状压DP
+2. 位运算：熟练掌握位运算技巧，注意运算优先级
+3. 内存限制：dp数组可能很大，注意内存限制
+4. 初始化：注意dp数组的初始化，特别是INF的设置
+5. 状态转移：仔细分析状态转移方程，避免遗漏
+6. 预处理：预处理合法状态可以大大减少计算量
+7. 时间复杂度：通常为O(n² × 2^n)或O(n × 2^n)
+
+时间复杂度总结
+--------------
+- 基础状压DP：O(n² × 2^n)
+- 优化后：某些问题可以优化到O(n × 2^n)
+- 空间复杂度：O(n × 2^n)或O(2^n)
+
+状压DP是动态规划中的重要技巧，掌握好位运算和状态压缩是关键。

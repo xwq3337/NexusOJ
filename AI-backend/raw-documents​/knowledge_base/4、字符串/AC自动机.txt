@@ -1,0 +1,717 @@
+AC自动机（Aho-Corasick Automaton）
+=================================
+
+算法概述
+--------
+AC自动机是一种多模式字符串匹配算法，由Alfred V. Aho和Margaret J. Corasick于1975年提出。它结合了Trie树和KMP算法的思想，能够同时匹配多个模式串，时间复杂度为O(n + m)，其中n是文本长度，m是所有模式串的总长度。
+
+核心思想
+--------
+1. 使用Trie树存储所有模式串
+2. 构建fail指针（失配指针），类似KMP的next数组
+3. 当匹配失败时，通过fail指针跳转到下一个可能匹配的位置
+4. 一次扫描文本串，同时匹配所有模式串
+
+算法原理
+--------
+1. Trie树构建：
+   - 每个节点包含26个子节点（对应26个字母）
+   - 标记每个模式串的结尾节点
+
+2. fail指针构建：
+   - root的子节点的fail指向root
+   - 其他节点的fail指向其父节点fail的对应子节点
+   - BFS按层构建fail指针
+
+3. 匹配过程：
+   - 从root开始遍历文本串
+   - 如果当前字符无匹配，沿fail指针回退
+   - 如果到达模式串结尾，记录匹配
+
+基础模板
+--------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1000005;
+const int ALPHABET = 26;
+
+struct TrieNode {
+    int next[ALPHABET];  // 子节点
+    int fail;            // 失配指针
+    int count;           // 以该节点结尾的模式串数量
+    int exist;           // 是否为模式串结尾
+} trie[MAXN];
+
+int cnt = 0;  // 节点计数器
+
+// 初始化根节点
+void init() {
+    cnt = 0;
+    memset(trie, 0, sizeof(trie));
+}
+
+// 插入模式串
+void insert(char *s, int id) {
+    int u = 0;  // 从根节点开始
+    for (int i = 0; s[i]; i++) {
+        int v = s[i] - 'a';
+        if (!trie[u].next[v]) {
+            trie[u].next[v] = ++cnt;  // 创建新节点
+        }
+        u = trie[u].next[v];
+    }
+    trie[u].exist = id;  // 标记模式串结尾
+}
+
+// 构建fail指针
+void build_fail() {
+    queue<int> q;
+
+    // 根节点的子节点fail指向根节点
+    for (int i = 0; i < ALPHABET; i++) {
+        if (trie[0].next[i]) {
+            trie[trie[0].next[i]].fail = 0;
+            q.push(trie[0].next[i]);
+        }
+    }
+
+    // BFS构建fail指针
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+
+        for (int i = 0; i < ALPHABET; i++) {
+            int v = trie[u].next[i];
+            if (v) {
+                // 子节点的fail指向父节点fail的对应子节点
+                trie[v].fail = trie[trie[u].fail].next[i];
+                q.push(v);
+            } else {
+                // 如果没有子节点，指向fail的对应子节点（优化跳转）
+                trie[u].next[i] = trie[trie[u].fail].next[i];
+            }
+        }
+    }
+}
+
+// 查询文本串中出现的模式串
+void query(char *t, vector<int> &results) {
+    int u = 0;  // 从根节点开始
+    for (int i = 0; t[i]; i++) {
+        int v = t[i] - 'a';
+        u = trie[u].next[v];  // 跳转（包括fail）
+
+        for (int j = u; j; j = trie[j].fail) {
+            if (trie[j].exist) {
+                results.push_back(trie[j].exist);
+            }
+        }
+    }
+}
+
+int main() {
+    init();
+
+    int n;
+    scanf("%d", &n);
+
+    for (int i = 1; i <= n; i++) {
+        char pattern[100];
+        scanf("%s", pattern);
+        insert(pattern, i);
+    }
+
+    build_fail();
+
+    char text[MAXN];
+    scanf("%s", text);
+
+    vector<int> results;
+    query(text, results);
+
+    printf("Found %d matches\n", (int)results.size());
+    for (int id : results) {
+        printf("Pattern %d\n", id);
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import deque
+
+class TrieNode:
+    def __init__(self):
+        self.next = {}  # 子节点字典
+        self.fail = 0   # 失配指针
+        self.exist = 0  # 模式串结尾标记
+
+class ACAutomaton:
+    def __init__(self):
+        self.trie = [TrieNode()]  # 根节点
+        self.cnt = 0
+
+    def insert(self, s, id):
+        u = 0
+        for ch in s:
+            v = ord(ch) - ord('a')
+            if v not in self.trie[u].next:
+                self.trie[u].next[v] = len(self.trie)
+                self.trie.append(TrieNode())
+            u = self.trie[u].next[v]
+        self.trie[u].exist = id
+
+    def build_fail(self):
+        q = deque()
+
+        # 初始化根节点的子节点
+        for i in range(26):
+            if i in self.trie[0].next:
+                self.trie[self.trie[0].next[i]].fail = 0
+                q.append(self.trie[0].next[i])
+
+        # BFS构建fail指针
+        while q:
+            u = q.popleft()
+            for i in range(26):
+                if i in self.trie[u].next:
+                    v = self.trie[u].next[i]
+                    self.trie[v].fail = self.trie[self.trie[u].fail].next.get(i, 0)
+                    q.append(v)
+                else:
+                    self.trie[u].next[i] = self.trie[self.trie[u].fail].next.get(i, 0)
+
+    def query(self, t):
+        u = 0
+        results = []
+        for ch in t:
+            v = ord(ch) - ord('a')
+            u = self.trie[u].next.get(v, 0)
+
+            j = u
+            while j > 0:
+                if self.trie[j].exist:
+                    results.append(self.trie[j].exist)
+                j = self.trie[j].fail
+
+        return results
+
+def solve():
+    input = sys.stdin.readline
+    ac = ACAutomaton()
+
+    n = int(input())
+    for i in range(1, n + 1):
+        pattern = input().strip()
+        ac.insert(pattern, i)
+
+    ac.build_fail()
+
+    text = input().strip()
+    results = ac.query(text)
+
+    print(f"Found {len(results)} matches")
+    for id in results:
+        print(f"Pattern {id}")
+
+solve()
+```
+
+应用一：统计模式串出现次数
+------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1000005;
+const int ALPHABET = 26;
+
+struct TrieNode {
+    int next[ALPHABET];
+    int fail;
+    int count;
+    int exist;
+} trie[MAXN];
+
+int cnt = 0;
+
+void init() {
+    cnt = 0;
+    memset(trie, 0, sizeof(trie));
+}
+
+void insert(char *s, int id) {
+    int u = 0;
+    for (int i = 0; s[i]; i++) {
+        int v = s[i] - 'a';
+        if (!trie[u].next[v]) {
+            trie[u].next[v] = ++cnt;
+        }
+        u = trie[u].next[v];
+    }
+    trie[u].exist = id;
+}
+
+void build_fail() {
+    queue<int> q;
+
+    for (int i = 0; i < ALPHABET; i++) {
+        if (trie[0].next[i]) {
+            trie[trie[0].next[i]].fail = 0;
+            q.push(trie[0].next[i]);
+        }
+    }
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+
+        for (int i = 0; i < ALPHABET; i++) {
+            int v = trie[u].next[i];
+            if (v) {
+                trie[v].fail = trie[trie[u].fail].next[i];
+                q.push(v);
+            } else {
+                trie[u].next[i] = trie[trie[u].fail].next[i];
+            }
+        }
+    }
+}
+
+void query(char *t, int *freq) {
+    int u = 0;
+    for (int i = 0; t[i]; i++) {
+        int v = t[i] - 'a';
+        u = trie[u].next[v];
+
+        for (int j = u; j; j = trie[j].fail) {
+            if (trie[j].exist) {
+                freq[trie[j].exist]++;
+            }
+        }
+    }
+}
+
+int main() {
+    init();
+
+    int n;
+    scanf("%d", &n);
+
+    char patterns[1005][105];
+    for (int i = 1; i <= n; i++) {
+        scanf("%s", patterns[i]);
+        insert(patterns[i], i);
+    }
+
+    build_fail();
+
+    char text[MAXN];
+    scanf("%s", text);
+
+    int freq[1005] = {0};
+    query(text, freq);
+
+    for (int i = 1; i <= n; i++) {
+        printf("%s: %d\n", patterns[i], freq[i]);
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from collections import deque
+
+class TrieNode:
+    def __init__(self):
+        self.next = {}
+        self.fail = 0
+        self.exist = 0
+
+class ACAutomaton:
+    def __init__(self):
+        self.trie = [TrieNode()]
+        self.cnt = 0
+
+    def insert(self, s, id):
+        u = 0
+        for ch in s:
+            v = ord(ch) - ord('a')
+            if v not in self.trie[u].next:
+                self.trie[u].next[v] = len(self.trie)
+                self.trie.append(TrieNode())
+            u = self.trie[u].next[v]
+        self.trie[u].exist = id
+
+    def build_fail(self):
+        q = deque()
+        for i in range(26):
+            if i in self.trie[0].next:
+                self.trie[self.trie[0].next[i]].fail = 0
+                q.append(self.trie[0].next[i])
+
+        while q:
+            u = q.popleft()
+            for i in range(26):
+                if i in self.trie[u].next:
+                    v = self.trie[u].next[i]
+                    self.trie[v].fail = self.trie[self.trie[u].fail].next.get(i, 0)
+                    q.append(v)
+                else:
+                    self.trie[u].next[i] = self.trie[self.trie[u].fail].next.get(i, 0)
+
+    def query(self, t):
+        u = 0
+        freq = {}
+        for ch in t:
+            v = ord(ch) - ord('a')
+            u = self.trie[u].next.get(v, 0)
+
+            j = u
+            while j > 0:
+                if self.trie[j].exist:
+                    id = self.trie[j].exist
+                    freq[id] = freq.get(id, 0) + 1
+                j = self.trie[j].fail
+
+        return freq
+
+def solve():
+    input = sys.stdin.readline
+    ac = ACAutomaton()
+
+    n = int(input())
+    patterns = {}
+    for i in range(1, n + 1):
+        pattern = input().strip()
+        patterns[i] = pattern
+        ac.insert(pattern, i)
+
+    ac.build_fail()
+
+    text = input().strip()
+    freq = ac.query(text)
+
+    for i in range(1, n + 1):
+        print(f"{patterns[i]}: {freq.get(i, 0)}")
+
+solve()
+```
+
+应用二：查找所有模式串出现位置
+----------------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1000005;
+const int ALPHABET = 26;
+
+struct TrieNode {
+    int next[ALPHABET];
+    int fail;
+    int count;
+    int exist;
+} trie[MAXN];
+
+int cnt = 0;
+vector<int> positions[1005];  // 每个模式串的出现位置
+
+void init() {
+    cnt = 0;
+    memset(trie, 0, sizeof(trie));
+}
+
+void insert(char *s, int id) {
+    int u = 0;
+    for (int i = 0; s[i]; i++) {
+        int v = s[i] - 'a';
+        if (!trie[u].next[v]) {
+            trie[u].next[v] = ++cnt;
+        }
+        u = trie[u].next[v];
+    }
+    trie[u].exist = id;
+}
+
+void build_fail() {
+    queue<int> q;
+
+    for (int i = 0; i < ALPHABET; i++) {
+        if (trie[0].next[i]) {
+            trie[trie[0].next[i]].fail = 0;
+            q.push(trie[0].next[i]);
+        }
+    }
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+
+        for (int i = 0; i < ALPHABET; i++) {
+            int v = trie[u].next[i];
+            if (v) {
+                trie[v].fail = trie[trie[u].fail].next[i];
+                q.push(v);
+            } else {
+                trie[u].next[i] = trie[trie[u].fail].next[i];
+            }
+        }
+    }
+}
+
+void query(char *t) {
+    int u = 0;
+    int len = strlen(t);
+
+    for (int i = 0; i < len; i++) {
+        int v = t[i] - 'a';
+        u = trie[u].next[v];
+
+        for (int j = u; j; j = trie[j].fail) {
+            if (trie[j].exist) {
+                int id = trie[j].exist;
+                int pattern_len = i;  // 这里需要记录模式串长度
+                // 简化处理：实际应用中需要记录每个模式串的长度
+                positions[id].push_back(i);
+            }
+        }
+    }
+}
+
+int main() {
+    init();
+
+    int n;
+    scanf("%d", &n);
+
+    char patterns[1005][105];
+    int pattern_len[1005] = {0};
+
+    for (int i = 1; i <= n; i++) {
+        scanf("%s", patterns[i]);
+        pattern_len[i] = strlen(patterns[i]);
+        insert(patterns[i], i);
+    }
+
+    build_fail();
+
+    char text[MAXN];
+    scanf("%s", text);
+
+    query(text);
+
+    for (int i = 1; i <= n; i++) {
+        printf("%s appears at positions: ", patterns[i]);
+        for (int pos : positions[i]) {
+            printf("%d ", pos - pattern_len[i] + 2);
+        }
+        printf("\n");
+    }
+
+    return 0;
+}
+```
+
+应用三：敏感词过滤
+----------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 1000005;
+const int ALPHABET = 26;
+
+struct TrieNode {
+    int next[ALPHABET];
+    int fail;
+    int count;
+    bool exist;  // 是否为敏感词结尾
+} trie[MAXN];
+
+int cnt = 0;
+
+void init() {
+    cnt = 0;
+    memset(trie, 0, sizeof(trie));
+}
+
+void insert(char *s) {
+    int u = 0;
+    for (int i = 0; s[i]; i++) {
+        int v = tolower(s[i]) - 'a';
+        if (!trie[u].next[v]) {
+            trie[u].next[v] = ++cnt;
+        }
+        u = trie[u].next[v];
+    }
+    trie[u].exist = true;
+}
+
+void build_fail() {
+    queue<int> q;
+
+    for (int i = 0; i < ALPHABET; i++) {
+        if (trie[0].next[i]) {
+            trie[trie[0].next[i]].fail = 0;
+            q.push(trie[0].next[i]);
+        }
+    }
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+
+        for (int i = 0; i < ALPHABET; i++) {
+            int v = trie[u].next[i];
+            if (v) {
+                trie[v].fail = trie[trie[u].fail].next[i];
+                if (trie[trie[v].fail].exist) {
+                    trie[v].exist = true;  // 传递敏感词标记
+                }
+                q.push(v);
+            } else {
+                trie[u].next[i] = trie[trie[u].fail].next[i];
+            }
+        }
+    }
+}
+
+// 检查文本中是否包含敏感词
+bool contains_sensitive_word(char *t) {
+    int u = 0;
+    for (int i = 0; t[i]; i++) {
+        int v = tolower(t[i]) - 'a';
+        if (v < 0 || v >= ALPHABET) {
+            u = 0;
+            continue;
+        }
+
+        u = trie[u].next[v];
+
+        if (trie[u].exist) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// 过滤敏感词，用*替换
+void filter_sensitive_word(char *t, char *result) {
+    int u = 0;
+    int j = 0;
+
+    for (int i = 0; t[i]; i++) {
+        int v = tolower(t[i]) - 'a';
+        if (v < 0 || v >= ALPHABET) {
+            u = 0;
+            result[j++] = t[i];
+            continue;
+        }
+
+        int old_u = u;
+        u = trie[u].next[v];
+
+        if (trie[u].exist) {
+            // 发现敏感词，回退并用*替换
+            int len = 0;
+            int temp = u;
+            while (temp) {
+                len++;
+                temp = trie[temp].fail;
+            }
+            for (int k = 0; k < len; k++) {
+                result[j - k] = '*';
+            }
+            u = 0;
+        } else {
+            result[j++] = t[i];
+        }
+    }
+    result[j] = '\0';
+}
+
+int main() {
+    init();
+
+    int n;
+    scanf("%d", &n);
+
+    for (int i = 0; i < n; i++) {
+        char word[105];
+        scanf("%s", word);
+        insert(word);
+    }
+
+    build_fail();
+
+    char text[MAXN];
+    scanf("%s", text);
+
+    if (contains_sensitive_word(text)) {
+        printf("Contains sensitive word\n");
+    } else {
+        printf("Safe\n");
+    }
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. AC自动机模板（洛谷P3808）：多模式串匹配，统计出现次数
+2. AC自动机加强版（洛谷P3796）：查询每个模式串的出现次数
+3. 文本生成器（洛谷P2292）：统计包含至少一个模式串的文本数量
+4. 单词查询（洛谷P3966）：查询每个模式串在文本中的出现次数
+5. 病毒检测（洛谷P2444）：检测文本中是否包含模式串
+
+注意事项
+--------
+1. Trie树的构建：
+   - 根节点编号为0
+   - 每个新节点递增编号
+   - 注意数组大小要足够
+
+2. fail指针构建：
+   - 使用BFS按层构建
+   - 根节点的子节点fail指向root
+   - 其他节点的fail指向父节点fail的对应子节点
+
+3. 匹配过程：
+   - 沿着fail指针链查找所有可能的匹配
+   - 注意跳转优化：trie[u].next[i] = trie[trie[u].fail].next[i]
+
+4. 时间复杂度：
+   - 构建Trie：O(总模式串长度)
+   - 构建fail指针：O(总模式串长度 * ALPHABET)
+   - 匹配：O(文本长度 + 匹配次数)
+
+5. 空间复杂度：
+   - Trie树空间：O(总模式串长度 * ALPHABET)
+   - 可以用动态数组或map优化
+
+时间复杂度总结
+--------------
+- 构建Trie树：O(总模式串长度)
+- 构建fail指针：O(总模式串长度 * ALPHABET)
+- 匹配过程：O(文本长度 + 总匹配次数)
+- 空间复杂度：O(总模式串长度 * ALPHABET)
+
+AC自动机是多模式串匹配的强大工具，理解fail指针的构建和匹配过程是掌握该算法的关键。

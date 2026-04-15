@@ -1,0 +1,477 @@
+倍增（Binary Lifting）
+====================
+
+算法概述
+--------
+倍增是一种基于二进制拆分思想的算法技巧，通过预处理2^k个步骤的信息，将O(n)的线性查找优化到O(log n)。
+它的核心思想是：任何正整数都可以表示为若干个2的幂次之和，即 n = 2^k1 + 2^k2 + ...
+
+核心思想
+--------
+1. 状态定义：f[i][j] 表示从位置i出发，走2^j步到达的位置
+2. 状态转移：f[i][j] = f[f[i][j-1]][j-1]
+   解释：走2^j步 = 先走2^(j-1)步，再走2^(j-1)步
+3. 预处理：O(n log n) 时间复杂度
+4. 查询：O(log n) 时间复杂度
+
+基础模板：快速倍增跳转
+--------------------
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 100005;
+const int LOGN = 20;
+
+int n, q;
+int parent[MAXN];           // 直接父节点
+int f[MAXN][LOGN];          // f[i][j]: 从i向上跳2^j步到达的节点
+
+// 预处理倍增数组
+void build() {
+    memset(f, -1, sizeof(f));
+    for (int i = 1; i <= n; i++) {
+        f[i][0] = parent[i];  // 跳2^0=1步就是直接父节点
+    }
+    for (int j = 1; j < LOGN; j++) {
+        for (int i = 1; i <= n; i++) {
+            if (f[i][j-1] != -1) {
+                f[i][j] = f[f[i][j-1]][j-1];
+            }
+        }
+    }
+}
+
+// 从节点x向上跳k步
+int jump(int x, int k) {
+    for (int j = 0; j < LOGN; j++) {
+        if (k & (1 << j)) {  // 如果k的第j位是1
+            x = f[x][j];
+            if (x == -1) return -1;
+        }
+    }
+    return x;
+}
+
+int main() {
+    cin >> n >> q;
+    for (int i = 1; i <= n; i++) {
+        cin >> parent[i];
+    }
+
+    build();
+
+    while (q--) {
+        int x, k;
+        cin >> x >> k;
+        cout << jump(x, k) << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from math import log2, ceil
+
+def solve():
+    input = sys.stdin.readline
+    n, q = map(int, input().split())
+    LOGN = ceil(log2(n)) + 1
+
+    parent = [0] * (n + 1)
+    for i in range(1, n + 1):
+        parent[i] = int(input())
+
+    # f[i][j]: 从i向上跳2^j步到达的节点
+    f = [[-1] * LOGN for _ in range(n + 1)]
+
+    # 预处理
+    for i in range(1, n + 1):
+        f[i][0] = parent[i]
+
+    for j in range(1, LOGN):
+        for i in range(1, n + 1):
+            if f[i][j-1] != -1:
+                f[i][j] = f[f[i][j-1]][j-1]
+
+    # 从节点x向上跳k步
+    def jump(x, k):
+        for j in range(LOGN):
+            if k & (1 << j):
+                x = f[x][j]
+                if x == -1:
+                    return -1
+        return x
+
+    # 查询
+    for _ in range(q):
+        x, k = map(int, input().split())
+        print(jump(x, k))
+
+solve()
+```
+
+应用一：最近公共祖先（LCA）
+--------------------------
+倍增算法最经典的应用是求解树上两个节点的最近公共祖先。
+
+算法思路：
+1. 将两个节点提升到同一深度
+2. 如果提升后两节点相同，则该节点就是LCA
+3. 否则，同时从大到小尝试向上跳，直到找到LCA
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 500005;
+const int LOGN = 20;
+
+vector<int> adj[MAXN];
+int depth[MAXN];
+int f[MAXN][LOGN];
+
+void dfs(int u, int fa) {
+    depth[u] = depth[fa] + 1;
+    f[u][0] = fa;
+    for (int j = 1; j < LOGN; j++) {
+        if (f[u][j-1] != -1) {
+            f[u][j] = f[f[u][j-1]][j-1];
+        }
+    }
+    for (int v : adj[u]) {
+        if (v != fa) {
+            dfs(v, u);
+        }
+    }
+}
+
+int lca(int u, int v) {
+    if (depth[u] < depth[v]) swap(u, v);
+
+    // 将u提升到与v同深度
+    int diff = depth[u] - depth[v];
+    for (int j = 0; j < LOGN; j++) {
+        if (diff & (1 << j)) {
+            u = f[u][j];
+        }
+    }
+
+    if (u == v) return u;
+
+    // 同时向上跳
+    for (int j = LOGN - 1; j >= 0; j--) {
+        if (f[u][j] != f[v][j]) {
+            u = f[u][j];
+            v = f[v][j];
+        }
+    }
+
+    return f[u][0];
+}
+
+int main() {
+    int n, m, root;
+    cin >> n >> m >> root;
+
+    for (int i = 1; i < n; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    memset(f, -1, sizeof(f));
+    dfs(root, 0);
+
+    while (m--) {
+        int u, v;
+        cin >> u >> v;
+        cout << lca(u, v) << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+from math import log2, ceil
+from collections import deque
+
+def solve():
+    input = sys.stdin.readline
+    n, m, root = map(int, input().split())
+    LOGN = ceil(log2(n)) + 1
+
+    adj = [[] for _ in range(n + 1)]
+    for _ in range(n - 1):
+        u, v = map(int, input().split())
+        adj[u].append(v)
+        adj[v].append(u)
+
+    depth = [0] * (n + 1)
+    f = [[-1] * LOGN for _ in range(n + 1)]
+
+    def dfs(u, fa):
+        depth[u] = depth[fa] + 1
+        f[u][0] = fa
+        for j in range(1, LOGN):
+            if f[u][j-1] != -1:
+                f[u][j] = f[f[u][j-1]][j-1]
+        for v in adj[u]:
+            if v != fa:
+                dfs(v, u)
+
+    dfs(root, 0)
+
+    def lca(u, v):
+        if depth[u] < depth[v]:
+            u, v = v, u
+        # 将u提升到与v同深度
+        diff = depth[u] - depth[v]
+        j = 0
+        while diff:
+            if diff & 1:
+                u = f[u][j]
+            diff >>= 1
+            j += 1
+        if u == v:
+            return u
+        # 同时向上跳
+        for j in range(LOGN - 1, -1, -1):
+            if f[u][j] != f[v][j]:
+                u = f[u][j]
+                v = f[v][j]
+        return f[u][0]
+
+    for _ in range(m):
+        u, v = map(int, input().split())
+        print(lca(u, v))
+
+solve()
+```
+
+应用二：RMQ（区间最值查询）- 稀疏表
+---------------------------------
+稀疏表是倍增思想在区间查询上的应用，适用于静态数组的RMQ问题。
+
+预处理：O(n log n)，查询：O(1)
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 200005;
+const int LOGN = 20;
+
+int n, q;
+int a[MAXN];
+int st[MAXN][LOGN];  // st[i][j]: 从i开始，长度为2^j的区间最大值
+int log2[MAXN];      // 预处理log2值
+
+void build() {
+    log2[1] = 0;
+    for (int i = 2; i <= n; i++) {
+        log2[i] = log2[i/2] + 1;
+    }
+
+    for (int i = 1; i <= n; i++) {
+        st[i][0] = a[i];
+    }
+
+    for (int j = 1; j < LOGN; j++) {
+        for (int i = 1; i + (1 << j) - 1 <= n; i++) {
+            st[i][j] = max(st[i][j-1], st[i + (1 << (j-1))][j-1]);
+        }
+    }
+}
+
+int query(int l, int r) {
+    int k = log2[r - l + 1];
+    return max(st[l][k], st[r - (1 << k) + 1][k]);
+}
+
+int main() {
+    cin >> n >> q;
+    for (int i = 1; i <= n; i++) {
+        cin >> a[i];
+    }
+
+    build();
+
+    while (q--) {
+        int l, r;
+        cin >> l >> r;
+        cout << query(l, r) << '\n';
+    }
+
+    return 0;
+}
+```
+
+Python版本：
+```python
+import sys
+import math
+
+def solve():
+    input = sys.stdin.readline
+    n, q = map(int, input().split())
+    a = [0] + list(map(int, input().split()))
+    LOGN = math.ceil(math.log2(n)) + 1
+
+    # st[i][j]: 从i开始，长度为2^j的区间最大值
+    st = [[0] * LOGN for _ in range(n + 1)]
+    log2 = [0] * (n + 1)
+
+    for i in range(2, n + 1):
+        log2[i] = log2[i // 2] + 1
+
+    for i in range(1, n + 1):
+        st[i][0] = a[i]
+
+    for j in range(1, LOGN):
+        for i in range(1, n + 1):
+            if i + (1 << j) - 1 <= n:
+                st[i][j] = max(st[i][j-1], st[i + (1 << (j-1))][j-1])
+
+    def query(l, r):
+        k = log2[r - l + 1]
+        return max(st[l][k], st[r - (1 << k) + 1][k])
+
+    for _ in range(q):
+        l, r = map(int, input().split())
+        print(query(l, r))
+
+solve()
+```
+
+应用三：树上路径第k个节点
+-----------------------
+求从节点u到节点v路径上的第k个节点。
+
+C++版本：
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MAXN = 500005;
+const int LOGN = 20;
+
+vector<int> adj[MAXN];
+int depth[MAXN];
+int f[MAXN][LOGN];
+
+void dfs(int u, int fa) {
+    depth[u] = depth[fa] + 1;
+    f[u][0] = fa;
+    for (int j = 1; j < LOGN; j++) {
+        if (f[u][j-1] != -1) {
+            f[u][j] = f[f[u][j-1]][j-1];
+        }
+    }
+    for (int v : adj[u]) {
+        if (v != fa) {
+            dfs(v, u);
+        }
+    }
+}
+
+int lca(int u, int v) {
+    if (depth[u] < depth[v]) swap(u, v);
+    int diff = depth[u] - depth[v];
+    for (int j = 0; j < LOGN; j++) {
+        if (diff & (1 << j)) {
+            u = f[u][j];
+        }
+    }
+    if (u == v) return u;
+    for (int j = LOGN - 1; j >= 0; j--) {
+        if (f[u][j] != f[v][j]) {
+            u = f[u][j];
+            v = f[v][j];
+        }
+    }
+    return f[u][0];
+}
+
+// 从u向上跳k步
+int jump_up(int u, int k) {
+    for (int j = 0; j < LOGN; j++) {
+        if (k & (1 << j)) {
+            u = f[u][j];
+        }
+    }
+    return u;
+}
+
+// 查询u到v路径上第k个节点（1-indexed）
+int query_kth(int u, int v, int k) {
+    int anc = lca(u, v);
+    int du = depth[u] - depth[anc] + 1;  // u到anc的节点数
+    if (k <= du) {
+        return jump_up(u, k - 1);
+    } else {
+        int dv = depth[v] - depth[anc];  // v到anc的节点数（不含anc）
+        k -= du;
+        return jump_up(v, dv - k);
+    }
+}
+
+int main() {
+    int n;
+    cin >> n;
+
+    for (int i = 1; i < n; i++) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+
+    memset(f, -1, sizeof(f));
+    dfs(1, 0);
+
+    int q;
+    cin >> q;
+    while (q--) {
+        int u, v, k;
+        cin >> u >> v >> k;
+        cout << query_kth(u, v, k) << '\n';
+    }
+
+    return 0;
+}
+```
+
+典型例题
+--------
+1. LCA模板题（洛谷P3379）：给定一棵树，求两个节点的LCA
+2. RMQ模板题（洛谷P3865）：静态区间最大值查询
+3. 跳跃问题（洛谷P4822）：倍增跳转问题
+4. 树上路径查询（CF 1304E）：利用倍增处理树上路径
+
+注意事项
+--------
+1. LOGN的大小通常设置为log2(MAXN) + 2，确保足够大
+2. 处理边界情况时要注意节点是否越界（如-1或0的处理）
+3. LCA问题中注意根节点的父节点通常设为0或-1
+4. 稀疏表不支持修改操作，如果需要修改应使用线段树
+5. 预处理时注意二维数组的内存开销，f[MAXN][LOGN]要确保不爆内存
+
+时间复杂度总结
+--------------
+- 预处理：O(n log n)
+- 单次查询：O(log n)
+- 空间复杂度：O(n log n)
+
+倍增算法是算法竞赛中的基础且重要的技巧，掌握它对解决树上问题、区间查询问题都有很大帮助。
