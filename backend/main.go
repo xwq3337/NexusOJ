@@ -25,12 +25,17 @@ var LogOptions = logger.Config{
 	DailyRotate: true, // 启用按天分割日志
 }
 
+// 主函数，程序的入口点
 func main() {
+	// 初始化全局日志记录器，如果失败则panic
 	if err := logger.InitGlobalLogger(LogOptions); err != nil {
 		panic(err)
 	}
+	// 确保在程序退出前同步日志
 	defer logger.Sync()
+	// 初始化ID生成器
 	idgen.SetIdGenerator(IdOptions)
+	// 执行数据库迁移
 	migrations.Migrate()
 
 	// 初始化判题队列
@@ -44,12 +49,15 @@ func main() {
 	// 初始化比赛状态自动检查协程
 	services.InitContestStatusWorker()
 
+	// 获取路由器并启动HTTP服务器
 	r := router.Router()
+	// 延迟执行函数，用于捕获运行时异常
 	defer func() {
 		if err := recover(); err != nil {
 			logger.Error("捕获异常")
 		}
 	}()
+	// 启动服务器，监听配置的端口
 	if err := r.Run(string(":" + config.Port)); err != nil {
 		logger.Error("发生异常")
 		os.Exit(-1)

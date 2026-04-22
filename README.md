@@ -44,21 +44,15 @@
 | Markdown | VMD Editor + KaTeX |
 | 图表 | ECharts |
 
-### AI 后端 — Node.js
+### AI 后端 — Django
 
 | 项 | 说明 |
 | --- | --- |
-| 框架 | Express 5 + TypeScript |
-| LLM | LangChain + OpenAI 兼容接口 |
+| 框架 | Django 5 + StreamingHttpResponse |
 | 向量数据库 | Milvus（RAG 知识库检索） |
 | Embedding | 智谱 Embedding-2 |
-
-### 桌面端 — Tauri
-
-| 项 | 说明 |
-| --- | --- |
-| 框架 | Tauri 2（Rust 后端）+ Vue 3 |
-| UI | Element Plus |
+| LLM | 智谱 GLM-4.7-FlashX（流式输出） |
+| 部署 | Gunicorn + Gevent |
 
 ## 项目结构
 
@@ -88,51 +82,48 @@ NexusOJ/
 │       ├── utils/            # 共享工具函数
 │       └── eslint-config/    # 共享 ESLint 配置
 │
-├── AI-backend/               # AI 助手后端
-│   ├── src/
-│   │   ├── controllers/      # 聊天控制器（SSE 流式响应）
-│   │   └── tools/            # RAG 检索工具（Milvus 向量检索）
+├── AI-backend/               # AI 助手后端（Django）
+│   ├── ai_backend/           # Django 项目配置（settings / urls / wsgi）
+│   ├── chat/                 # 聊天应用
+│   │   ├── views.py          # SSE 流式接口
+│   │   ├── services.py       # RAG 检索 + 智谱 API 调用
+│   │   └── urls.py           # 路由
 │   ├── system_prompt.txt     # 系统提示词
-│   └── index.ts              # Express 入口
-│
-├── dekstop/                  # Tauri 桌面客户端
-│   ├── src/                  # Vue 3 前端
-│   └── src-tauri/            # Rust 后端
-│
-└── mobile/                   # 移动端（规划中）
+│   ├── requirements.txt      # Python 依赖
+│   └── scripts/deploy.sh     # 部署脚本
 ```
 
 ## 系统架构
 
 ```text
-┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│  Client Web │  │  Admin Web  │  │  Desktop App│
-│  :3000      │  │  :8888      │  │  (Tauri)    │
-└──────┬──────┘  └──────┬──────┘  └──────┬──────┘
-       │                │                │
-       └────────────────┼────────────────┘
-                        │  REST API / WebSocket / SSE
-                 ┌──────▼──────┐
-                 │  Go Backend │
-                 │  :8080      │
-                 └──┬───┬───┬──┘
-                    │   │   │
-          ┌─────────┘   │   └─────────┐
-          ▼             ▼             ▼
-    ┌──────────┐  ┌──────────┐  ┌──────────┐
-    │  MySQL   │  │  Redis   │  │  MongoDB │
-    │  主存储   │  │  缓存/SSE │  │  聊天/报告│
-    └──────────┘  └──────────┘  └──────────┘
+┌─────────────┐  ┌─────────────┐
+│  Client Web │  │  Admin Web  │
+│  :3000      │  │  :8888      │
+└──────┬──────┘  └──────┬──────┘
+       │                │
+       └────────┬───────┘
+                │  REST API / WebSocket / SSE
+         ┌──────▼──────┐
+         │  Go Backend │
+         │  :8080      │
+         └──┬───┬───┬──┘
+            │   │   │
+      ┌─────┘   │   └─────┐
+      ▼         ▼         ▼
+┌──────────┐ ┌──────────┐ ┌──────────┐
+│  MySQL   │ │  Redis   │ │  MongoDB │
+│  主存储   │ │  缓存/SSE │ │  聊天/报告│
+└──────────┘ └──────────┘ └──────────┘
 
-       ┌──────────────────────────┐
-       │  AI Backend  :3000       │
-       │  Express + LangChain     │
-       └──────┬───────────────────┘
-              │
-       ┌──────▼──────┐
-       │   Milvus    │
-       │  向量知识库   │
-       └─────────────┘
+     ┌─────────────────────────┐
+     │  AI Backend  :5557      │
+     │  Django + Milvus RAG    │
+     └──────┬──────────────────┘
+            │
+     ┌──────▼──────┐
+     │   Milvus    │
+     │  向量知识库   │
+     └─────────────┘
 ```
 
 ## 快速开始
@@ -141,6 +132,7 @@ NexusOJ/
 
 - Go >= 1.25
 - Node.js >= 22.0.0、pnpm >= 10.0.0
+- Python >= 3.10
 - MySQL 8.0+、Redis 6.0+、MongoDB 5.0+
 - （可选）Milvus 向量数据库（AI 功能需要）
 
@@ -188,36 +180,25 @@ pnpm dev:admin     # 管理端 http://localhost:8888
 ```bash
 cd AI-backend
 
+# 创建虚拟环境
+python -m venv venv
+source venv/bin/activate
+
 # 安装依赖
-npm install
+pip install -r requirements.txt
 
 # 配置环境变量
 cp .env.example .env
-# 编辑 .env，填入 Milvus / LLM API 等配置
+# 编辑 .env，填入 Milvus / 智谱 API 等配置
 
 # 开发模式
-npm run dev
+python manage.py runserver 5557
 
-# 或编译运行
-npm run build && npm start
+# 生产模式
+gunicorn ai_backend.wsgi:application --bind 0.0.0.0:5557 --worker-class gevent --workers 1 --timeout 120
 ```
 
-AI 后端监听 `http://localhost:3000`（端口可通过 `.env` 配置）。
-
-### 4. 桌面端
-
-```bash
-cd dekstop
-
-# 安装依赖
-pnpm install
-
-# 开发模式（需要 Tauri CLI）
-pnpm tauri:dev
-
-# 构建桌面应用
-pnpm tauri build
-```
+AI 后端监听 `http://localhost:5557`。
 
 ## 后端架构
 
@@ -257,21 +238,28 @@ utils/        → 响应工具、日志、加密
 ## AI 助手工作流
 
 1. 前端发送聊天消息到 AI 后端 `/chat`
-2. AI 后端从用户消息中提取关键词，通过 Embedding 模型向量化
+2. AI 后端从用户消息中提取关键词，通过智谱 Embedding-2 模型向量化
 3. 在 Milvus 中检索相关知识库文档（RAG）
-4. 将检索结果注入 System Prompt，调用大模型流式生成回答
+4. 将检索结果注入 System Prompt，调用智谱 GLM 流式生成回答
 5. 以 SSE 方式实时推送给前端
 
 ## 部署
 
+### Go 后端
+
 ```bash
 cd backend
-
-# 交叉编译到 Linux 并通过 rsync 部署
-make deploy
+make deploy    # 交叉编译到 Linux 并通过 rsync 部署
 ```
 
-部署脚本（`scripts/deploy.sh`）会自动完成编译、上传和 systemd 服务重启。生产环境以 `config.ini` 中的 `DataDir` 为文件存储根目录。
+### AI 后端
+
+```bash
+cd AI-backend
+bash scripts/deploy.sh    # 上传文件、安装依赖、重启 Gunicorn
+```
+
+部署脚本会自动完成编译/上传和服务重启。生产环境以 `config.ini` 中的 `DataDir` 为文件存储根目录。
 
 ## 许可证
 
