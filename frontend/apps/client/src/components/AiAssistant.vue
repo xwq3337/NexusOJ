@@ -1,5 +1,4 @@
 <template>
-  <!-- TODO:类型定义错误 -->
   <!-- Floating Action Button -->
   <Transition name="fab-fade">
     <button v-if="!isOpen" @click="toggleChat"
@@ -23,7 +22,7 @@
           </span>
           <div v-if="isTyping" class="flex items-center gap-1">
             <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-            <span class="text-xs" :style="{ color: 'var(--text-secondary)' }">输入中...</span>
+            <span class="text-xs" :style="{ color: 'var(--text-secondary)' }">{{ typingStatus }}</span>
           </div>
         </div>
         <button @click="toggleChat"
@@ -46,11 +45,11 @@
               你好！我是 NexusAI
             </h3>
             <p class="text-sm text-(--text-secondary)">
-              我可以帮助你理解算法、调试代码和提升编程技能
+              我可以帮助你理解算法、调试代码、分析代码质量和生成测试用例
             </p>
           </div>
           <div class="grid grid-cols-2 gap-2 w-full">
-            <button v-for="prompt in quickPrompts" :key="prompt.text" @click="sendQuickPrompt(prompt.text)"
+            <button v-for="prompt in quickPrompts" :key="prompt.text" @click="sendQuickPrompt(prompt.text, prompt.action)"
               class="px-3 py-2 rounded-lg text-xs text-left transition-colors " :style="{
                 backgroundColor: 'var(--surface-secondary)',
                 color: 'var(--text-secondary)',
@@ -128,18 +127,23 @@
 import { ref, nextTick, onMounted, watch, computed } from 'vue'
 import { Bot, X, User, Send, Loader2 } from 'lucide-vue-next'
 import { useLocalStorage, useEventListener } from '@vueuse/core'
-import { streamResponse } from '@nexusoj/server'
+import { streamChat, streamCodeAnalysis, streamGuidance } from '@nexusoj/server'
 import MarkdownIt from 'markdown-it'
 import { NPopconfirm, NButton, NInput, useMessage } from "naive-ui"
 import { formateTimeStamp } from '@/utils/format'
 import { useRoute } from 'vue-router'
-const message = useMessage()
-// 附加的信息
-const additionalMessage = computed(() => {
-  const route = useRoute()
-  const path = route.path
 
-})
+const message = useMessage()
+
+type ActionType = 'chat' | 'analyze' | 'guidance'
+
+interface AIMessage {
+  id: number
+  role: 'model' | 'user'
+  content: string
+  timestamp: number
+}
+
 const AiAssistantMessages = useLocalStorage<AIMessage[]>('ai-assistant-messages', [])
 
 // Initialize markdown-it
@@ -150,36 +154,44 @@ const md = new MarkdownIt({
   breaks: true
 })
 
-interface AIMessage {
-  id: number
-  role: 'model' | 'user'
-  content: string
-  timestamp: number // Timestamp in milliseconds
-}
 // State
 const isOpen = ref(false)
 const inputMessage = ref('')
 const messages = ref<AIMessage[]>([])
 const isLoading = ref(false)
 const isTyping = ref(false)
+const typingStatus = ref('输入中...')
 const messagesContainer = ref<HTMLElement>()
 const inputRef = ref<HTMLInputElement>()
 const isMobile = ref(false)
+const currentAction = ref<ActionType>('chat')
 
 // Quick prompts
 const quickPrompts = [
-  { text: '如何优化时间复杂度？', label: '⚡ 优化算法' },
-  { text: '帮我调试这段代码', label: '🐛 调试代码' },
-  { text: '解释这道题的思路', label: '💡 解题思路' },
-  { text: '推荐一些练习题', label: '📚 练习推荐' }
+  { text: '如何优化时间复杂度？', label: '⚡ 优化算法', action: 'chat' as ActionType },
+  { text: '帮我分析这段代码的质量', label: '🔍 代码分析', action: 'analyze' as ActionType },
+  { text: '解释这道题的思路', label: '💡 解题思路', action: 'chat' as ActionType },
+  { text: '给我一些个性化练习建议', label: '📚 个性指导', action: 'guidance' as ActionType },
 ]
+
+// 根据当前路由推断用户意图
+const route = useRoute()
+const inferContext = computed(() => {
+  const path = route.path
+  if (path.includes('/problem/')) {
+    return { type: 'problem', hint: '当前在题目页面，用户可能需要解题帮助或代码分析。' }
+  }
+  if (path.includes('/record')) {
+    return { type: 'record', hint: '当前在提交记录页面，用户可能需要代码调试帮助。' }
+  }
+  return null
+})
+
 // Load messages from localStorage
 onMounted(() => {
   messages.value = AiAssistantMessages.value
-  // Check if mobile
   checkMobile()
 })
-
 
 const checkMobile = () => {
   isMobile.value = window.innerWidth < 768
@@ -218,32 +230,25 @@ const scrollToBottom = () => {
 
 // Escape angle brackets outside code blocks
 const escapeAngleBrackets = (text: string) => {
-  // Protect existing HTML entities first
   const protectedText = text.replace(/&[a-zA-Z]+;/g, (match) => {
     return `__HTML_ENTITY_${match}__`
   })
 
-  // Split text by code blocks (inline and block)
   const codeBlockRegex = /`[^`]*`|```[\s\S]*?```/g
   const parts: string[] = []
   let lastIndex = 0
   let match: RegExpExecArray | null
 
   while ((match = codeBlockRegex.exec(protectedText)) !== null) {
-    // Add text before code block with escaped angle brackets
     const beforeCode = protectedText.substring(lastIndex, match.index)
     parts.push(beforeCode.replace(/</g, '&lt;').replace(/>/g, '&gt;'))
-
-    // Add code block as-is
     parts.push(match[0])
     lastIndex = match.index + match[0].length
   }
 
-  // Add remaining text
   const remaining = protectedText.substring(lastIndex)
   parts.push(remaining.replace(/</g, '&lt;').replace(/>/g, '&gt;'))
 
-  // Restore HTML entities
   return parts.join('').replace(/__HTML_ENTITY_(&[a-zA-Z]+;)__/g, '$1')
 }
 
@@ -251,13 +256,9 @@ const escapeAngleBrackets = (text: string) => {
 const renderMessage = (text: string) => {
   if (!text) return ''
 
-  // First escape angle brackets outside code blocks to prevent HTML tag parsing
   let escaped = escapeAngleBrackets(text)
-
-  // Render markdown
   let html = md.render(escaped)
 
-  // Highlight code blocks (don't escape again - already escaped by escapeAngleBrackets)
   html = html.replace(
     /<pre><code class="language-(\w+)">([\s\S]*?)<\/code><\/pre>/g,
     (match, lang, code) => {
@@ -265,7 +266,6 @@ const renderMessage = (text: string) => {
     }
   )
 
-  // Highlight inline code (don't escape again - already escaped by escapeAngleBrackets)
   html = html.replace(
     /<code>([\s\S]*?)<\/code>/g,
     (match, code) => {
@@ -276,9 +276,9 @@ const renderMessage = (text: string) => {
   return html
 }
 
-
 // Send quick prompt
-const sendQuickPrompt = (prompt: string) => {
+const sendQuickPrompt = (prompt: string, action: ActionType = 'chat') => {
+  currentAction.value = action
   inputMessage.value = prompt
   sendMessage()
 }
@@ -288,66 +288,80 @@ const sendMessage = async () => {
   const text = inputMessage.value.trim()
   if (!text || isLoading.value) return
 
+  const action = currentAction.value
+  currentAction.value = 'chat' // 重置
+
   // Add user message
   const userMessage: AIMessage = {
-    id: 1,
+    id: Date.now(),
     role: 'user',
-    content : text,
+    content: text,
     timestamp: Date.now()
   }
   messages.value.push(userMessage)
   inputMessage.value = ''
-
-  // Scroll to bottom
   scrollToBottom()
 
-  // Set loading state
   isLoading.value = true
   isTyping.value = true
+  typingStatus.value = '思考中...'
 
-  // Create an initial AI message for streaming
   const aiMessage: AIMessage = {
-    id: 2,
+    id: Date.now() + 1,
     role: 'model',
     content: '',
     timestamp: Date.now()
   }
   messages.value.push(aiMessage)
-
-  // Find the AI message index
   const aiMessageIndex = messages.value.length - 1
 
-  // Create AbortController for this request
   const abortController = new AbortController()
 
   try {
-    await streamResponse(
-      messages.value,
-      // onMessage - append each chunk to the AI message
-      (chunk: string) => {
+    const callbacks = {
+      onMessage: (chunk: string) => {
         messages.value[aiMessageIndex].content += chunk
         scrollToBottom()
       },
-      // onError
-      (error: Error) => {
+      onError: (error: Error) => {
         console.error('SSE Error:', error)
         messages.value[aiMessageIndex].content = '抱歉，我遇到了一些问题。请稍后再试。'
         scrollToBottom()
       },
-      // onClose
-      () => {
+      onClose: () => {
         isLoading.value = false
         isTyping.value = false
       },
-      abortController
-    )
+      onStatus: (status: string, tool?: string) => {
+        if (status === 'thinking') {
+          typingStatus.value = '思考中...'
+        } else if (status === 'tool_call') {
+          const toolNames: Record<string, string> = {
+            knowledge_search: '检索知识库',
+            analyze_code: '分析代码',
+            generate_test_cases: '生成测试用例',
+            get_user_ability_profile: '获取用户画像',
+            lookup_problem: '查询题目',
+          }
+          typingStatus.value = toolNames[tool || ''] || '调用工具中...'
+        } else if (status === 'tool_result') {
+          typingStatus.value = '生成回答...'
+        }
+      },
+    }
+
+    // 根据功能类型选择不同端点
+    if (action === 'analyze') {
+      await streamCodeAnalysis(text, 'auto', 'all', callbacks, abortController)
+    } else if (action === 'guidance') {
+      await streamGuidance(text, messages.value.filter(m => m.id !== aiMessage.id).slice(-10), callbacks, abortController)
+    } else {
+      await streamChat(messages.value.filter(m => m.id !== aiMessage.id), callbacks, abortController)
+    }
   } catch (error) {
     console.error('Failed to get AI response:', error)
-
-    // Update message with error
     messages.value[aiMessageIndex].content = '抱歉，我遇到了一些问题。请稍后再试。'
     scrollToBottom()
-
     isLoading.value = false
     isTyping.value = false
   }
@@ -360,18 +374,14 @@ const clearMessages = () => {
 
 // Keyboard shortcut to open/close
 const handleKeydown = (e: KeyboardEvent) => {
-  // Ctrl/Cmd + K to toggle chat
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
     e.preventDefault()
     toggleChat()
   }
 
-  // Enter to send
   if (e.key === 'Enter' && !e.shiftKey && !isLoading.value && inputMessage.value.trim()) {
     e.preventDefault()
-    // sendMessage()
   }
-  // Shift + Enter for new line
   else if (e.key === 'Enter' && e.shiftKey) {
     e.preventDefault()
     inputMessage.value += '\n'
@@ -455,20 +465,6 @@ useEventListener('keydown', handleKeydown)
 .overlay-fade-enter-from,
 .overlay-fade-leave-to {
   opacity: 0;
-}
-
-/* Bounce Animation for Loading */
-@keyframes bounce {
-
-  0%,
-  80%,
-  100% {
-    transform: scale(0);
-  }
-
-  40% {
-    transform: scale(1);
-  }
 }
 
 /* Scrollbar Styling */

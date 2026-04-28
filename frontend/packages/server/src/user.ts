@@ -164,4 +164,17 @@ export const userApi = {
       params: { page, page_size: pageSize, refresh },
     });
   },
+  // 获取用户能力分析（各知识点掌握度）
+  getAbilityAnalysis: (): Promise<
+    ApiResponse<{
+      overall_score: number;
+      tag_scores: Record<string, number>;
+      strongest_tags: string[];
+      weakest_tags: string[];
+      languages: Record<string, number>;
+      avg_difficulty: number;
+    }>
+  > => {
+    return Request.get("/recommend/ability");
+  },
 };

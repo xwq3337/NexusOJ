@@ -156,6 +156,85 @@
                       </n-gi>
                     </n-grid>
                   </n-tab-pane>
+                  <n-tab-pane name="ai-tests" tab="AI 测试用例">
+                    <div class="py-2">
+                      <div v-if="aiTestCases.length === 0 && !isGeneratingTests" class="text-center py-6">
+                        <p class="text-sm mb-3" :style="{ color: 'var(--text-tertiary)' }">
+                          基于题目描述自动生成边界测试用例，帮助你验证代码鲁棒性
+                        </p>
+                        <n-button type="primary" size="small" @click="generateAiTestCases" :style="{
+                          backgroundColor: 'var(--accent-color)'
+                        }">
+                          <template #icon>
+                            <Sparkles :size="14" />
+                          </template>
+                          生成测试用例
+                        </n-button>
+                      </div>
+
+                      <!-- 生成中 -->
+                      <div v-if="isGeneratingTests" class="flex items-center justify-center py-8 gap-3">
+                        <NSpin size="small" />
+                        <span class="text-sm" :style="{ color: 'var(--text-secondary)' }">正在生成测试用例...</span>
+                      </div>
+
+                      <!-- 测试用例列表 -->
+                      <div v-if="aiTestCases.length > 0" class="space-y-3">
+                        <div class="flex justify-between items-center mb-2">
+                          <span class="text-xs font-medium" :style="{ color: 'var(--text-secondary)' }">
+                            生成 {{ aiTestCases.length }} 个测试用例
+                          </span>
+                          <div class="flex gap-2">
+                            <n-button size="tiny" @click="generateAiTestCases" :loading="isGeneratingTests">
+                              重新生成
+                            </n-button>
+                            <n-button size="tiny" @click="aiTestCases = []">
+                              清空
+                            </n-button>
+                          </div>
+                        </div>
+                        <div v-for="(tc, index) in aiTestCases" :key="index" class="rounded-lg border p-3" :style="{
+                          backgroundColor: 'var(--surface-primary)',
+                          borderColor: 'var(--border-color)'
+                        }">
+                          <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-medium" :style="{ color: 'var(--accent-color)' }">
+                              测试 #{{ index + 1 }}
+                            </span>
+                            <div class="flex items-center gap-2">
+                              <span class="text-xs" :style="{ color: 'var(--text-tertiary)' }">
+                                {{ tc.explanation }}
+                              </span>
+                              <n-button size="tiny" quaternary @click="applyTestCase(tc)">
+                                <template #icon>
+                                  <ArrowRight :size="12" />
+                                </template>
+                                应用
+                              </n-button>
+                            </div>
+                          </div>
+                          <n-grid x-gap="8" :cols="2">
+                            <n-gi>
+                              <div class="text-xs mb-1" :style="{ color: 'var(--text-tertiary)' }">输入</div>
+                              <pre class="p-2 rounded text-xs overflow-x-auto" :style="{
+                                backgroundColor: 'var(--surface-tertiary)',
+                                color: 'var(--text-primary)',
+                                fontFamily: 'monospace',
+                              }">{{ tc.input }}</pre>
+                            </n-gi>
+                            <n-gi>
+                              <div class="text-xs mb-1" :style="{ color: 'var(--text-tertiary)' }">期望输出</div>
+                              <pre class="p-2 rounded text-xs overflow-x-auto" :style="{
+                                backgroundColor: 'var(--surface-tertiary)',
+                                color: 'var(--text-primary)',
+                                fontFamily: 'monospace',
+                              }">{{ tc.expected }}</pre>
+                            </n-gi>
+                          </n-grid>
+                        </div>
+                      </div>
+                    </div>
+                  </n-tab-pane>
                   <n-tab-pane name="console" tab="控制台"> 等待运行... {{ result }} </n-tab-pane>
                 </n-tabs>
               </div>
@@ -383,7 +462,7 @@ import {
   NTooltip,
 } from 'naive-ui'
 import { LANGUAGE_CONFIG, EDITOR_THEME_OPTIONS, type EDITOR_THEHE, type LanguageValue, LANGUAGE_OPTIONS, convertToCss, STATUS_MESSAGE } from '@/constants'
-import { Play, ArrowLeft, RotateCcw, Settings, Target, Tag, Clock, Cpu, BookOpen, History, Plus, Send } from 'lucide-vue-next'
+import { Play, ArrowLeft, ArrowRight, RotateCcw, Settings, Target, Tag, Clock, Cpu, BookOpen, History, Plus, Send, Sparkles } from 'lucide-vue-next'
 import AiAssistant from '@/components/AiAssistant.vue'
 import MarkdownPreviewV2 from '@/components/MarkdownPreviewV2.vue'
 import { useLocalStorage } from '@vueuse/core'
@@ -432,7 +511,7 @@ import { formatAcceptance } from '@/utils/format'
 import { Problem } from '@nexusoj/type'
 import { ideApi, problemApi } from '@nexusoj/server'
 import { solutionApi } from '@nexusoj/server'
-import { recordApi } from '@nexusoj/server'
+import { recordApi, generateTestCases as aiGenerateTestCases } from '@nexusoj/server'
 import type { SolutionWithAuthor, GetRecordListResponse, GetRecordDetailResponse, JudgeVerdictType } from '@nexusoj/type'
 import { STATUS_OPTIONS, STATUS_COLORS } from '@/constants'
 import { formatMemory, formatDate, formatTime } from '@/utils/format'
@@ -810,6 +889,57 @@ const resetRecordFilters = () => {
   recordUserSearch.value = ''
   recordPage.value = 1
   fetchRecords()
+}
+
+// ==================== AI 测试用例生成 ====================
+
+interface AiTestCase {
+  input: string
+  expected: string
+  explanation: string
+}
+
+const isGeneratingTests = ref(false)
+const aiTestCases = ref<AiTestCase[]>([])
+
+const generateAiTestCases = async () => {
+  if (!problem.value.id) {
+    message.warning('请先等待题目加载完成')
+    return
+  }
+
+  isGeneratingTests.value = true
+  aiTestCases.value = []
+
+  try {
+    const result = await aiGenerateTestCases(
+      problem.value.id,
+      code.value,
+      5,
+    )
+
+    if (result.test_cases && Array.isArray(result.test_cases)) {
+      aiTestCases.value = result.test_cases.map((tc: any) => ({
+        input: tc.input || '',
+        expected: tc.expected || '',
+        explanation: tc.explanation || '',
+      }))
+      message.success(`成功生成 ${aiTestCases.value.length} 个测试用例`)
+    } else if (result.raw_response) {
+      message.warning('测试用例格式解析失败，请重试')
+    }
+  } catch (error: any) {
+    console.error('Generate test cases error:', error)
+    message.error('生成测试用例失败: ' + (error.message || '请稍后重试'))
+  } finally {
+    isGeneratingTests.value = false
+  }
+}
+
+const applyTestCase = (tc: AiTestCase) => {
+  test_case.value.input = tc.input
+  test_case.value.expected = tc.expected
+  message.success('测试用例已应用到输入框')
 }
 </script>
 <style scoped>

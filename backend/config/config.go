@@ -37,6 +37,8 @@ var (
 	DataDir           string
 	JudgeServer       string
 	JudgeServerPort   string
+	AIBackendAddr     string
+	AIBackendPort     string
 )
 
 func init() {
@@ -50,6 +52,7 @@ func init() {
 	loadRedis(file)
 	loadPath(file)
 	loadJudge(file)
+	loadAI(file)
 }
 
 func loadServer(file *ini.File) {
@@ -104,4 +107,9 @@ func loadPath(file *ini.File) {
 func loadJudge(file *ini.File) {
 	JudgeServer = file.Section("judge").Key("JudgeServer").String()
 	JudgeServerPort = file.Section("judge").Key("JudgeServerPort").String()
+}
+
+func loadAI(file *ini.File) {
+	AIBackendAddr = file.Section("ai").Key("AIBackendAddr").String()
+	AIBackendPort = file.Section("ai").Key("AIBackendPort").String()
 }

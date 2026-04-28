@@ -64,12 +64,23 @@
       <div class="mb-6">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-xl font-bold" :style="{ color: 'var(--text-primary)' }">代码</h2>
-          <n-button @click="copyCode" size="small" type="primary">
-            <template #icon>
-              <Copy :size="14" />
-            </template>
-            复制代码
-          </n-button>
+          <div class="flex items-center gap-2">
+            <n-button @click="startCodeAnalysis" size="small" :loading="isAnalyzing" :style="{
+              backgroundColor: 'var(--accent-color)',
+              color: 'white'
+            }">
+              <template #icon>
+                <Brain :size="14" />
+              </template>
+              {{ isAnalyzing ? '分析中...' : 'AI 代码分析' }}
+            </n-button>
+            <n-button @click="copyCode" size="small" type="primary">
+              <template #icon>
+                <Copy :size="14" />
+              </template>
+              复制代码
+            </n-button>
+          </div>
         </div>
         <div class="rounded-xl overflow-hidden border" :style="{ borderColor: 'var(--border-color)' }">
           <pre class="p-4 text-sm overflow-x-auto" :style="{
@@ -81,6 +92,27 @@
 
         </div>
       </div>
+
+      <!-- AI 代码分析结果 -->
+      <Transition name="slide-fade">
+        <div v-if="analysisResult || isAnalyzing" class="mb-6">
+          <div class="flex items-center gap-2 mb-4">
+            <Brain :size="20" :style="{ color: 'var(--accent-color)' }" />
+            <h2 class="text-xl font-bold" :style="{ color: 'var(--text-primary)' }">AI 分析结果</h2>
+            <div v-if="isAnalyzing" class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+              <span class="text-xs" :style="{ color: 'var(--text-secondary)' }">分析中...</span>
+            </div>
+          </div>
+          <div class="rounded-xl p-6 border" :style="{
+            backgroundColor: 'var(--surface-primary)',
+            borderColor: 'var(--border-color)'
+          }">
+            <div class="prose max-w-none text-sm leading-relaxed analysis-content" :style="{ color: 'var(--text-primary)' }"
+              v-html="renderAnalysis(analysisResult || '')"></div>
+          </div>
+        </div>
+      </Transition>
 
       <!-- 评测结果区域 -->
       <div>
@@ -153,7 +185,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { NTag, NButton, useMessage } from 'naive-ui'
-import { Clock, Database, Copy } from 'lucide-vue-next'
+import { Clock, Database, Copy, Brain } from 'lucide-vue-next'
 import { useClipboard } from '@vueuse/core'
 import { LANGUAGE_CONFIG, STATUS_COLORS } from '@/constants'
 import hljs from 'highlight.js/lib/common'
@@ -164,8 +196,9 @@ import java from 'highlight.js/lib/languages/java'
 import rust from 'highlight.js/lib/languages/rust'
 import go from 'highlight.js/lib/languages/go'
 import { useTheme } from '@/composables/useTheme'
-import { recordApi } from '@nexusoj/server'
+import { recordApi, streamCodeAnalysis } from '@nexusoj/server'
 import { GetRecordDetailResponse, JudgeTestCaseResult } from '@nexusoj/type'
+import MarkdownIt from 'markdown-it'
 const { theme } = useTheme()
 import { formatTime, formatMemory, formatDate } from '@/utils/format'
 // 动态加载 highlight.js 主题 CSS
@@ -295,4 +328,144 @@ const copyCode = async () => {
     message.error('复制代码失败')
   }
 }
+
+// ==================== AI 代码分析 ====================
+
+const isAnalyzing = ref(false)
+const analysisResult = ref('')
+let analysisAbortController: AbortController | null = null
+
+const analysisMd = new MarkdownIt({
+  html: false,
+  linkify: true,
+  typographer: true,
+  breaks: true,
+})
+
+const renderAnalysis = (text: string) => {
+  if (!text) return ''
+  return analysisMd.render(text)
+}
+
+const startCodeAnalysis = async () => {
+  if (!record.value.code?.trim()) {
+    message.warning('没有可分析的代码')
+    return
+  }
+
+  // 如果正在分析，取消上一次
+  if (analysisAbortController) {
+    analysisAbortController.abort()
+  }
+
+  isAnalyzing.value = true
+  analysisResult.value = ''
+  analysisAbortController = new AbortController()
+
+  const language = LANGUAGE_CONFIG[record.value.language as keyof typeof LANGUAGE_CONFIG]?.label || record.value.language || 'unknown'
+
+  try {
+    await streamCodeAnalysis(
+      record.value.code,
+      language.toLowerCase(),
+      'all',
+      {
+        onMessage: (chunk: string) => {
+          analysisResult.value += chunk
+        },
+        onError: (error: Error) => {
+          console.error('Code analysis error:', error)
+          if (!analysisResult.value) {
+            analysisResult.value = '分析失败，请稍后重试。'
+          }
+        },
+        onClose: () => {
+          isAnalyzing.value = false
+        },
+      },
+      analysisAbortController,
+    )
+  } catch (error) {
+    console.error('Failed to start code analysis:', error)
+    analysisResult.value = '分析失败，请稍后重试。'
+    isAnalyzing.value = false
+  }
+}
 </script>
+
+<style scoped>
+.slide-fade-enter-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.slide-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-fade-enter-from {
+  opacity: 0;
+  transform: translateY(-12px);
+}
+
+.slide-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-12px);
+}
+
+.analysis-content :deep(h1),
+.analysis-content :deep(h2),
+.analysis-content :deep(h3) {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.analysis-content :deep(h2) {
+  font-size: 1.125rem;
+}
+
+.analysis-content :deep(h3) {
+  font-size: 1rem;
+}
+
+.analysis-content :deep(p) {
+  margin-bottom: 0.5rem;
+}
+
+.analysis-content :deep(ul),
+.analysis-content :deep(ol) {
+  margin-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.analysis-content :deep(li) {
+  margin-bottom: 0.25rem;
+}
+
+.analysis-content :deep(code) {
+  font-family: 'Courier New', monospace;
+  font-size: 0.85em;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background-color: var(--surface-tertiary);
+  color: var(--accent-color);
+}
+
+.analysis-content :deep(pre) {
+  margin: 0.5rem 0;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  background-color: var(--surface-tertiary);
+}
+
+.analysis-content :deep(pre code) {
+  padding: 0;
+  background-color: transparent;
+}
+
+.analysis-content :deep(strong) {
+  font-weight: 600;
+  color: var(--accent-color);
+}
+</style>

@@ -404,15 +404,17 @@
               </div>
             </div>
 
-            <!-- Right: Placeholder -->
+            <!-- Right: Knowledge & Recommendations -->
             <div class="xl:col-span-4">
-              <div class="xl:sticky xl:top-24">
-                <div class="rounded-xl p-5 cyber-glow-card min-h-40 flex items-center justify-center" :style="{
-                  backgroundColor: 'var(--surface-primary)',
-                  border: '1px solid var(--border-color)'
-                }">
-                  <span :style="{ color: 'var(--text-tertiary)' }">敬请期待</span>
-                </div>
+              <div class="xl:sticky xl:top-24 space-y-4">
+                <!-- Knowledge Radar Chart -->
+                <KnowledgeRadar
+                  :tag-scores="abilityData.tag_scores"
+                  :strongest-tags="abilityData.strongest_tags"
+                  :weakest-tags="abilityData.weakest_tags"
+                />
+                <!-- Tag Mastery Bars -->
+                <TagAnalysis :tag-scores="abilityData.tag_scores" />
               </div>
             </div>
           </div>
@@ -457,6 +459,8 @@ import UserSubmissions from './components/UserSubmissions.vue'
 import UserSolutions from './components/UserSolutions.vue'
 import UserBlogs from './components/UserBlogs.vue'
 import UserDiscussions from './components/UserDiscussions.vue'
+import KnowledgeRadar from './components/KnowledgeRadar.vue'
+import TagAnalysis from './components/TagAnalysis.vue'
 const { copy } = useClipboard()
 const router = useRouter()
 const route = useRoute()
@@ -513,6 +517,18 @@ const heatmapRawData = ref<{
   past_year_heatmap?: Record<string, number>
 }>({})
 
+// 知识掌握度数据
+const abilityData = ref<{
+  overall_score: number
+  tag_scores: Record<string, number>
+  strongest_tags: string[]
+  weakest_tags: string[]
+}>({
+  overall_score: 0,
+  tag_scores: {},
+  strongest_tags: [],
+  weakest_tags: [],
+})
 const handleAddFriend = () => {
   // TODO: Implement add friend functionality
   console.log('Add friend:', userId.value)
@@ -533,7 +549,21 @@ const fetchUserInfo = async () => {
   }
 }
 
+const fetchAbilityData = async () => {
+  // TODO: 仅在自己的主页获取能力分析
+  // if (!isOwnProfile.value) return
+  try {
+    const { code, info } = await userApi.getAbilityAnalysis()
+    if (code === 200 && info) {
+      abilityData.value = info
+    }
+  } catch (error) {
+    console.error('Failed to fetch ability data:', error)
+  }
+}
+
 onMounted(() => {
   fetchUserInfo()
+  fetchAbilityData()
 })
 </script>

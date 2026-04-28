@@ -66,12 +66,13 @@ onMounted(() => {
         <Sparkles :size="16" :style="{ color: 'var(--accent-color)' }" />
         为你推荐
       </h3>
-      <NButton size="tiny" quaternary :loading="loading" @click="handleRefresh">
+      <!-- TODO: 实现换一批功能 -->
+      <!-- <NButton size="tiny" quaternary :loading="loading" @click="handleRefresh">
         <template #icon>
           <RefreshCw :size="14" />
         </template>
         换一批
-      </NButton>
+      </NButton> -->
     </div>
 
     <!-- Problem List -->

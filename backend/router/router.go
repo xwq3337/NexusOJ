@@ -215,5 +215,14 @@ func Router() *gin.Engine {
 		recommend.POST("/refresh", controllers.RecommendationController{}.RefreshRecommendations)  // 刷新推荐
 	}
 
+	// AI 代理路由（转发到 AI Backend）
+	ai := r.Group("/ai")
+	{
+		ai.POST("/chat", controllers.AIController{}.Chat)                        // 流式对话
+		ai.POST("/analyze-code", controllers.AIController{}.AnalyzeCode)         // 代码分析
+		ai.POST("/generate-tests", controllers.AIController{}.GenerateTests)     // 测试用例生成
+		ai.POST("/personalized-guidance", controllers.AIController{}.Guidance)   // 个性化指导
+	}
+
 	return r
 }

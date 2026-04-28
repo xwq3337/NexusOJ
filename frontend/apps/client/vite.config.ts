@@ -28,16 +28,13 @@ export default defineConfig(({ mode, command }) => {
               req,
               res
             })
-            // 可以在这里添加降级逻辑
           }
         },
-        '/agent': {
-          target: env.AGENT_URL,
+        '/ai': {
+          target: env.BACKEND_URL,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/agent/, ''),
           onError: (err: any, req: any, res: any) => {
-            console.log('代理错误，检查服务是否启动在5557端口')
-            // 可以在这里添加降级逻辑
+            console.log('AI 代理错误，检查 Go Backend 是否启动在8080端口')
           }
         },
         '/ws': {
