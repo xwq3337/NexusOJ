@@ -17,10 +17,11 @@ async def lookup_problem(problem_id: int, token: str = "") -> str:
         problem_id: 题目 ID
         token: JWT token（由路由层注入，不由 LLM 生成）
     """
-    problem = await get_problem_detail(problem_id, token)
-    if not problem:
+    resp = await get_problem_detail(problem_id, token)
+    if not resp:
         return f"未找到题目 {problem_id}，请确认题目 ID 是否正确。"
 
+    problem = resp.get("problem", resp)
     title = problem.get("title", "")
     context = problem.get("context", "")
     input_desc = problem.get("input_description", "")

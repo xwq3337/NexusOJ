@@ -181,14 +181,19 @@
                       <!-- 测试用例列表 -->
                       <div v-if="aiTestCases.length > 0" class="space-y-3">
                         <div class="flex justify-between items-center mb-2">
-                          <span class="text-xs font-medium" :style="{ color: 'var(--text-secondary)' }">
-                            生成 {{ aiTestCases.length }} 个测试用例
-                          </span>
+                          <div class="flex items-center gap-2">
+                            <span class="text-xs font-medium" :style="{ color: 'var(--text-secondary)' }">
+                              生成 {{ aiTestCases.length }} 个测试用例
+                            </span>
+                            <span v-if="aiTestsTime" class="text-xs" :style="{ color: 'var(--text-tertiary)' }">
+                              生成于 {{ aiTestsTime }}
+                            </span>
+                          </div>
                           <div class="flex gap-2">
                             <n-button size="tiny" @click="generateAiTestCases" :loading="isGeneratingTests">
                               重新生成
                             </n-button>
-                            <n-button size="tiny" @click="aiTestCases = []">
+                            <n-button size="tiny" @click="clearTestCache">
                               清空
                             </n-button>
                           </div>
@@ -436,7 +441,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { defineAsyncComponent, onMounted, onUnmounted, reactive, ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   NSplit,
@@ -899,8 +904,29 @@ interface AiTestCase {
   explanation: string
 }
 
+interface TestCache {
+  test_cases: AiTestCase[]
+  analysis_time: string
+}
+
 const isGeneratingTests = ref(false)
 const aiTestCases = ref<AiTestCase[]>([])
+const aiTestsTime = ref('')
+
+// 测试用例缓存，按题目 ID 隔离
+const testCacheKey = computed(() => `ai-tests-${problem.value.id}`)
+const testCache = useLocalStorage<TestCache>(
+  () => testCacheKey.value,
+  { test_cases: [], analysis_time: '' },
+)
+
+// 页面加载后恢复缓存
+watch(() => problem.value.id, (newId) => {
+  if (newId && testCache.value.test_cases?.length) {
+    aiTestCases.value = testCache.value.test_cases
+    aiTestsTime.value = testCache.value.analysis_time
+  }
+})
 
 const generateAiTestCases = async () => {
   if (!problem.value.id) {
@@ -910,13 +936,11 @@ const generateAiTestCases = async () => {
 
   isGeneratingTests.value = true
   aiTestCases.value = []
+  aiTestsTime.value = ''
 
   try {
-    const result = await aiGenerateTestCases(
-      problem.value.id,
-      code.value,
-      5,
-    )
+    // 只发送 problem_id
+    const result = await aiGenerateTestCases(problem.value.id)
 
     if (result.test_cases && Array.isArray(result.test_cases)) {
       aiTestCases.value = result.test_cases.map((tc: any) => ({
@@ -924,6 +948,9 @@ const generateAiTestCases = async () => {
         expected: tc.expected || '',
         explanation: tc.explanation || '',
       }))
+      const now = new Date().toLocaleString('zh-CN')
+      aiTestsTime.value = now
+      testCache.value = { test_cases: aiTestCases.value, analysis_time: now }
       message.success(`成功生成 ${aiTestCases.value.length} 个测试用例`)
     } else if (result.raw_response) {
       message.warning('测试用例格式解析失败，请重试')
@@ -940,6 +967,12 @@ const applyTestCase = (tc: AiTestCase) => {
   test_case.value.input = tc.input
   test_case.value.expected = tc.expected
   message.success('测试用例已应用到输入框')
+}
+
+const clearTestCache = () => {
+  aiTestCases.value = []
+  aiTestsTime.value = ''
+  testCache.value = { test_cases: [], analysis_time: '' }
 }
 </script>
 <style scoped>

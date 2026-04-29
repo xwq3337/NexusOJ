@@ -100,13 +100,24 @@ async function streamSSE(
 
 // ==================== 对外 API ====================
 
+/** 页面上下文，传递给 Go Backend 用于查询 DB 补充信息 */
+export interface PageContext {
+  type: string
+  [key: string]: unknown
+}
+
 /** 流式对话（主聊天端点） */
 export const streamChat = async (
   messages: Message[],
   callbacks: StreamCallbacks,
   abortController: AbortController,
+  pageContext?: PageContext,
 ) => {
-  return streamSSE('/ai/chat', { messages }, callbacks, abortController)
+  const body: Record<string, unknown> = { messages }
+  if (pageContext) {
+    body.page_context = pageContext
+  }
+  return streamSSE('/service/ai/chat', body, callbacks, abortController)
 }
 
 /** 流式代码分析 */
@@ -117,7 +128,7 @@ export const streamCodeAnalysis = async (
   callbacks: StreamCallbacks,
   abortController: AbortController,
 ) => {
-  return streamSSE('/ai/analyze-code', { code, language, analysis_type: analysisType }, callbacks, abortController)
+  return streamSSE('/service/ai/analyze-code', { code, language, analysis_type: analysisType }, callbacks, abortController)
 }
 
 /** 流式个性化指导 */
@@ -127,18 +138,16 @@ export const streamGuidance = async (
   callbacks: StreamCallbacks,
   abortController: AbortController,
 ) => {
-  return streamSSE('/ai/personalized-guidance', { question, messages }, callbacks, abortController)
+  return streamSSE('/service/ai/personalized-guidance', { question, messages }, callbacks, abortController)
 }
 
 /** 测试用例生成（非流式，返回 JSON） */
 export const generateTestCases = async (
   problemId: number,
-  userCode: string = '',
   count: number = 5,
 ) => {
-  const resp = await axios.post('/ai/generate-tests', {
+  const resp = await axios.post('/service/ai/generate-tests', {
     problem_id: problemId,
-    user_code: userCode,
     count,
   }, { headers: authHeaders() })
   return resp.data

@@ -11,5 +11,8 @@ export const recordApi = {
     },
     getRecordDetail: (id : string): Promise<ApiResponse<GetRecordDetailResponse>> => {
         return Request.get(`/record/${id}`)
+    },
+    getDailyActivity: (): Promise<ApiResponse<{ date: string, count: number }[]>> => {
+        return Request.get('/daily-activity')
     }
 }

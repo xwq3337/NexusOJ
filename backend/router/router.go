@@ -84,7 +84,8 @@ func Router() *gin.Engine {
 	}
 	userGroup.GET("/refresh", controllers.UserController{}.RefreshToken) // 刷新token
 	// 把mysql 数据同步到 redis 里
-	r.GET("/refresh-redis", controllers.RedisCache{}.RefreshRedisCache) // 刷新redis缓存
+	r.GET("/refresh-redis", controllers.RedisCache{}.RefreshRedisCache)       // 刷新redis缓存
+	r.GET("/daily-activity", controllers.RecodeController{}.GetDailyActivity) // 全局每日提交统计
 	//#####################################################################
 	// -----------------------以下为JWT验证相关代码---------------------------
 	r.Use(jwt.Auth())
@@ -121,6 +122,10 @@ func Router() *gin.Engine {
 	ide := r.Group("/ide")
 	{
 		ide.POST("/submit", controllers.IDEController{}.JudgeCode) // 提交运行代码
+	}
+	judge := r.Group("/judge")
+	{
+		judge.GET("/stats", controllers.JudgeController{}.Stats) // JudgeServer 状态
 	}
 	blog := r.Group("/blog")
 	{
@@ -209,19 +214,19 @@ func Router() *gin.Engine {
 	{
 		recommend.GET("/profile", controllers.RecommendationController{}.GetMyProfile)            // 当前用户画像
 		recommend.GET("/profile/:id", controllers.RecommendationController{}.GetUserProfile)      // 其他用户画像
-		recommend.GET("/ability", controllers.RecommendationController{}.GetAbilityAnalysis)       // 能力分析
-		recommend.GET("/activity", controllers.RecommendationController{}.GetActivityStats)        // 活跃度统计
-		recommend.GET("/problems", controllers.RecommendationController{}.GetRecommendations)      // 推荐题目
-		recommend.POST("/refresh", controllers.RecommendationController{}.RefreshRecommendations)  // 刷新推荐
+		recommend.GET("/ability", controllers.RecommendationController{}.GetAbilityAnalysis)      // 能力分析
+		recommend.GET("/activity", controllers.RecommendationController{}.GetActivityStats)       // 活跃度统计
+		recommend.GET("/problems", controllers.RecommendationController{}.GetRecommendations)     // 推荐题目
+		recommend.POST("/refresh", controllers.RecommendationController{}.RefreshRecommendations) // 刷新推荐
 	}
 
 	// AI 代理路由（转发到 AI Backend）
 	ai := r.Group("/ai")
 	{
-		ai.POST("/chat", controllers.AIController{}.Chat)                        // 流式对话
-		ai.POST("/analyze-code", controllers.AIController{}.AnalyzeCode)         // 代码分析
-		ai.POST("/generate-tests", controllers.AIController{}.GenerateTests)     // 测试用例生成
-		ai.POST("/personalized-guidance", controllers.AIController{}.Guidance)   // 个性化指导
+		ai.POST("/chat", controllers.AIController{}.Chat)                      // 流式对话
+		ai.POST("/analyze-code", controllers.AIController{}.AnalyzeCode)       // 代码分析
+		ai.POST("/generate-tests", controllers.AIController{}.GenerateTests)   // 测试用例生成
+		ai.POST("/personalized-guidance", controllers.AIController{}.Guidance) // 个性化指导
 	}
 
 	return r

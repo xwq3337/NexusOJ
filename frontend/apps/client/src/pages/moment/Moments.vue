@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount } from 'vue'
+import { useClipboard } from '@vueuse/core'
 import {
   NInput, NButton, NModal, NTab, NTabs, NTag, NAvatar, NTooltip,
   useMessage,
@@ -76,8 +77,9 @@ const handleShare = (id: number) => {
   showShareModal.value = true
 }
 
+const { copy } = useClipboard()
 const copyShareLink = () => {
-  navigator.clipboard.writeText(`${window.location.origin}/moments/${shareMomentId.value}`)
+  copy(`${window.location.origin}/moments/${shareMomentId.value}`)
   message.success('链接已复制到剪贴板')
   showShareModal.value = false
 }

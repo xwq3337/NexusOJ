@@ -88,6 +88,15 @@ func (RecodeController) GetRecodeListByUser(c *gin.Context) {
 	}
 	utils.ReturnSuccess(c, http.StatusOK, "success", gin.H{
 		"records": records,
-		"total":  total,
+		"total":   total,
 	})
+}
+
+func (RecodeController) GetDailyActivity(c *gin.Context) {
+	activity, err := models.GetGlobalDailyActivityCached(7)
+	if err != nil {
+		utils.ReturnError(c, http.StatusInternalServerError, "查询失败")
+		return
+	}
+	utils.ReturnSuccess(c, http.StatusOK, "success", activity)
 }

@@ -30,13 +30,6 @@ export default defineConfig(({ mode, command }) => {
             })
           }
         },
-        '/ai': {
-          target: env.BACKEND_URL,
-          changeOrigin: true,
-          onError: (err: any, req: any, res: any) => {
-            console.log('AI 代理错误，检查 Go Backend 是否启动在8080端口')
-          }
-        },
         '/ws': {
           target: env.WEBSOCKET_URL,
           secure: false,

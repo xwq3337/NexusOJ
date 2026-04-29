@@ -5,6 +5,8 @@ export * from './src/blog'
 
 export * from './src/ide'
 
+export * from './src/judge'
+
 export * from './src/problem'
 
 export * from './src/record'

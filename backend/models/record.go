@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"encoding/json"
 	"nexus/dao"
 	"nexus/utils"
@@ -259,6 +260,48 @@ func GetRecentUserRecords(userID uint64, limit int) ([]Record, error) {
 		Limit(limit).
 		Find(&records).Error
 	return records, err
+}
+
+// DailyActivity 每日提交统计
+type DailyActivity struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
+}
+
+const redisGlobalDailyActivity = "global:daily_activity"
+
+// GetGlobalDailyActivityCached 从 Redis Sorted Set 读取最近 days 天的提交统计（补零缺失日期）
+func GetGlobalDailyActivityCached(days int) ([]DailyActivity, error) {
+	ctx := context.Background()
+	scores, err := dao.RedisClient.ZRangeWithScores(ctx, redisGlobalDailyActivity, 0, -1).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	countMap := make(map[string]int, len(scores))
+	for _, s := range scores {
+		countMap[s.Member.(string)] = int(s.Score)
+	}
+
+	now := time.Now()
+	activity := make([]DailyActivity, 0, days)
+	for i := days - 1; i >= 0; i-- {
+		d := now.AddDate(0, 0, -i).Format("2006-01-02")
+		activity = append(activity, DailyActivity{Date: d, Count: countMap[d]})
+	}
+	return activity, nil
+}
+
+// UpdateDailyActivityCache 原子递增今日提交计数，并清理超过 7 天的旧数据
+func UpdateDailyActivityCache() {
+	const keepDays = 7
+	ctx := context.Background()
+	today := time.Now().Format("2006-01-02")
+
+	dao.RedisClient.ZIncrBy(ctx, redisGlobalDailyActivity, 1, today)
+
+	cutoff := time.Now().AddDate(0, 0, -keepDays).Format("2006-01-02")
+	dao.RedisClient.ZRemRangeByScore(ctx, redisGlobalDailyActivity, "-inf", "("+cutoff)
 }
 
 // GetUserSolvedProblemIDs 获取用户已解决的所有题目ID

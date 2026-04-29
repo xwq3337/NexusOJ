@@ -70,9 +70,10 @@
               color: 'white'
             }">
               <template #icon>
-                <Brain :size="14" />
+                <RefreshCw v-if="analysisResult && !isAnalyzing" :size="14" />
+                <Brain v-else :size="14" />
               </template>
-              {{ isAnalyzing ? '分析中...' : 'AI 代码分析' }}
+              {{ isAnalyzing ? '分析中...' : analysisResult ? '重新分析' : 'AI 代码分析' }}
             </n-button>
             <n-button @click="copyCode" size="small" type="primary">
               <template #icon>
@@ -103,6 +104,9 @@
               <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
               <span class="text-xs" :style="{ color: 'var(--text-secondary)' }">分析中...</span>
             </div>
+            <span v-else-if="analysisTime" class="text-xs" :style="{ color: 'var(--text-tertiary)' }">
+              分析于 {{ analysisTime }}
+            </span>
           </div>
           <div class="rounded-xl p-6 border" :style="{
             backgroundColor: 'var(--surface-primary)',
@@ -118,24 +122,45 @@
       <div>
         <h2 class="text-xl font-bold mb-4" :style="{ color: 'var(--text-primary)' }">评测结果</h2>
 
-        <div class="space-y-4">
-          <div v-for="(testCase, index) in testCases" :key="testCase.case_id" class="p-4 rounded-xl border" :style="{
-            borderColor: STATUS_COLORS[testCase.status].borderColor,
-            backgroundColor: STATUS_COLORS[testCase.status].color,
+        <!-- 紧凑网格：每行 6 个 -->
+        <div class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
+          <div v-for="testCase in testCases" :key="testCase.case_id"
+            class="flex flex-col items-center gap-1 p-2.5 rounded-lg cursor-pointer transition-all duration-200 border"
+            :class="expandedCase === testCase.case_id ? 'ring-1' : ''"
+            :style="{
+              borderColor: expandedCase === testCase.case_id ? STATUS_COLORS[testCase.status].borderColor : 'var(--border-color)',
+              backgroundColor: expandedCase === testCase.case_id ? STATUS_COLORS[testCase.status].color : 'var(--surface-primary)',
+              '--tw-ring-color': STATUS_COLORS[testCase.status].borderColor,
+            }"
+            @click="toggleCase(testCase.case_id)">
+            <span class="font-mono text-xs" :style="{ color: 'var(--text-secondary)' }">#{{ testCase.case_id }}</span>
+            <n-tag :color="STATUS_COLORS[testCase.status]" size="small" class="text-xs">{{ testCase.status }}</n-tag>
+            <div class="flex items-center gap-2 text-xs mt-0.5" :style="{ color: 'var(--text-tertiary)' }">
+              <span>{{ formatTime(testCase.time) }}</span>
+              <span>{{ formatMemory(testCase.memory) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 展开的详情 -->
+        <Transition name="slide-fade">
+          <div v-if="expandedCase !== null" class="p-4 rounded-xl border" :style="{
+            borderColor: STATUS_COLORS[expandedTestCase!.status].borderColor,
+            backgroundColor: STATUS_COLORS[expandedTestCase!.status].color,
           }">
             <div class="flex justify-between items-center mb-3">
               <div class="flex items-center gap-3">
-                <n-tag :color="STATUS_COLORS[testCase.status]">{{ testCase.status }}</n-tag>
-                <span class="font-mono text-sm">#{{ testCase.case_id }}</span>
+                <n-tag :color="STATUS_COLORS[expandedTestCase!.status]">{{ expandedTestCase!.status }}</n-tag>
+                <span class="font-mono text-sm">#{{ expandedTestCase!.case_id }}</span>
               </div>
               <div class="flex items-center gap-4 text-sm">
                 <div class="flex items-center gap-1">
                   <Clock :size="14" />
-                  <span>{{ formatTime(testCase.time) }}</span>
+                  <span>{{ formatTime(expandedTestCase!.time) }}</span>
                 </div>
                 <div class="flex items-center gap-1">
                   <Database :size="14" />
-                  <span>{{ formatMemory(testCase.memory) }}</span>
+                  <span>{{ formatMemory(expandedTestCase!.memory) }}</span>
                 </div>
               </div>
             </div>
@@ -146,28 +171,28 @@
                 <pre class="p-3 rounded text-sm overflow-x-auto" :style="{
                   backgroundColor: 'var(--surface-tertiary)',
                   color: 'var(--text-secondary)'
-                }">{{ testCase.stdin }}</pre>
+                }">{{ expandedTestCase!.stdin }}</pre>
               </div>
               <div>
                 <h4 class="font-medium mb-2 text-sm text-gray-500">输出</h4>
                 <pre class="p-3 rounded text-sm overflow-x-auto" :style="{
                   backgroundColor: 'var(--surface-tertiary)',
                   color: 'var(--text-secondary)'
-                }">{{ testCase.stdout }}</pre>
+                }">{{ expandedTestCase!.stdout }}</pre>
               </div>
               <div>
                 <h4 class="font-medium mb-2 text-sm text-gray-500">期望输出</h4>
                 <pre class="p-3 rounded text-sm overflow-x-auto" :style="{
                   backgroundColor: 'var(--surface-tertiary)',
                   color: 'var(--text-secondary)'
-                }">{{ testCase.expected }}</pre>
+                }">{{ expandedTestCase!.expected }}</pre>
               </div>
               <div>
                 <h4 class="font-medium mb-2 text-sm text-gray-500">错误输出</h4>
-                <pre v-if="testCase.stderr" class="p-3 rounded text-sm overflow-x-auto" :style="{
+                <pre v-if="expandedTestCase!.stderr" class="p-3 rounded text-sm overflow-x-auto" :style="{
                   backgroundColor: 'var(--surface-tertiary)',
                   color: 'var(--text-secondary)'
-                }">{{ testCase.stderr }}</pre>
+                }">{{ expandedTestCase!.stderr }}</pre>
                 <div v-else class="p-3 rounded text-sm text-gray-500"
                   :style="{ backgroundColor: 'var(--surface-tertiary)' }">
                   无错误输出
@@ -175,7 +200,7 @@
               </div>
             </div>
           </div>
-        </div>
+        </Transition>
       </div>
     </div>
   </div>
@@ -185,8 +210,8 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { NTag, NButton, useMessage } from 'naive-ui'
-import { Clock, Database, Copy, Brain } from 'lucide-vue-next'
-import { useClipboard } from '@vueuse/core'
+import { Clock, Database, Copy, Brain, RefreshCw } from 'lucide-vue-next'
+import { useClipboard, useLocalStorage } from '@vueuse/core'
 import { LANGUAGE_CONFIG, STATUS_COLORS } from '@/constants'
 import hljs from 'highlight.js/lib/common'
 import javascript from 'highlight.js/lib/languages/javascript'
@@ -290,6 +315,15 @@ const record = ref({
 // 解析测试用例
 const testCases = ref<JudgeTestCaseResult[]>([])
 
+// 展开/收起测试用例
+const expandedCase = ref<string | null>(null)
+const expandedTestCase = computed(() =>
+  expandedCase.value !== null ? testCases.value.find(tc => tc.case_id === expandedCase.value) : null
+)
+const toggleCase = (caseId: string) => {
+  expandedCase.value = expandedCase.value === caseId ? null : caseId
+}
+
 // 代码高亮
 const highlightedCode = computed(() => {
   const langMap: Record<string, string> = {
@@ -331,9 +365,30 @@ const copyCode = async () => {
 
 // ==================== AI 代码分析 ====================
 
+interface AnalysisCache {
+  analysis: string
+  analysis_time: string
+}
+
 const isAnalyzing = ref(false)
 const analysisResult = ref('')
+const analysisTime = ref('')
 let analysisAbortController: AbortController | null = null
+
+// 分析结果缓存 key，随 record.id 动态变化
+const analysisCacheKey = computed(() => `ai-analysis-${record.value.id}`)
+const analysisCache = useLocalStorage<AnalysisCache>(
+  () => analysisCacheKey.value,
+  { analysis: '', analysis_time: '' },
+)
+
+// 页面加载后恢复缓存
+watch(() => record.value.id, (newId) => {
+  if (newId && analysisCache.value.analysis) {
+    analysisResult.value = analysisCache.value.analysis
+    analysisTime.value = analysisCache.value.analysis_time
+  }
+})
 
 const analysisMd = new MarkdownIt({
   html: false,
@@ -360,6 +415,7 @@ const startCodeAnalysis = async () => {
 
   isAnalyzing.value = true
   analysisResult.value = ''
+  analysisTime.value = ''
   analysisAbortController = new AbortController()
 
   const language = LANGUAGE_CONFIG[record.value.language as keyof typeof LANGUAGE_CONFIG]?.label || record.value.language || 'unknown'
@@ -381,6 +437,11 @@ const startCodeAnalysis = async () => {
         },
         onClose: () => {
           isAnalyzing.value = false
+          if (analysisResult.value) {
+            const now = new Date().toLocaleString('zh-CN')
+            analysisTime.value = now
+            analysisCache.value = { analysis: analysisResult.value, analysis_time: now }
+          }
         },
       },
       analysisAbortController,

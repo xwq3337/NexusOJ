@@ -303,7 +303,11 @@ func (q *JudgeQueue) saveResult(task *JudgeTask, result *models.JudgeOutputResul
 		Verdict:     result.Verdict,
 		JudgeResult: result.Result,
 	}
-	return models.CreateRecord(record)
+	if err := models.CreateRecord(record); err != nil {
+		return err
+	}
+	models.UpdateDailyActivityCache()
+	return nil
 }
 
 func (q *JudgeQueue) updateProblemStats(task *JudgeTask, verdict models.JudgeVerdict) {

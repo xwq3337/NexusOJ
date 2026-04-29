@@ -69,6 +69,40 @@ async def chat_stream(
     # 加载系统提示词
     system_prompt = load_system_prompt("system_prompt.txt")
 
+    # 将 Go Backend 查询到的页面上下文注入系统提示词
+    page_context = body.get("page_context_data")
+    if page_context:
+        tags = page_context.get("tags")
+        if not isinstance(tags, list):
+            tags = []
+
+        ctx_type = page_context.get("type", "")
+        if ctx_type == "problem":
+            context_text = (
+                f"\n\n当前用户正在查看题目，以下是题目详情：\n"
+                f"标题：{page_context.get('title', '')}\n"
+                f"难度：{page_context.get('difficulty', 0)}\n"
+                f"描述：{page_context.get('context', '')}\n"
+                f"输入说明：{page_context.get('input_description', '')}\n"
+                f"输出说明：{page_context.get('output_description', '')}\n"
+                f"标签：{', '.join(tags)}\n"
+            )
+            samples = page_context.get("samples")
+            if isinstance(samples, list):
+                context_text += "示例：\n"
+                for i, s in enumerate(samples[:3], 1):
+                    context_text += f"  示例{i}: 输入={s.get('input', '')}, 输出={s.get('expected', '')}\n"
+            system_prompt += context_text
+        elif ctx_type == "blog":
+            context_text = (
+                f"\n\n当前用户正在查看博客，以下是博客内容：\n"
+                f"标题：{page_context.get('title', '')}\n"
+                f"作者：{page_context.get('author', '')}\n"
+                f"标签：{', '.join(tags)}\n"
+                f"内容：{page_context.get('content', '')}\n"
+            )
+            system_prompt += context_text
+
     async def event_generator():
         try:
             # 构建 LangChain 消息列表

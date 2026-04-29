@@ -413,8 +413,8 @@
                   :strongest-tags="abilityData.strongest_tags"
                   :weakest-tags="abilityData.weakest_tags"
                 />
-                <!-- Tag Mastery Bars -->
-                <TagAnalysis :tag-scores="abilityData.tag_scores" />
+                <!-- Language Overview -->
+                <LanguageOverview :languages="abilityData.languages" />
               </div>
             </div>
           </div>
@@ -460,7 +460,7 @@ import UserSolutions from './components/UserSolutions.vue'
 import UserBlogs from './components/UserBlogs.vue'
 import UserDiscussions from './components/UserDiscussions.vue'
 import KnowledgeRadar from './components/KnowledgeRadar.vue'
-import TagAnalysis from './components/TagAnalysis.vue'
+import LanguageOverview from './components/LanguageOverview.vue'
 const { copy } = useClipboard()
 const router = useRouter()
 const route = useRoute()
@@ -523,11 +523,15 @@ const abilityData = ref<{
   tag_scores: Record<string, number>
   strongest_tags: string[]
   weakest_tags: string[]
+  languages: Record<string, number>
+  avg_difficulty: number
 }>({
   overall_score: 0,
   tag_scores: {},
   strongest_tags: [],
   weakest_tags: [],
+  languages: {},
+  avg_difficulty: 0,
 })
 const handleAddFriend = () => {
   // TODO: Implement add friend functionality

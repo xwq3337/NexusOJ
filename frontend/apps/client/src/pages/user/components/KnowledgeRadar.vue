@@ -11,13 +11,12 @@
     <!-- 无数据状态 -->
     <div v-if="!tagScores || Object.keys(tagScores).length === 0" class="h-60 flex items-center justify-center">
       <p class="text-sm" :style="{ color: 'var(--text-tertiary)' }">暂无做题记录</p>
-    </div>
-
+    </div>  
+    <!-- TODO: 统计各个标签的总数 Redis -->
     <!-- 雷达图 -->
     <div v-else class="h-72">
       <VChart :option="chartOption" autoresize class="w-full h-full" />
     </div>
-
     <!-- 标签概览 -->
     <div v-if="strongestTags.length > 0 || weakestTags.length > 0" class="mt-4 space-y-2">
       <div v-if="strongestTags.length > 0" class="flex items-start gap-2">

@@ -10,9 +10,16 @@
 
   <!-- Chat Window -->
   <Transition name="chat-slide">
-    <div v-if="isOpen"
-      class="fixed bottom-6 right-6 w-[calc(100%-3rem)] md:w-lg h-125 rounded-xl shadow-2xl flex flex-col z-50 overflow-hidden"
-      :style="{ backgroundColor: 'var(--surface-primary)', border: '1px solid var(--border-color)' }">
+    <div v-if="isOpen" ref="chatWindow"
+      class="fixed bottom-6 right-6 rounded-xl shadow-2xl flex flex-col z-50 overflow-hidden"
+      :style="{
+        backgroundColor: 'var(--surface-primary)',
+        border: '1px solid var(--border-color)',
+        width: isMobile ? 'calc(100% - 3rem)' : chatWidth + 'px',
+        height: chatHeight + 'px',
+        minWidth: isMobile ? undefined : '320px',
+        minHeight: '400px',
+      }">
       <!-- Header -->
       <div class="flex items-center justify-between px-4 py-3 border-b" :style="{ borderColor: 'var(--border-color)' }">
         <div class="flex items-center gap-2">
@@ -85,6 +92,22 @@
         </div>
       </div>
 
+      <!-- Resize Handles -->
+      <template v-if="!isMobile">
+        <!-- Left edge -->
+        <div class="absolute top-0 left-0 w-1.5 h-full cursor-col-resize z-10 hover:bg-blue-500/30 transition-colors"
+          @mousedown.prevent="startResize($event, 'left')"></div>
+        <!-- Top edge -->
+        <div class="absolute top-0 left-0 w-full h-1.5 cursor-row-resize z-10 hover:bg-blue-500/30 transition-colors"
+          @mousedown.prevent="startResize($event, 'top')"></div>
+        <!-- Top-left corner -->
+        <div class="absolute top-0 left-0 w-4 h-4 cursor-nw-resize z-10 hover:bg-blue-500/30 rounded-tl-xl transition-colors"
+          @mousedown.prevent="startResize($event, 'top-left')"></div>
+        <!-- Bottom-left corner -->
+        <div class="absolute bottom-0 left-0 w-4 h-4 cursor-sw-resize z-10 hover:bg-blue-500/30 rounded-bl-xl transition-colors"
+          @mousedown.prevent="startResize($event, 'bottom-left')"></div>
+      </template>
+
       <!-- Input Area -->
       <div class="p-4 border-t" :style="{ borderColor: 'var(--border-color)' }">
         <form @submit.prevent="sendMessage" class="flex gap-2 items-end">
@@ -127,7 +150,7 @@
 import { ref, nextTick, onMounted, watch, computed } from 'vue'
 import { Bot, X, User, Send, Loader2 } from 'lucide-vue-next'
 import { useLocalStorage, useEventListener } from '@vueuse/core'
-import { streamChat, streamCodeAnalysis, streamGuidance } from '@nexusoj/server'
+import { streamChat, streamCodeAnalysis, streamGuidance, type PageContext } from '@nexusoj/server'
 import MarkdownIt from 'markdown-it'
 import { NPopconfirm, NButton, NInput, useMessage } from "naive-ui"
 import { formateTimeStamp } from '@/utils/format'
@@ -165,6 +188,48 @@ const messagesContainer = ref<HTMLElement>()
 const inputRef = ref<HTMLInputElement>()
 const isMobile = ref(false)
 const currentAction = ref<ActionType>('chat')
+// Resizable state
+const chatWidth = useLocalStorage('ai-chat-width', 512)
+const chatHeight = useLocalStorage('ai-chat-height', 500)
+const MIN_WIDTH = 320
+const MIN_HEIGHT = 400
+
+type ResizeDirection = 'left' | 'top' | 'top-left' | 'bottom-left'
+
+const startResize = (e: MouseEvent, direction: ResizeDirection) => {
+  const startX = e.clientX
+  const startY = e.clientY
+  const startW = chatWidth.value
+  const startH = chatHeight.value
+
+  const onMouseMove = (ev: MouseEvent) => {
+    const dx = startX - ev.clientX // moving left = positive
+    const dy = startY - ev.clientY // moving up = positive
+
+    if (direction.includes('left')) {
+      chatWidth.value = Math.min(Math.max(startW + dx, MIN_WIDTH), window.innerWidth - 48)
+    }
+    if (direction === 'top' || direction === 'top-left') {
+      chatHeight.value = Math.min(Math.max(startH + dy, MIN_HEIGHT), window.innerHeight - 48)
+    }
+    if (direction === 'bottom-left') {
+      chatHeight.value = Math.min(Math.max(startH - dy, MIN_HEIGHT), window.innerHeight - 48)
+    }
+  }
+
+  const onMouseUp = () => {
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+    document.body.style.userSelect = ''
+    document.body.style.cursor = ''
+  }
+
+  document.body.style.userSelect = 'none'
+  document.body.style.cursor = direction.includes('top') && direction.includes('left') ? 'nw-resize'
+    : direction === 'left' ? 'col-resize' : 'row-resize'
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+}
 
 // Quick prompts
 const quickPrompts = [
@@ -174,17 +239,33 @@ const quickPrompts = [
   { text: '给我一些个性化练习建议', label: '📚 个性指导', action: 'guidance' as ActionType },
 ]
 
-// 根据当前路由推断用户意图
+// 根据当前路由构建页面上下文，Go Backend 会查询 DB 补充完整信息
 const route = useRoute()
-const inferContext = computed(() => {
+
+const buildPageContext = (): PageContext | undefined => {
   const path = route.path
-  if (path.includes('/problem/')) {
-    return { type: 'problem', hint: '当前在题目页面，用户可能需要解题帮助或代码分析。' }
+  const id = route.params.id as string | undefined
+  if (path.includes('/problem/') && id) {
+    return { type: 'problem', problem_id: Number(id) }
   }
-  if (path.includes('/record')) {
-    return { type: 'record', hint: '当前在提交记录页面，用户可能需要代码调试帮助。' }
+  if (path.includes('/blog/') && id) {
+    return { type: 'blog', blog_id: id } // blog ID 是 UUID，保持字符串
   }
-  return null
+  if (path.includes('/record/')) {
+    return { type: 'record' }
+  }
+  return undefined
+}
+
+const inferContext = computed(() => {
+  const ctx = buildPageContext()
+  if (!ctx) return null
+  const hints: Record<string, string> = {
+    problem: '当前在题目页面，用户可能需要解题帮助或代码分析。',
+    blog: '当前在博客页面，用户可能需要内容总结或讨论。',
+    record: '当前在提交记录页面，用户可能需要代码调试帮助。',
+  }
+  return { type: ctx.type, hint: hints[ctx.type] || '' }
 })
 
 // Load messages from localStorage
@@ -356,7 +437,7 @@ const sendMessage = async () => {
     } else if (action === 'guidance') {
       await streamGuidance(text, messages.value.filter(m => m.id !== aiMessage.id).slice(-10), callbacks, abortController)
     } else {
-      await streamChat(messages.value.filter(m => m.id !== aiMessage.id), callbacks, abortController)
+      await streamChat(messages.value.filter(m => m.id !== aiMessage.id), callbacks, abortController, buildPageContext())
     }
   } catch (error) {
     console.error('Failed to get AI response:', error)

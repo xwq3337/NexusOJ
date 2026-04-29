@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from app.deps import get_optional_user_id
 from app.services.llm_service import get_llm
 from app.services.go_backend_client import get_problem_detail
+from app.tools.test_generator import SYSTEM_PROMPT_TEST_CASES, normalize_test_cases
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +37,11 @@ async def generate_tests(
     token = auth_header.replace("Bearer ", "") if auth_header.startswith("Bearer ") else auth_header
 
     # 获取题目详情
-    problem = await get_problem_detail(req.problem_id, token)
-    if not problem:
+    resp = await get_problem_detail(req.problem_id, token)
+    if not resp:
         return JSONResponse({"error": f"题目 {req.problem_id} 不存在或无法访问"}, status_code=404)
 
+    problem = resp.get("problem", resp)
     title = problem.get("title", "")
     context = problem.get("context", "")
     input_desc = problem.get("input_description", "")
@@ -62,16 +64,7 @@ async def generate_tests(
             "请特别关注代码中的潜在缺陷，生成能暴露这些问题的测试用例。"
         )
 
-    system_prompt = """你是一位专业的算法竞赛测试工程师。根据题目描述生成全面覆盖的测试用例。
-
-要求：
-1. 必须生成涵盖以下类型的测试用例：
-   - 边界值（最小/最大输入规模）
-   - 特殊/退化情况（空输入、全相同、单元素）
-   - 随机正常情况
-   - 压力数据（接近约束上限）
-2. 输出严格的 JSON 数组，每个元素包含 input、expected、explanation
-3. 只输出 JSON，不要有任何其他文字"""
+    system_prompt = SYSTEM_PROMPT_TEST_CASES
 
     user_msg = (
         f"题目：{title}\n"
@@ -80,7 +73,7 @@ async def generate_tests(
         f"输出说明：{output_desc}\n"
         f"标签：{', '.join(tags) if isinstance(tags, list) else tags}\n"
         f"{sample_text}{code_text}\n"
-        f"生成 {req.count} 个测试用例。"
+        f"生成 {req.count} 个测试用例。注意：input 必须是 string，expected 必须是具体的程序输出。"
     )
 
     llm = get_llm()
@@ -99,6 +92,7 @@ async def generate_tests(
     try:
         test_cases = json.loads(content)
         if isinstance(test_cases, list):
+            test_cases = normalize_test_cases(test_cases)
             return {"test_cases": test_cases}
     except json.JSONDecodeError:
         pass

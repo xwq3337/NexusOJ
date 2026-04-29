@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, h, provide } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { useClipboard } from '@vueuse/core'
 import { useMessage } from 'naive-ui'
 import {
   NButton,
@@ -80,11 +81,11 @@ const handleEnterContest = () => {
   router.push({ name: 'ContestProblem', params: { id: contestId, label: targetLabel } })
 }
 
+const { copy } = useClipboard()
 const handleShare = () => {
   const url = window.location.href
-  navigator.clipboard.writeText(url).then(() => {
-    message.success('链接已复制到剪贴板')
-  })
+  copy(url)
+  message.success('链接已复制到剪贴板')
 }
 
 let countdownInterval: ReturnType<typeof setInterval> | null = null

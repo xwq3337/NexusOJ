@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"nexus/config"
+	"nexus/models"
 	"nexus/services"
 	"net/http"
 	"strings"
@@ -105,8 +106,12 @@ func (AIController) Chat(c *gin.Context) {
 		return
 	}
 
-	// 注入 userID，让 AI Backend 知道是哪个用户
 	body["user_id"] = userID
+
+	// 处理页面上下文 — 查询 DB 补充完整信息
+	if ctx, ok := body["page_context"].(map[string]interface{}); ok {
+		enrichPageContext(ctx, body)
+	}
 
 	streamProxy(c, "/chat", body)
 }
@@ -193,4 +198,46 @@ func (AIController) Guidance(c *gin.Context) {
 	body["user_id"] = userID
 
 	streamProxy(c, "/personalized-guidance", body)
+}
+
+// enrichPageContext 根据前端传来的 page_context 标识，查询 DB 补充完整数据
+func enrichPageContext(ctx map[string]interface{}, body map[string]interface{}) {
+	ctxType, _ := ctx["type"].(string)
+	switch ctxType {
+	case "problem":
+		if pid, ok := ctx["problem_id"]; ok {
+			pidStr := fmt.Sprintf("%v", pid)
+			problem, err := models.Problem{}.QueryProblemById(pidStr)
+			if err != nil {
+				log.Printf("[AI Proxy] 查询题目 %s 失败: %v", pidStr, err)
+				return
+			}
+			body["page_context_data"] = map[string]interface{}{
+				"type":              "problem",
+				"title":             problem.Title,
+				"context":           problem.Context,
+				"input_description":  problem.InputDescription,
+				"output_description": problem.OutputDescription,
+				"tags":              problem.Tags,
+				"samples":           problem.JudgeSample,
+				"difficulty":        problem.Difficulty,
+			}
+		}
+	case "blog":
+		if bid, ok := ctx["blog_id"]; ok {
+			bidStr := fmt.Sprintf("%v", bid)
+			blog, err := models.QueryBlog(bidStr)
+			if err != nil {
+				log.Printf("[AI Proxy] 查询博客 %s 失败: %v", bidStr, err)
+				return
+			}
+			body["page_context_data"] = map[string]interface{}{
+				"type":    "blog",
+				"title":   blog.Title,
+				"content": blog.Context,
+				"author":  blog.Username,
+				"tags":    blog.Tags,
+			}
+		}
+	}
 }
