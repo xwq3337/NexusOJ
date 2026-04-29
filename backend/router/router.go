@@ -108,6 +108,7 @@ func Router() *gin.Engine {
 		problem.POST("/create", controllers.ProblemController{}.CreateProblem) // 创建题目
 		problem.GET("/list", controllers.ProblemController{}.GetList)          // 所有题目列表
 		problem.POST("/update", controllers.ProblemController{}.UpdateProblem) // 修改题目
+		problem.GET("/tags", controllers.ProblemController{}.GetAllTags)       // 所有标签列表
 		problem.GET("/search", controllers.ProblemController{}.SearchProblem)  // 根据id获取题目详情
 		problem.POST("/submit", controllers.ProblemController{}.SubmitProblem) // 提交代码
 		problem.GET("/count", controllers.ProblemController{}.GetNumber)       // 所有题目数量

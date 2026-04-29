@@ -63,6 +63,8 @@ func (RecommendationController) GetAbilityAnalysis(c *gin.Context) {
 	utils.ReturnSuccess(c, http.StatusOK, "success", gin.H{
 		"overall_score":  profile.Ability.OverallScore,
 		"tag_scores":     profile.Ability.TagScores,
+		"tag_progress":   profile.Ability.TagProgress,
+		"tag_total":      profile.Ability.TagTotal,
 		"strongest_tags": profile.Ability.StrongestTags,
 		"weakest_tags":   profile.Ability.WeakestTags,
 		"languages":      profile.Preferences.Languages,

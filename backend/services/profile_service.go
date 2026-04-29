@@ -7,9 +7,12 @@ import (
 	"log"
 	"nexus/dao"
 	"nexus/models"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -28,24 +31,26 @@ type ProfileUpdateEvent struct {
 
 // UserProfile 完整用户画像
 type UserProfile struct {
-	Ability     *AbilityDimension     `json:"ability"`
-	Activity    *ActivityDimension    `json:"activity"`
-	Preferences *PreferenceDimension  `json:"preferences"`
-	Social      *SocialDimension      `json:"social"`
+	Ability     *AbilityDimension    `json:"ability"`
+	Activity    *ActivityDimension   `json:"activity"`
+	Preferences *PreferenceDimension `json:"preferences"`
+	Social      *SocialDimension     `json:"social"`
 }
 
 // AbilityDimension 能力维度
 type AbilityDimension struct {
 	OverallScore  float32            `json:"overall_score"`
 	TagScores     map[string]float32 `json:"tag_scores"`
+	TagProgress   map[string]float32 `json:"tag_progress"`
+	TagTotal      map[string]int     `json:"tag_total"`
 	StrongestTags []string           `json:"strongest_tags"`
 	WeakestTags   []string           `json:"weakest_tags"`
 }
 
 // ActivityDimension 活跃度维度
 type ActivityDimension struct {
-	Streak     int                  `json:"streak"`
-	LastActive time.Time            `json:"last_active"`
+	Streak     int                       `json:"streak"`
+	LastActive time.Time                 `json:"last_active"`
 	Heatmaps   map[string]map[string]int `json:"heatmaps"` // year -> {"MM-DD": count}
 }
 
@@ -82,13 +87,13 @@ const (
 	profileDirtyKey       = "profile:%d:dirty"
 )
 
-func profileTagStatsKeyF(userID uint64) string    { return fmt.Sprintf(profileTagStatsKey, userID) }
-func profileActivityKeyF(userID uint64) string    { return fmt.Sprintf(profileActivityKey, userID) }
-func profileHeatmapKeyF(userID uint64, year string) string { return fmt.Sprintf(profileHeatmapKey, userID, year) }
-func profilePreferencesKeyF(userID uint64) string { return fmt.Sprintf(profilePreferencesKey, userID) }
-func profileAbilityKeyF(userID uint64) string     { return fmt.Sprintf(profileAbilityKey, userID) }
-func profileSocialKeyF(userID uint64) string      { return fmt.Sprintf(profileSocialKey, userID) }
-func profileDirtyKeyF(userID uint64) string       { return fmt.Sprintf(profileDirtyKey, userID) }
+func profileTagStatsKeyF(userID uint64) string                { return fmt.Sprintf(profileTagStatsKey, userID) }
+func profileActivityKeyF(userID uint64) string                { return fmt.Sprintf(profileActivityKey, userID) }
+func profileHeatmapKeyF(userID uint64, year string) string    { return fmt.Sprintf(profileHeatmapKey, userID, year) }
+func profilePreferencesKeyF(userID uint64) string             { return fmt.Sprintf(profilePreferencesKey, userID) }
+func profileAbilityKeyF(userID uint64) string                 { return fmt.Sprintf(profileAbilityKey, userID) }
+func profileSocialKeyF(userID uint64) string                  { return fmt.Sprintf(profileSocialKey, userID) }
+func profileDirtyKeyF(userID uint64) string                   { return fmt.Sprintf(profileDirtyKey, userID) }
 
 // ==================== Profile Service ====================
 
@@ -212,13 +217,60 @@ func (s *ProfileService) processEvent(event *ProfileUpdateEvent, workerID int) {
 	}
 }
 
+// ==================== 标签进度计算 ====================
+
+// computeTagProgress 计算所有标签的真实进度（已解决/总题数）
+// 扫描 Redis tag_problems:* 获取全部标签，未涉猎的标签进度为 0
+func computeTagProgress(userID uint64, ability *AbilityDimension) {
+	ctx := context.Background()
+	solvedKey := fmt.Sprintf(dao.UserSolvedBitKey, userID)
+
+	// 扫描所有 tag_problems:* 键，获取全部标签
+	var cursor uint64
+	for {
+		keys, nextCursor, err := dao.RedisClient.Scan(ctx, cursor, "tag_problems:*", 100).Result()
+		if err != nil {
+			return
+		}
+		for _, key := range keys {
+			tag := strings.TrimPrefix(key, "tag_problems:")
+			members, err := dao.RedisClient.ZRange(ctx, key, 0, -1).Result()
+			if err != nil || len(members) == 0 {
+				continue
+			}
+
+			total := len(members)
+			pipe := dao.RedisClient.Pipeline()
+			cmds := make([]*redis.IntCmd, total)
+			for i, m := range members {
+				id, _ := strconv.ParseInt(m, 10, 64)
+				cmds[i] = pipe.GetBit(ctx, solvedKey, id-1000)
+			}
+			pipe.Exec(ctx)
+
+			var solved int
+			for _, cmd := range cmds {
+				if cmd.Val() == 1 {
+					solved++
+				}
+			}
+			ability.TagProgress[tag] = float32(solved) / float32(total)
+			ability.TagTotal[tag] = total
+		}
+		cursor = nextCursor
+		if cursor == 0 {
+			break
+		}
+	}
+}
+
 // ==================== 画像读取方法 ====================
 
 // GetUserProfile 从 Redis 读取完整画像
 func GetUserProfile(userID uint64) (*UserProfile, error) {
 	ctx := context.Background()
 	profile := &UserProfile{
-		Ability:     &AbilityDimension{TagScores: make(map[string]float32)},
+		Ability:     &AbilityDimension{TagScores: make(map[string]float32), TagProgress: make(map[string]float32), TagTotal: make(map[string]int)},
 		Activity:    &ActivityDimension{Heatmaps: make(map[string]map[string]int)},
 		Preferences: &PreferenceDimension{Languages: make(map[string]int)},
 		Social:      &SocialDimension{},
@@ -240,10 +292,7 @@ func GetUserProfile(userID uint64) (*UserProfile, error) {
 		}
 		var totalAttempted int
 		var weightedScoreSum float32
-		var strongestTags []struct {
-			tag   string
-			score float32
-		}
+		tagList := make([]string, 0, len(result))
 		for tag, val := range result {
 			var entry TagStatEntry
 			if err := json.Unmarshal([]byte(val), &entry); err != nil {
@@ -256,22 +305,37 @@ func GetUserProfile(userID uint64) (*UserProfile, error) {
 			profile.Ability.TagScores[tag] = score
 			totalAttempted += entry.Attempted
 			weightedScoreSum += score * float32(entry.Attempted)
-			strongestTags = append(strongestTags, struct {
-				tag   string
-				score float32
-			}{tag, score})
+			tagList = append(tagList, tag)
 		}
 		if totalAttempted > 0 {
 			profile.Ability.OverallScore = weightedScoreSum / float32(totalAttempted)
 		}
-		// 排序找出最强/最弱标签
-		sortTagsByScore(strongestTags)
-		n := len(strongestTags)
+
+		// 计算所有标签真实进度（含未涉猎标签，进度为 0）
+		computeTagProgress(userID, profile.Ability)
+
+		// 基于进度排序找出最强/最弱标签
+		allTags := make([]string, 0, len(profile.Ability.TagProgress))
+		for tag := range profile.Ability.TagProgress {
+			allTags = append(allTags, tag)
+		}
+		progressTags := make([]struct {
+			tag      string
+			progress float32
+		}, 0, len(allTags))
+		for _, tag := range allTags {
+			progressTags = append(progressTags, struct {
+				tag      string
+				progress float32
+			}{tag, profile.Ability.TagProgress[tag]})
+		}
+		sortTagsByProgress(progressTags)
+		n := len(progressTags)
 		if n > 3 {
-			profile.Ability.StrongestTags = tagNames(strongestTags[n-3:])
-			profile.Ability.WeakestTags = tagNames(strongestTags[:3])
+			profile.Ability.StrongestTags = tagNameFromProgress(progressTags[n-3:])
+			profile.Ability.WeakestTags = tagNameFromProgress(progressTags[:3])
 		} else if n > 0 {
-			profile.Ability.StrongestTags = tagNames(strongestTags)
+			profile.Ability.StrongestTags = tagNameFromProgress(progressTags)
 		}
 	}()
 
@@ -329,6 +393,31 @@ func GetUserProfile(userID uint64) (*UserProfile, error) {
 		}
 	}
 	return profile, nil
+}
+
+// sortTagsByProgress 按进度升序排列（最弱在前）
+func sortTagsByProgress(tags []struct {
+	tag      string
+	progress float32
+}) {
+	for i := 0; i < len(tags); i++ {
+		for j := i + 1; j < len(tags); j++ {
+			if tags[i].progress > tags[j].progress {
+				tags[i], tags[j] = tags[j], tags[i]
+			}
+		}
+	}
+}
+
+func tagNameFromProgress(tags []struct {
+	tag      string
+	progress float32
+}) []string {
+	names := make([]string, len(tags))
+	for i, t := range tags {
+		names[i] = t.tag
+	}
+	return names
 }
 
 // sortTagsByScore 按分数升序排列（最弱在前）
@@ -538,12 +627,12 @@ func PersistProfileToMongoDB(userID uint64) error {
 
 	filter := bson.M{"user_id": userID}
 	update := bson.M{
-		"user_id":    userID,
-		"updated_at": time.Now(),
-		"ability":    profile.Ability,
-		"activity":   profile.Activity,
+		"user_id":     userID,
+		"updated_at":  time.Now(),
+		"ability":     profile.Ability,
+		"activity":    profile.Activity,
 		"preferences": profile.Preferences,
-		"social":     profile.Social,
+		"social":      profile.Social,
 	}
 
 	return dao.UpdateDocument(profileDB, profileCollection, filter, update)

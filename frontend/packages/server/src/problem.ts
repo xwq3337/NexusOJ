@@ -3,8 +3,11 @@ import type { ApiResponse } from '@nexusoj/type'
 import type { Problem, ProblemListDTO } from '@nexusoj/type'
 
 export const problemApi = {
-  getProblemList: (page?: number, pageSize?: number, search?: string): Promise<ApiResponse<{ problems: ProblemListDTO[], total: number }>> => {
-    return Request.get('/problem/list', { params: { page, page_size: pageSize, search } })
+  getProblemList: (page?: number, pageSize?: number, search?: string, tags?: string[]): Promise<ApiResponse<{ problems: ProblemListDTO[], total: number }>> => {
+    return Request.get('/problem/list', { params: { page, page_size: pageSize, search, tags: tags?.join(',') } })
+  },
+  getAllTags: (): Promise<ApiResponse<string[]>> => {
+    return Request.get('/problem/tags')
   },
   getProblemDetail: (id: string): Promise<ApiResponse<{
     problem : Problem,

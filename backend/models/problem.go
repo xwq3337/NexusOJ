@@ -117,7 +117,11 @@ func (Problem) GetAllProblem() ([]Problem, error) {
 }
 
 // GetAllProblemPaginated 分页查询题目列表，使用窗口函数返回总数
-func (Problem) GetAllProblemPaginated(page, pageSize int, search string) ([]ProblemListItem, int64, error) {
+func (Problem) GetAllProblemPaginated(page, pageSize int, search string, filterIDs []int64) ([]ProblemListItem, int64, error) {
+	if filterIDs != nil && len(filterIDs) == 0 {
+		return []ProblemListItem{}, 0, nil
+	}
+
 	var results []ProblemListItem
 	query := dao.MysqlClient.Model(&Problem{}).
 		Select("problem.id", "problem.title", "problem.difficulty", "problem.collection",
@@ -125,6 +129,10 @@ func (Problem) GetAllProblemPaginated(page, pageSize int, search string) ([]Prob
 			"problem.created_at", "problem.updated_at",
 			"COUNT(*) OVER() AS total").
 		Where("problem.deleted_at IS NULL")
+
+	if filterIDs != nil {
+		query = query.Where("problem.id IN ?", filterIDs)
+	}
 
 	if search != "" {
 		query = query.Where(

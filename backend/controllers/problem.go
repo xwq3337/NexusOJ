@@ -8,6 +8,7 @@ import (
 	"nexus/models"
 	"nexus/services"
 	"nexus/utils"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -32,6 +33,10 @@ func (ProblemController) CreateProblem(c *gin.Context) {
 		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
 	}
+
+	// 增量更新 Redis 索引
+	go addToProblemIndexes(problem)
+
 	utils.ReturnSuccess(c, http.StatusOK, "success", problem)
 }
 
@@ -70,6 +75,7 @@ func (ProblemController) GetList(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
 	search := c.Query("search")
+	tagsParam := c.Query("tags")
 
 	if page < 1 {
 		page = 1
@@ -78,7 +84,26 @@ func (ProblemController) GetList(c *gin.Context) {
 		pageSize = 20
 	}
 
-	problems, total, err := models.Problem{}.GetAllProblemPaginated(page, pageSize, search)
+	// 标签筛选
+	var filterIDs []int64
+	if tagsParam != "" {
+		tags := strings.Split(tagsParam, ",")
+		var err error
+		filterIDs, err = intersectTagProblemIDs(tags)
+		if err != nil {
+			utils.ReturnError(c, http.StatusInternalServerError, err)
+			return
+		}
+		if len(filterIDs) == 0 {
+			utils.ReturnSuccess(c, http.StatusOK, "success", gin.H{
+				"problems": []models.ProblemDTO{},
+				"total":    0,
+			})
+			return
+		}
+	}
+
+	problems, total, err := models.Problem{}.GetAllProblemPaginated(page, pageSize, search, filterIDs)
 	if err != nil {
 		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
@@ -136,6 +161,12 @@ func (ProblemController) UpdateProblem(c *gin.Context) {
 		utils.ReturnError(c, http.StatusInternalServerError, err)
 		return
 	}
+
+	// 更新后重建索引（标签可能变化）
+	go func() {
+		_ = RefreshProblemIndexes()
+	}()
+
 	utils.ReturnSuccess(c, http.StatusOK, "success", problem)
 }
 func (ProblemController) SearchProblem(c *gin.Context) {
@@ -256,4 +287,95 @@ func Equal(a, b interface{}) bool {
 		return cmp.Equal(strings.TrimRight(strA, "\n"), strings.TrimRight(strB, "\n"))
 	}
 	return cmp.Equal(a, b)
+}
+
+// intersectTagProblemIDs 获取包含所有指定标签的题目 ID（交集）
+func intersectTagProblemIDs(tags []string) ([]int64, error) {
+	ctx := context.Background()
+	if len(tags) == 1 {
+		members, err := dao.RedisClient.ZRange(ctx, TagProblemsPrefix+tags[0], 0, -1).Result()
+		if err != nil {
+			return nil, err
+		}
+		return parseStringIDs(members), nil
+	}
+
+	// 多标签：ZINTERSTORE 求交集
+	keys := make([]string, len(tags))
+	for i, t := range tags {
+		keys[i] = TagProblemsPrefix + t
+	}
+	destKey := "temp:tag_intersect:" + strings.Join(tags, ",")
+	store := &redis.ZStore{Keys: keys, Aggregate: "MIN"}
+	dao.RedisClient.ZInterStore(ctx, destKey, store)
+	dao.RedisClient.Expire(ctx, destKey, 30*time.Second)
+
+	members, err := dao.RedisClient.ZRange(ctx, destKey, 0, -1).Result()
+	if err != nil {
+		return nil, err
+	}
+	return parseStringIDs(members), nil
+}
+
+func parseStringIDs(ss []string) []int64 {
+	ids := make([]int64, 0, len(ss))
+	for _, s := range ss {
+		id, err := strconv.ParseInt(s, 10, 64)
+		if err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+// GetAllTags 获取所有标签列表
+func (ProblemController) GetAllTags(c *gin.Context) {
+	ctx := context.Background()
+	var cursor uint64
+	var tags []string
+	for {
+		keys, nextCursor, err := dao.RedisClient.Scan(ctx, cursor, "tag_problems:*", 100).Result()
+		if err != nil {
+			utils.ReturnError(c, http.StatusInternalServerError, err)
+			return
+		}
+		for _, key := range keys {
+			tag := strings.TrimPrefix(key, "tag_problems:")
+			count := dao.RedisClient.ZCard(ctx, key).Val()
+			if count > 0 {
+				tags = append(tags, tag)
+			}
+		}
+		cursor = nextCursor
+		if cursor == 0 {
+			break
+		}
+	}
+	sort.Strings(tags)
+	utils.ReturnSuccess(c, http.StatusOK, "success", tags)
+}
+
+// addToProblemIndexes 将新题目增量添加到 Redis 索引
+func addToProblemIndexes(problem *models.Problem) {
+	ctx := context.Background()
+	pipe := dao.RedisClient.Pipeline()
+
+	pipe.ZAdd(ctx, ProblemsByDifficulty, &redis.Z{
+		Score:  float64(problem.Difficulty),
+		Member: problem.ID,
+	})
+	pipe.ZAdd(ctx, ProblemsByTime, &redis.Z{
+		Score:  float64(problem.CreatedAt.Unix()),
+		Member: problem.ID,
+	})
+	for _, tag := range problem.Tags {
+		if tag == "" {
+			continue
+		}
+		pipe.ZAdd(ctx, TagProblemsPrefix+tag, &redis.Z{
+			Score:  float64(problem.Difficulty),
+			Member: problem.ID,
+		})
+	}
+	_, _ = pipe.Exec(ctx)
 }

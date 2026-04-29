@@ -2,6 +2,7 @@ package main
 
 import (
 	"nexus/config"
+	"nexus/controllers"
 	"nexus/migrations"
 	"nexus/router"
 	"nexus/services"
@@ -48,6 +49,11 @@ func main() {
 
 	// 初始化比赛状态自动检查协程
 	services.InitContestStatusWorker()
+
+	// 构建题目 Redis 索引（标签、难度、时间）
+	if err := controllers.RefreshProblemIndexes(); err != nil {
+		logger.Error("构建题目索引失败", err)
+	}
 
 	// 获取路由器并启动HTTP服务器
 	r := router.Router()

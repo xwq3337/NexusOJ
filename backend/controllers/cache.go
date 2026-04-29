@@ -11,10 +11,10 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-// 永久 key
+// 永久 key（引用 dao 共享常量）
 var (
-	ProblemStatusSolvedBit    = "user:%d:problem_status_solved_bit"
-	ProblemStatusAttemptedBit = "user:%d:problem_status_attempted_bit"
+	ProblemStatusSolvedBit    = dao.UserSolvedBitKey
+	ProblemStatusAttemptedBit = dao.UserAttemptedBitKey
 )
 
 // 半永久key

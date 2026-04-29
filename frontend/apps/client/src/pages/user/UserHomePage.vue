@@ -409,7 +409,8 @@
               <div class="xl:sticky xl:top-24 space-y-4">
                 <!-- Knowledge Radar Chart -->
                 <KnowledgeRadar
-                  :tag-scores="abilityData.tag_scores"
+                  :tag-progress="abilityData.tag_progress"
+                  :tag-total="abilityData.tag_total"
                   :strongest-tags="abilityData.strongest_tags"
                   :weakest-tags="abilityData.weakest_tags"
                 />
@@ -521,6 +522,8 @@ const heatmapRawData = ref<{
 const abilityData = ref<{
   overall_score: number
   tag_scores: Record<string, number>
+  tag_progress: Record<string, number>
+  tag_total: Record<string, number>
   strongest_tags: string[]
   weakest_tags: string[]
   languages: Record<string, number>
@@ -528,6 +531,8 @@ const abilityData = ref<{
 }>({
   overall_score: 0,
   tag_scores: {},
+  tag_progress: {},
+  tag_total: {},
   strongest_tags: [],
   weakest_tags: [],
   languages: {},

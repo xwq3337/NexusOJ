@@ -4,33 +4,23 @@
       <!-- Left: Problem List -->
       <div class="lg:col-span-8 mb-8 whitespace-nowrap">
         <div class="mb-4 flex items-center gap-3">
-          <n-input
-            v-model:value="searchKeyword"
-            placeholder="搜索题目标题或 ID..."
-            clearable
-            @keyup.enter="handleSearch"
-          >
+          <n-input v-model:value="searchKeyword" placeholder="搜索题目标题或 ID..." clearable @keyup.enter="handleSearch">
             <template #prefix>
               <Search class="w-4 h-4" style="color: var(--text-secondary)" />
             </template>
           </n-input>
+          <n-select v-model:value="selectedTags" :options="tagOptions" multiple filterable placeholder="按标签筛选..."
+            :max-tag-count="3" @update:value="handleTagChange" />
           <n-button type="primary" @click="handleSearch">搜索</n-button>
         </div>
+
         <div class="divide-y" :style="{
           borderBottomColor: 'var(--border-color)',
           borderBottomWidth: '1px',
           borderStyle: 'solid'
         }">
-          <n-data-table
-            :columns="columns"
-            :data="Problems"
-            :pagination="paginationReactive"
-            :loading="loading"
-            :bordered="false"
-            remote
-            @update:page="handlePageChange"
-            @update:page-size="handlePageSizeChange"
-          />
+          <n-data-table :columns="columns" :data="Problems" :pagination="paginationReactive" :loading="loading"
+            :bordered="false" remote @update:page="handlePageChange" @update:page-size="handlePageSizeChange" />
         </div>
       </div>
 
@@ -45,10 +35,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, h, renderList, onMounted } from 'vue'
+import { ref, reactive, computed, h, renderList, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { CheckCircle2, Circle, AlertCircle, Search } from 'lucide-vue-next'
-import { NTag, NDataTable, NInput, NButton, useMessage } from 'naive-ui'
+import { NTag, NDataTable, NInput, NButton, NSelect, useMessage } from 'naive-ui'
 import { difficultyMap } from '@/constants'
 import { formatAcceptance } from '@/utils/format'
 import { problemApi } from '@nexusoj/server'
@@ -59,6 +49,12 @@ const message = useMessage()
 const loading = ref(false)
 const Problems = ref<ProblemListDTO[]>([])
 const searchKeyword = ref('')
+const selectedTags = ref<string[]>([])
+const allTags = ref<string[]>([])
+
+const tagOptions = computed(() =>
+  allTags.value.map(t => ({ label: t, value: t }))
+)
 
 const paginationReactive = reactive({
   page: 1,
@@ -73,7 +69,7 @@ const columns = [
     title: '状态',
     key: 'status',
     width: 60,
-    render(row : any) {
+    render(row: any) {
       let icon
       let iconClass
       let statusText
@@ -110,7 +106,7 @@ const columns = [
   {
     title: '题目',
     key: 'title',
-    render(row : any) {
+    render(row: any) {
       return h('div', { class: 'items-center space-x-2' }, [
         h(
           RouterLink,
@@ -142,7 +138,7 @@ const columns = [
   {
     title: '通过率',
     key: 'acceptance',
-    render(row : any) {
+    render(row: any) {
       return h(
         'span',
         { class: 'text-sm' },
@@ -153,7 +149,7 @@ const columns = [
   {
     title: '难度',
     key: 'difficulty',
-    render(row : any) {
+    render(row: any) {
       return h(
         NTag,
         {
@@ -178,6 +174,7 @@ const fetchProblems = async () => {
       paginationReactive.page,
       paginationReactive.pageSize,
       searchKeyword.value || undefined,
+      selectedTags.value.length > 0 ? selectedTags.value : undefined,
     )
     if (res.code === 200 && res.info) {
       Problems.value = res.info.problems || []
@@ -187,6 +184,17 @@ const fetchProblems = async () => {
     console.error(e)
   } finally {
     loading.value = false
+  }
+}
+
+const fetchTags = async () => {
+  try {
+    const res = await problemApi.getAllTags()
+    if (res.code === 200 && res.info) {
+      allTags.value = res.info
+    }
+  } catch (e) {
+    console.error(e)
   }
 }
 
@@ -201,10 +209,18 @@ const handlePageSizeChange = (pageSize: number) => {
   fetchProblems()
 }
 
+const handleTagChange = () => {
+  paginationReactive.page = 1
+  fetchProblems()
+}
+
 const handleSearch = () => {
   paginationReactive.page = 1
   fetchProblems()
 }
 
-onMounted(fetchProblems)
+onMounted(() => {
+  fetchProblems()
+  fetchTags()
+})
 </script>

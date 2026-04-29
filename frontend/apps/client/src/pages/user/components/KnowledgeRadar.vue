@@ -9,14 +9,15 @@
     </h3>
 
     <!-- 无数据状态 -->
-    <div v-if="!tagScores || Object.keys(tagScores).length === 0" class="h-60 flex items-center justify-center">
+    <div v-if="!tagProgress || Object.keys(tagProgress).length === 0" class="h-60 flex items-center justify-center">
       <p class="text-sm" :style="{ color: 'var(--text-tertiary)' }">暂无做题记录</p>
-    </div>  
-    <!-- TODO: 统计各个标签的总数 Redis -->
-    <!-- 雷达图 -->
-    <div v-else class="h-72">
+    </div>
+
+    <!-- 力导向图 -->
+    <div v-else class="h-80">
       <VChart :option="chartOption" autoresize class="w-full h-full" />
     </div>
+
     <!-- 标签概览 -->
     <div v-if="strongestTags.length > 0 || weakestTags.length > 0" class="mt-4 space-y-2">
       <div v-if="strongestTags.length > 0" class="flex items-start gap-2">
@@ -46,42 +47,77 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import VChart from 'vue-echarts'
-import * as echarts from 'echarts/core'
-import { RadarChart } from 'echarts/charts'
-import { TooltipComponent, LegendComponent } from 'echarts/components'
+import { GraphChart } from 'echarts/charts'
+import { TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { use } from 'echarts/core'
 import { Target } from 'lucide-vue-next'
 
-use([CanvasRenderer, RadarChart, TooltipComponent, LegendComponent])
+use([CanvasRenderer, GraphChart, TooltipComponent])
 
 interface Props {
-  tagScores: Record<string, number>
+  tagProgress: Record<string, number>
+  tagTotal?: Record<string, number>
   strongestTags?: string[]
   weakestTags?: string[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  tagTotal: () => ({}),
   strongestTags: () => [],
   weakestTags: () => [],
 })
 
+const getProgressColor = (progress: number) => {
+  if (progress >= 0.6) return '#4ade80'
+  if (progress >= 0.3) return '#fbbf24'
+  return '#f87171'
+}
+
 const chartOption = computed(() => {
-  const tags = Object.keys(props.tagScores)
+  const tags = Object.keys(props.tagProgress)
   if (tags.length === 0) return {}
 
-  // 雷达图最多显示 8 个维度，按掌握度排序取最有代表性的
-  const sorted = tags.sort((a, b) => props.tagScores[b] - props.tagScores[a])
-  const displayTags = sorted.length > 8
-    ? [...sorted.slice(0, 4), ...sorted.slice(-4)]
-    : sorted
+  const nodes = tags.map(tag => {
+    const progress = props.tagProgress[tag] ?? 0
+    const total = props.tagTotal[tag] ?? 1
+    const size = Math.max(36, Math.min(70, Math.sqrt(total) * 8))
+    const color = getProgressColor(progress)
 
-  const indicators = displayTags.map(tag => ({
-    name: tag,
-    max: 1.0,
-  }))
-
-  const values = displayTags.map(tag => props.tagScores[tag])
+    return {
+      name: tag,
+      symbolSize: size,
+      symbol: 'roundRect' as const,
+      itemStyle: {
+        color: '#1e293b',
+        borderColor: color,
+        borderWidth: 2,
+        borderRadius: 10,
+      },
+      label: {
+        show: true,
+        position: 'inside' as const,
+        formatter: `{name|${tag}}\n{progress|${Math.round(progress * 100)}%}`,
+        rich: {
+          name: {
+            fontSize: 10,
+            color: '#e2e8f0',
+            lineHeight: 16,
+            align: 'center' as const,
+          },
+          progress: {
+            fontSize: 11,
+            fontWeight: 'bold' as const,
+            color: color,
+            lineHeight: 16,
+            align: 'center' as const,
+          },
+        },
+      },
+      _progress: progress,
+      _total: total,
+    }
+  })
 
   return {
     tooltip: {
@@ -90,61 +126,37 @@ const chartOption = computed(() => {
       borderColor: 'rgba(14, 165, 233, 0.3)',
       textStyle: { color: '#e2e8f0', fontSize: 12 },
       formatter: (params: any) => {
-        if (!params.value) return ''
-        const points = params.value
-        return displayTags
-          .map((tag, i) => `${tag}: ${(points[i] * 100).toFixed(0)}%`)
-          .join('<br/>')
-      },
-    },
-    radar: {
-      indicator: indicators,
-      shape: 'polygon',
-      radius: '65%',
-      axisName: {
-        color: 'var(--text-secondary)',
-        fontSize: 11,
-      },
-      splitArea: {
-        areaStyle: {
-          color: ['rgba(14, 165, 233, 0.02)', 'rgba(14, 165, 233, 0.05)'],
-        },
-      },
-      splitLine: {
-        lineStyle: { color: 'rgba(14, 165, 233, 0.15)' },
-      },
-      axisLine: {
-        lineStyle: { color: 'rgba(14, 165, 233, 0.15)' },
+        const tag = params.name
+        const progress = props.tagProgress[tag] ?? 0
+        const total = props.tagTotal[tag] ?? 0
+        const solved = Math.round(progress * total)
+        return `<b>${tag}</b><br/>进度: ${Math.round(progress * 100)}%<br/>已解决: ${solved}/${total}`
       },
     },
     series: [
       {
-        type: 'radar',
-        data: [
-          {
-            value: values,
-            name: '掌握度',
-            areaStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: 'rgba(14, 165, 233, 0.35)' },
-                { offset: 1, color: 'rgba(14, 165, 233, 0.05)' },
-              ]),
-            },
-            lineStyle: {
-              color: '#0ea5e9',
-              width: 2,
-              shadowColor: 'rgba(14, 165, 233, 0.4)',
-              shadowBlur: 6,
-            },
-            itemStyle: {
-              color: '#0ea5e9',
-              borderColor: '#0ea5e9',
-              borderWidth: 2,
-            },
-            symbol: 'circle',
-            symbolSize: 6,
+        type: 'graph',
+        layout: 'force',
+        roam: false,
+        draggable: true,
+        force: {
+          repulsion: 150,
+          gravity: 0.15,
+          edgeLength: [60, 120],
+          layoutAnimation: true,
+          friction: 0.6,
+        },
+        data: nodes,
+        links: [],
+        emphasis: {
+          focus: 'adjacency',
+          itemStyle: {
+            shadowBlur: 12,
+            shadowColor: 'rgba(14, 165, 233, 0.4)',
           },
-        ],
+        },
+        animationDuration: 800,
+        animationEasingUpdate: 'quinticInOut',
       },
     ],
   }

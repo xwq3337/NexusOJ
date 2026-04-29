@@ -169,6 +169,8 @@ export const userApi = {
     ApiResponse<{
       overall_score: number;
       tag_scores: Record<string, number>;
+      tag_progress: Record<string, number>;
+      tag_total: Record<string, number>;
       strongest_tags: string[];
       weakest_tags: string[];
       languages: Record<string, number>;
